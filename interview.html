@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Practice interviews | IS Career Launchpad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html"
+        ><span class="brand-mark">IS</span><span>Career Launchpad</span></a
+      >
+      <nav aria-label="Primary navigation">
+        <a href="careers.html">Explore</a><a href="quiz.html">Find my path</a
+        ><a class="active-nav" href="interview.html">Practice</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-heading practice-heading">
+        <div>
+          <p class="eyebrow">03 / Practice the moment</p>
+          <h1>Make the interview<br /><em>less hypothetical.</em></h1>
+        </div>
+        <p>
+          Choose a role, choose your stretch, and answer a question out loud or
+          on the page. Feedback is immediate and specific.
+        </p>
+      </section>
+      <section class="practice page-section">
+        <div id="interview-setup" class="interview-setup">
+          <label>Role<select id="interview-career"></select></label
+          ><label
+            >Difficulty<select id="interview-difficulty">
+              <option value="internship">Internship</option>
+              <option value="entry">Entry level</option>
+              <option value="challenge">Challenge</option>
+            </select></label
+          ><button
+            id="start-interview"
+            class="button button-accent"
+            type="button"
+          >
+            Start interview <span>-></span>
+          </button>
+        </div>
+        <div id="interview-workspace" class="interview-workspace" hidden>
+          <div class="interview-top">
+            <span id="interview-progress">Question 1 / 3</span
+            ><button id="try-again" class="text-button" type="button">
+              Reset interview
+            </button>
+          </div>
+          <h2 id="interview-question"></h2>
+          <form id="answer-form">
+            <textarea
+              id="answer-input"
+              required
+              placeholder="Write your answer here..."
+            ></textarea
+            ><button class="button button-dark" type="submit">
+              Submit answer <span>-></span>
+            </button>
+          </form>
+          <div id="feedback-panel" class="feedback-panel" hidden>
+            <div class="feedback-score">
+              <span id="feedback-score">0</span><small>/ 10</small>
+            </div>
+            <div>
+              <p class="eyebrow">Interviewer notes</p>
+              <h3>Keep this in your toolkit.</h3>
+              <div class="feedback-grid">
+                <div>
+                  <strong>What worked</strong>
+                  <p id="feedback-good"></p>
+                </div>
+                <div>
+                  <strong>What to add</strong>
+                  <p id="feedback-missing"></p>
+                </div>
+              </div>
+              <div class="strong-answer">
+                <strong>A stronger answer could include</strong>
+                <p id="feedback-strong"></p>
+              </div>
+              <p class="follow-up">
+                <strong>Follow-up:</strong> <span id="feedback-followup"></span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span>IS CAREER LAUNCHPAD</span
+      ><span>Explore with intention. Practice with purpose.</span
+      ><span>2026</span>
+    </footer>
+    <script src="js/data.js"></script>
+    <script src="js/questions.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

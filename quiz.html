@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Find your path | IS Career Launchpad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html"
+        ><span class="brand-mark">IS</span><span>Career Launchpad</span></a
+      >
+      <nav aria-label="Primary navigation">
+        <a href="careers.html">Explore</a
+        ><a class="active-nav" href="quiz.html">Find my path</a
+        ><a href="interview.html">Practice</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-heading">
+        <p class="eyebrow">02 / Find your fit</p>
+        <h1>A little self-knowledge<br /><em>goes a long way.</em></h1>
+        <p>
+          Answer a few quick prompts. Your top matches are starting points, not
+          boxes.
+        </p>
+      </section>
+      <section class="quiz-section page-section">
+        <div class="quiz-wrap">
+          <form id="quiz-form">
+            <div class="quiz-meta">
+              <span id="quiz-progress">Question 1 / 5</span><span>2 min</span>
+            </div>
+            <h2 id="quiz-question"></h2>
+            <div id="quiz-options" class="quiz-options"></div>
+            <button class="button button-dark" type="submit">
+              Next question <span>-></span>
+            </button>
+          </form>
+          <div id="quiz-results" class="quiz-results" hidden></div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span>IS CAREER LAUNCHPAD</span
+      ><span>Explore with intention. Practice with purpose.</span
+      ><span>2026</span>
+    </footer>
+    <script src="js/data.js"></script>
+    <script src="js/questions.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

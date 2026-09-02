@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Explore careers | IS Career Launchpad</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html"
+        ><span class="brand-mark">IS</span><span>Career Launchpad</span></a
+      >
+      <nav aria-label="Primary navigation">
+        <a class="active-nav" href="careers.html">Explore</a
+        ><a href="quiz.html">Find my path</a
+        ><a href="interview.html">Practice</a>
+      </nav>
+    </header>
+    <main>
+      <section class="page-heading">
+        <p class="eyebrow">01 / See the landscape</p>
+        <h1>Pick a direction.<br /><em>See what it takes.</em></h1>
+        <p>
+          Start with the kind of problems you want to solve. Select a role to
+          reveal the skills, tools, and signals that make candidates memorable.
+        </p>
+      </section>
+      <section class="career-layout page-section">
+        <div
+          id="career-tree"
+          class="career-tree"
+          aria-label="Interactive career map"
+        ></div>
+        <article id="career-detail" class="career-detail" aria-live="polite">
+          <div class="detail-placeholder">
+            <span class="big-number">01</span>
+            <p>Select a role on the map<br />to open its field notes.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+    <footer>
+      <span>IS CAREER LAUNCHPAD</span
+      ><span>Explore with intention. Practice with purpose.</span
+      ><span>2026</span>
+    </footer>
+    <script src="js/data.js"></script>
+    <script src="js/questions.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
