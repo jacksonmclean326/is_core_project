@@ -115,4 +115,88 @@ const questionBank = {
         "Give an example of turning a quality into a testable requirement.",
     },
   ],
+  "it-project-manager": [
+    {
+      type: "behavioral",
+      prompt: "Tell me about a project you helped move forward.",
+      strongAnswer:
+        "Explain the goal, your plan, how you handled a risk or blocker, and the result.",
+      lookFor: ["goal", "plan", "risk", "communicate", "result"],
+      followUp: "How did you know the project was on track?",
+    },
+    {
+      type: "technical",
+      prompt: "How would you handle a project that is falling behind?",
+      strongAnswer:
+        "Make the delay visible, identify the dependency or scope issue, align stakeholders on tradeoffs, and reset the plan.",
+      lookFor: ["delay", "scope", "dependency", "stakeholder", "plan"],
+      followUp: "What would you communicate first?",
+    },
+  ],
+  "ux-product-manager": [
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you designed or improved an experience.",
+      strongAnswer:
+        "Describe the user need, the evidence you gathered, the decision you made, and how you tested the result.",
+      lookFor: ["user", "research", "design", "test", "result"],
+      followUp: "What did you change after getting feedback?",
+    },
+    {
+      type: "technical",
+      prompt: "How would you prioritize competing product ideas?",
+      strongAnswer:
+        "Compare user value, business impact, effort, risk, and evidence, then make the tradeoff visible to the team.",
+      lookFor: ["value", "impact", "effort", "risk", "evidence"],
+      followUp: "How would you respond when a stakeholder disagrees?",
+    },
+  ],
+  "erp-systems-consultant": [
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you learned a new system quickly.",
+      strongAnswer:
+        "Explain the business need, how you explored the system, who you asked for context, and how you applied what you learned.",
+      lookFor: ["system", "learn", "business", "context", "apply"],
+      followUp: "How did you help someone else understand it?",
+    },
+    {
+      type: "technical",
+      prompt: "How would you gather requirements for an ERP implementation?",
+      strongAnswer:
+        "Interview users, map the current process, identify pain points and constraints, document requirements, and validate priorities.",
+      lookFor: [
+        "users",
+        "process",
+        "requirements",
+        "constraints",
+        "priorities",
+      ],
+      followUp: "How would you handle conflicting department needs?",
+    },
+  ],
+  "cloud-infrastructure-engineer": [
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you troubleshot a complex technical issue.",
+      strongAnswer:
+        "Describe the symptoms, your hypotheses, the measurements or logs you used, the fix, and what you monitored afterward.",
+      lookFor: ["symptoms", "logs", "measure", "fix", "monitor"],
+      followUp: "What did you automate or document afterward?",
+    },
+    {
+      type: "technical",
+      prompt: "What makes a cloud system reliable?",
+      strongAnswer:
+        "Use redundancy, monitoring, automation, least privilege, backups, tested recovery, and clear operational ownership.",
+      lookFor: [
+        "redundancy",
+        "monitoring",
+        "automation",
+        "backups",
+        "recovery",
+      ],
+      followUp: "How would you test disaster recovery?",
+    },
+  ],
 };

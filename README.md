@@ -8,3 +8,5 @@ Explore: Jackson
 Find my Path: Adam
 Mock interview: Ashby
 Video + touchup: Drew
+
+see IS_Career_Launchpad_Team_Plan.md for details

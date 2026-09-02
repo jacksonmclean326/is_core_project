@@ -11,6 +11,597 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .explore-page {
+        min-height: calc(100vh - 76px);
+        overflow: hidden;
+      }
+      .explore-heading {
+        padding-bottom: 30px;
+      }
+      .explore-heading p:last-child {
+        max-width: 530px;
+      }
+      .journey-shell {
+        padding: 26px 5vw 90px;
+      }
+      .journey-bar {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        max-width: 1420px;
+        margin: 0 auto 17px;
+        font: 500 10px var(--mono);
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .back-button {
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        font: 500 10px var(--mono);
+        text-transform: uppercase;
+        padding: 0;
+      }
+      .back-button[hidden] {
+        display: none;
+      }
+      .journey {
+        max-width: 1420px;
+        min-height: 590px;
+        margin: auto;
+        display: grid;
+        grid-template-columns: 230px 1fr 1.15fr;
+        gap: 26px;
+        align-items: center;
+        position: relative;
+      }
+      .journey::before {
+        content: "";
+        position: absolute;
+        left: 230px;
+        right: 0;
+        top: 50%;
+        border-top: 1px solid #a6b79b;
+        z-index: 0;
+      }
+      .journey-column {
+        min-width: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .node-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .node {
+        border: 1px solid #82937b;
+        background: #eef3e8;
+        color: var(--ink);
+        text-align: left;
+        padding: 17px 18px;
+        cursor: pointer;
+        font: 600 16px var(--sans);
+        box-shadow: 3px 3px 0 rgba(23, 35, 33, 0.08);
+        transition:
+          transform 0.3s ease,
+          opacity 0.3s ease,
+          filter 0.3s ease,
+          background 0.2s ease;
+      }
+      .node:hover {
+        background: var(--lime);
+        transform: translateX(5px);
+      }
+      .node small {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font: 10px var(--mono);
+        text-transform: uppercase;
+      }
+      .home-node {
+        background: var(--ink);
+        color: var(--lime);
+        text-align: center;
+        padding: 29px 18px;
+        cursor: default;
+      }
+      .home-node small {
+        color: #a9b8a5;
+      }
+      .home-node:hover {
+        transform: none;
+        background: var(--ink);
+      }
+      .role-column {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .role-context {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font: 10px var(--mono);
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .level-label {
+        color: #729247;
+      }
+      .role-nodes {
+        display: grid;
+        grid-template-rows: 1fr 1fr 1fr;
+        gap: 12px;
+        min-height: 260px;
+      }
+      .role-nodes .node {
+        opacity: 0.34;
+        filter: blur(1.2px);
+        align-self: center;
+      }
+      .role-nodes .node:first-child {
+        transform: translateY(-8px);
+      }
+      .role-nodes .node:last-child {
+        transform: translateY(8px);
+      }
+      .role-nodes .node.selected {
+        grid-row: 2;
+        opacity: 1;
+        filter: none;
+        background: var(--lime);
+        border-color: var(--ink);
+        transform: none;
+      }
+      .role-nodes .node.selected::after {
+        content: "  /  IN FOCUS";
+        color: #729247;
+        font: 9px var(--mono);
+      }
+      .role-intro {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        padding: 18px;
+        font-size: 13px;
+        line-height: 1.4;
+        box-shadow: 4px 4px 0 rgba(23, 35, 33, 0.06);
+      }
+      .role-intro strong {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 6px;
+      }
+      .role-intro[hidden],
+      .detail-panel[hidden] {
+        display: none;
+      }
+      .option-column {
+        min-height: 330px;
+        display: flex;
+        align-items: center;
+      }
+      .option-column.empty {
+        justify-content: center;
+        border-left: 1px dashed #b6c2ae;
+      }
+      .empty-message {
+        max-width: 210px;
+        color: var(--muted);
+        font: 12px var(--mono);
+        line-height: 1.45;
+      }
+      .option-nodes {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .option-node {
+        min-height: 92px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        opacity: 0.48;
+        filter: blur(0.8px);
+      }
+      .option-node:hover,
+      .option-node:focus {
+        opacity: 1;
+        filter: none;
+      }
+      .option-node strong {
+        font-size: 15px;
+      }
+      .option-node span {
+        color: var(--muted);
+        font: 10px var(--mono);
+        text-transform: uppercase;
+      }
+      .detail-panel {
+        background: var(--ink);
+        color: var(--paper);
+        padding: 28px;
+        min-height: 330px;
+        box-shadow: 8px 8px 0 rgba(23, 35, 33, 0.13);
+        animation: detail-in 0.4s ease both;
+      }
+      .detail-panel h2 {
+        font-size: 32px;
+        line-height: 1;
+        margin: 8px 0 12px;
+      }
+      .detail-panel p {
+        color: #c5cec6;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .detail-panel .eyebrow {
+        color: var(--lime);
+        margin-bottom: 8px;
+      }
+      .detail-panel .tag-list {
+        margin: 19px 0 0;
+      }
+      .detail-panel .tag {
+        color: var(--lime);
+      }
+      .detail-panel ul {
+        color: #c5cec6;
+        font-size: 13px;
+        line-height: 1.55;
+        padding-left: 18px;
+      }
+      @keyframes detail-in {
+        from {
+          opacity: 0;
+          transform: translateX(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @media (max-width: 900px) {
+        .journey {
+          grid-template-columns: 150px 1fr;
+          min-height: 640px;
+        }
+        .journey::before {
+          left: 150px;
+        }
+        .option-column {
+          grid-column: 2;
+          grid-row: 2;
+          min-height: 260px;
+        }
+        .home-column {
+          grid-row: 1 / span 2;
+          align-self: center;
+        }
+        .option-nodes {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 620px) {
+        .explore-heading {
+          padding-top: 65px;
+        }
+        .journey-shell {
+          padding: 15px 5vw 65px;
+        }
+        .journey {
+          display: block;
+          min-height: 680px;
+        }
+        .journey::before {
+          left: 33px;
+          right: auto;
+          top: 35px;
+          bottom: 55px;
+          border-top: 0;
+          border-left: 1px solid #a6b79b;
+        }
+        .journey-bar {
+          margin-bottom: 12px;
+        }
+        .home-column {
+          margin-bottom: 28px;
+        }
+        .home-node {
+          width: 150px;
+        }
+        .role-column {
+          margin-left: 36px;
+        }
+        .role-nodes {
+          min-height: 285px;
+        }
+        .option-column {
+          margin: 26px 0 0 36px;
+          min-height: 290px;
+          border-left: 0;
+          border-top: 1px dashed #b6c2ae;
+          padding-top: 22px;
+        }
+        .option-nodes {
+          grid-template-columns: 1fr 1fr;
+        }
+        .detail-panel {
+          padding: 20px;
+        }
+      }
+      .explore-page .role-nodes.has-selection {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .explore-page .role-nodes.has-selection .node.selected {
+        grid-column: 2;
+      }
+      @media (max-width: 620px) {
+        .explore-page .role-nodes.has-selection {
+          grid-template-columns: 1fr;
+          grid-template-rows: repeat(3, 1fr);
+        }
+        .explore-page .role-nodes.has-selection .node.selected {
+          grid-column: 1;
+          grid-row: 2;
+        }
+      }
+      /* Explicit parent branches make the tree hierarchy visible. */
+      .explore-page .journey::before {
+        display: none;
+      }
+      .explore-page .role-column::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -58px;
+        height: 58px;
+        border-left: 1px solid #a6b79b;
+      }
+      .explore-page .role-nodes {
+        position: relative;
+      }
+      .explore-page .role-nodes::before {
+        content: "";
+        position: absolute;
+        left: 12.5%;
+        right: 12.5%;
+        top: -13px;
+        border-top: 1px solid #a6b79b;
+      }
+      .explore-page .role-nodes .node {
+        position: relative;
+      }
+      .explore-page .role-nodes .node::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -13px;
+        height: 13px;
+        border-left: 1px solid #a6b79b;
+      }
+      .explore-page .option-column:not(.empty)::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -42px;
+        height: 42px;
+        border-left: 1px solid #a6b79b;
+      }
+      .explore-page .option-nodes {
+        position: relative;
+      }
+      .explore-page .option-nodes::before {
+        content: "";
+        position: absolute;
+        left: 12.5%;
+        right: 12.5%;
+        top: -13px;
+        border-top: 1px solid #a6b79b;
+      }
+      .explore-page .option-node {
+        position: relative;
+      }
+      .explore-page .option-node::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -13px;
+        height: 13px;
+        border-left: 1px solid #a6b79b;
+      }
+      /* Top-down skill tree composition */
+      .explore-page .journey-shell {
+        padding-top: 12px;
+      }
+      .explore-page .journey {
+        min-height: 790px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+      .explore-page .journey::before {
+        left: 50%;
+        right: auto;
+        top: 82px;
+        bottom: 0;
+        border-top: 0;
+        border-left: 1px solid #a6b79b;
+      }
+      .explore-page .journey-column {
+        width: 100%;
+      }
+      .explore-page .home-column {
+        width: auto;
+        z-index: 3;
+      }
+      .explore-page .home-node {
+        width: 154px;
+        border-radius: 2px;
+        cursor: pointer;
+      }
+      .explore-page .home-node:hover {
+        background: #31413a;
+        transform: translateY(-3px);
+      }
+      .explore-page .role-column {
+        max-width: 980px;
+        margin-top: 58px;
+        gap: 14px;
+        z-index: 2;
+      }
+      .explore-page .role-context {
+        justify-content: center;
+        gap: 20px;
+      }
+      .explore-page .role-stage {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .explore-page .role-nav-button {
+        flex: 0 0 30px;
+        width: 30px;
+        height: 48px;
+        border: 0;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        font: 18px var(--mono);
+        padding: 0;
+      }
+      .explore-page .role-nav-button:hover {
+        color: #729247;
+        transform: scale(1.2);
+      }
+      .explore-page .role-nodes {
+        min-height: 104px;
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: 1fr;
+        gap: 14px;
+        justify-items: center;
+      }
+      .explore-page .role-nodes .node,
+      .explore-page .role-nodes .node:first-child,
+      .explore-page .role-nodes .node:last-child {
+        transform: none;
+        align-self: stretch;
+      }
+      .explore-page .role-nodes .node:not(.selected) {
+        opacity: 0.3;
+        filter: blur(1.5px);
+      }
+      .explore-page .role-nodes .node:hover,
+      .explore-page .role-nodes .node:focus-visible {
+        opacity: 1;
+        filter: none;
+        transform: translateY(-4px);
+      }
+      .explore-page .role-nodes .node.selected {
+        grid-row: auto;
+        transform: translateY(-3px);
+      }
+      .explore-page .role-nodes .node {
+        width: min(100%, 215px);
+        text-align: center;
+      }
+      .explore-page .role-intro {
+        max-width: 580px;
+        margin: 0 auto;
+      }
+      .explore-page .option-column {
+        max-width: 980px;
+        min-height: 365px;
+        margin-top: 42px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        z-index: 2;
+      }
+      .explore-page .option-column.empty {
+        border-left: 0;
+        justify-content: center;
+        align-items: center;
+      }
+      .explore-page .option-nodes {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        justify-items: center;
+      }
+      .explore-page .option-node {
+        min-height: 108px;
+        opacity: 0.42;
+        width: min(100%, 215px);
+        text-align: center;
+      }
+      .explore-page .option-node.selected,
+      .explore-page .option-node:hover,
+      .explore-page .option-node:focus-visible {
+        opacity: 1;
+        filter: none;
+        background: var(--lime);
+        border-color: var(--ink);
+      }
+      .explore-page .detail-panel {
+        width: min(740px, 100%);
+        min-height: 210px;
+        margin: 26px auto 0;
+      }
+      .explore-page .journey:has(.detail-panel:not([hidden])) .option-column {
+        min-height: 390px;
+      }
+      @media (max-width: 900px) {
+        .explore-page .journey {
+          min-height: 830px;
+        }
+        .explore-page .role-nodes,
+        .explore-page .option-nodes {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .explore-page .option-column {
+          min-height: 520px;
+        }
+      }
+      @media (max-width: 620px) {
+        .explore-page .journey {
+          min-height: 1020px;
+          display: flex;
+        }
+        .explore-page .journey::before {
+          top: 80px;
+          bottom: 60px;
+        }
+        .explore-page .role-column {
+          margin-top: 48px;
+          margin-left: 0;
+        }
+        .explore-page .role-nodes {
+          min-height: 290px;
+          grid-template-columns: 1fr;
+          grid-template-rows: repeat(3, 1fr);
+        }
+        .explore-page .role-nodes .node.selected {
+          grid-row: 2;
+        }
+        .explore-page .option-column {
+          margin: 34px 0 0;
+          padding-top: 0;
+          min-height: 520px;
+        }
+        .explore-page .option-nodes {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
     <header class="site-header">
@@ -23,27 +614,67 @@
         ><a href="interview.html">Practice</a>
       </nav>
     </header>
-    <main>
-      <section class="page-heading">
+    <main class="explore-page">
+      <section class="page-heading explore-heading">
         <p class="eyebrow">01 / See the landscape</p>
-        <h1>Pick a direction.<br /><em>See what it takes.</em></h1>
+        <h1>Find a path.<br /><em>Follow the thread.</em></h1>
         <p>
-          Start with the kind of problems you want to solve. Select a role to
-          reveal the skills, tools, and signals that make candidates memorable.
+          Begin at the center. Choose a direction, then move deeper into the
+          work without leaving the map.
         </p>
       </section>
-      <section class="career-layout page-section">
-        <div
-          id="career-tree"
-          class="career-tree"
-          aria-label="Interactive career map"
-        ></div>
-        <article id="career-detail" class="career-detail" aria-live="polite">
-          <div class="detail-placeholder">
-            <span class="big-number">01</span>
-            <p>Select a role on the map<br />to open its field notes.</p>
+      <section class="journey-shell" aria-label="Career exploration journey">
+        <div class="journey-bar">
+          <button class="back-button" id="journey-back" type="button" hidden>
+            &lt;- Back</button
+          ><span id="journey-crumb">IS student / choose a path</span>
+        </div>
+        <div class="journey">
+          <div class="journey-column home-column">
+            <button
+              class="node home-node"
+              id="home-node"
+              type="button"
+              aria-label="Return to the start of the career tree"
+            >
+              <strong>IS STUDENT</strong><small>choose a path</small>
+            </button>
           </div>
-        </article>
+          <div class="journey-column role-column">
+            <div class="role-context">
+              <span class="level-label" id="level-label">01 / paths</span>
+              <span>move horizontally</span>
+            </div>
+            <div class="role-stage">
+              <button
+                class="role-nav-button"
+                id="role-prev"
+                type="button"
+                aria-label="Previous career"
+              >
+                &lt;
+              </button>
+              <div class="role-nodes" id="role-nodes"></div>
+              <button
+                class="role-nav-button"
+                id="role-next"
+                type="button"
+                aria-label="Next career"
+              >
+                &gt;
+              </button>
+            </div>
+            <div class="role-intro" id="role-intro" hidden></div>
+          </div>
+          <div class="journey-column option-column empty" id="option-column">
+            <p class="empty-message" id="empty-message">
+              Select a path to reveal the next layer: skills, daily work,
+              courses, and interview practice.
+            </p>
+            <div class="option-nodes" id="option-nodes" hidden></div>
+            <article class="detail-panel" id="detail-panel" hidden></article>
+          </div>
+        </div>
       </section>
     </main>
     <footer>
@@ -52,7 +683,148 @@
       ><span>2026</span>
     </footer>
     <script src="js/data.js"></script>
-    <script src="js/questions.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+      (() => {
+        const roleNodes = document.querySelector("#role-nodes");
+        const roleIntro = document.querySelector("#role-intro");
+        const optionColumn = document.querySelector("#option-column");
+        const optionNodes = document.querySelector("#option-nodes");
+        const emptyMessage = document.querySelector("#empty-message");
+        const detailPanel = document.querySelector("#detail-panel");
+        const back = document.querySelector("#journey-back");
+        const home = document.querySelector("#home-node");
+        const previousRole = document.querySelector("#role-prev");
+        const nextRole = document.querySelector("#role-next");
+        const crumb = document.querySelector("#journey-crumb");
+        const levelLabel = document.querySelector("#level-label");
+        let selectedId = null;
+        let selectedOption = null;
+        let roleWindowStart = 0;
+        const options = [
+          ["skills", "Needed skills", "what to build"],
+          ["day", "Day in the life", "what you will do"],
+          ["courses", "Suggested courses", "how to prepare"],
+          ["interview", "Practice interview", "test your thinking"],
+        ];
+        const findCareer = (id) => careers.find((career) => career.id === id);
+        const renderRoles = () => {
+          roleNodes.classList.toggle("has-selection", Boolean(selectedId));
+          const selectedIndex = careers.findIndex(
+            (career) => career.id === selectedId,
+          );
+          const start =
+            selectedIndex < 0
+              ? roleWindowStart
+              : (selectedIndex - 1 + careers.length) % careers.length;
+          const ids = [0, 1, 2].map(
+            (offset) => careers[(start + offset) % careers.length].id,
+          );
+          roleNodes.innerHTML = ids
+            .map((id) => {
+              const career = findCareer(id);
+              return `<button class="node ${career.id === selectedId ? "selected" : ""}" data-role="${career.id}">${career.name}<small>${career.category} / explore</small></button>`;
+            })
+            .join("");
+        };
+        const renderIntro = () => {
+          const career = findCareer(selectedId);
+          roleIntro.hidden = !career;
+          if (career)
+            roleIntro.innerHTML = `<strong>${career.name}</strong><span>${career.description}</span>`;
+        };
+        const renderOptions = () => {
+          optionColumn.classList.toggle("empty", !selectedId);
+          emptyMessage.hidden = Boolean(selectedId);
+          optionNodes.hidden = !selectedId;
+          if (!selectedId) return;
+          optionNodes.innerHTML = options
+            .map(
+              ([id, title, hint]) =>
+                `<button class="node option-node ${selectedOption === id ? "selected" : ""}" data-option="${id}" type="button" aria-pressed="${selectedOption === id}"><strong>${title}</strong><span>${hint}</span></button>`,
+            )
+            .join("");
+        };
+        const showDetail = (type) => {
+          const career = findCareer(selectedId);
+          if (!career) return;
+          selectedOption = type;
+          const titles = {
+            skills: "Needed skills",
+            day: "Day in the life",
+            courses: "Suggested courses",
+            interview: "Practice interview",
+          };
+          let content = "";
+          if (type === "skills")
+            content = `<div class="tag-list">${career.skills.map((skill) => `<span class="tag">${skill}</span>`).join("")}</div>`;
+          if (type === "day")
+            content = `<ul>${career.dayToDay.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+          if (type === "courses")
+            content = `<ul><li>Relevant IS coursework in ${career.category.toLowerCase()}</li><li>Build one portfolio project with ${career.tools[0]}</li><li>Practice explaining your work to a real person</li></ul>`;
+          if (type === "interview")
+            content = `<p>Ready to test this route with a realistic prompt?</p><a class="button button-accent" href="interview.html?career=${career.id}">Open interview practice <span>-&gt;</span></a>`;
+          detailPanel.hidden = false;
+          detailPanel.innerHTML = `<p class="eyebrow">${career.name} / ${titles[type]}</p><h2>${titles[type]}</h2>${content}`;
+          renderOptions();
+          crumb.textContent = `IS student / ${career.name} / ${titles[type]}`;
+          levelLabel.textContent = "03 / detail";
+        };
+        const chooseRole = (id) => {
+          selectedId = id;
+          selectedOption = null;
+          roleWindowStart =
+            (careers.findIndex((career) => career.id === id) -
+              1 +
+              careers.length) %
+            careers.length;
+          detailPanel.hidden = true;
+          renderRoles();
+          renderIntro();
+          renderOptions();
+          back.hidden = false;
+          crumb.textContent = `IS student / ${findCareer(id).name}`;
+          levelLabel.textContent = "02 / choose a layer";
+        };
+        const moveRoleWindow = (direction) => {
+          if (selectedId) {
+            const index = careers.findIndex(
+              (career) => career.id === selectedId,
+            );
+            chooseRole(
+              careers[(index + direction + careers.length) % careers.length].id,
+            );
+            return;
+          }
+          roleWindowStart =
+            (roleWindowStart + direction + careers.length) % careers.length;
+          renderRoles();
+        };
+        const resetTree = () => {
+          selectedId = null;
+          selectedOption = null;
+          detailPanel.hidden = true;
+          renderRoles();
+          renderIntro();
+          renderOptions();
+          back.hidden = true;
+          crumb.textContent = "IS student / choose a path";
+          levelLabel.textContent = "01 / paths";
+        };
+        roleNodes.addEventListener("click", (event) => {
+          const node = event.target.closest("[data-role]");
+          if (node) chooseRole(node.dataset.role);
+        });
+        optionNodes.addEventListener("click", (event) => {
+          const node = event.target.closest("[data-option]");
+          if (node) showDetail(node.dataset.option);
+        });
+        back.addEventListener("click", resetTree);
+        home.addEventListener("click", resetTree);
+        previousRole.addEventListener("click", () => moveRoleWindow(-1));
+        nextRole.addEventListener("click", () => moveRoleWindow(1));
+        renderRoles();
+        renderOptions();
+      })();
+    </script>
   </body>
 </html>

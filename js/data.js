@@ -1,7 +1,7 @@
 const careers = [
   {
     id: "software-developer",
-    name: "Software Developer",
+    name: "Software / Application Developer",
     category: "Building",
     accent: "BUILD",
     description:
@@ -30,7 +30,7 @@ const careers = [
   },
   {
     id: "data-analyst",
-    name: "Data Analyst",
+    name: "Data Analyst or Data Scientist",
     category: "Data",
     accent: "DATA",
     description:
@@ -115,7 +115,134 @@ const careers = [
     skills: ["people", "solving", "collaborative", "leading"],
     matches: { build: 2, data: 2, protect: 1, solve: 5, design: 2, cloud: 1 },
   },
+  {
+    id: "it-project-manager",
+    name: "IT Project Manager",
+    category: "Leading",
+    accent: "LEAD",
+    description:
+      "Move complex technology work from idea to impact. Project managers create clarity, momentum, and shared ownership across a team.",
+    dayToDay: [
+      "Plan milestones, scope, and dependencies",
+      "Run standups and communicate project health",
+      "Manage risks, decisions, and stakeholder expectations",
+    ],
+    tools: ["Jira", "Excel", "Teams", "Roadmaps"],
+    expectations: [
+      "Basic project planning",
+      "Clear status communication",
+      "Risk and issue tracking",
+      "Comfort with agile concepts",
+    ],
+    competitive: [
+      "A project leadership example",
+      "Reliable follow-through",
+      "Calm prioritization",
+      "Strong facilitation",
+    ],
+    salary: "Entry $67k / Mid $94k / Senior $128k",
+    skills: ["leading", "organizing", "collaborative", "solving"],
+    matches: { build: 2, data: 1, protect: 1, solve: 4, design: 2, cloud: 1 },
+  },
+  {
+    id: "ux-product-manager",
+    name: "UX Designer / Product Manager",
+    category: "Designing",
+    accent: "DESIGN",
+    description:
+      "Turn user needs into products people want to use. This path blends research, design, prioritization, and product judgment.",
+    dayToDay: [
+      "Research user needs and test assumptions",
+      "Sketch, prototype, and refine experiences",
+      "Prioritize product work with a cross-functional team",
+    ],
+    tools: ["Figma", "Miro", "Jira", "Analytics"],
+    expectations: [
+      "User research basics",
+      "Wireframing and prototyping",
+      "Prioritization frameworks",
+      "Comfort presenting decisions",
+    ],
+    competitive: [
+      "A thoughtful case study",
+      "Empathy for users",
+      "Clear design rationale",
+      "Product curiosity",
+    ],
+    salary: "Entry $62k / Mid $91k / Senior $125k",
+    skills: ["creating", "people", "designing", "collaborative"],
+    matches: { build: 3, data: 1, protect: 0, solve: 3, design: 5, cloud: 0 },
+  },
+  {
+    id: "erp-systems-consultant",
+    name: "ERP / Systems Consultant",
+    category: "Transforming",
+    accent: "SYSTEMS",
+    description:
+      "Help organizations reshape how work gets done through enterprise systems such as SAP or Salesforce.",
+    dayToDay: [
+      "Learn a client's process and system landscape",
+      "Configure, test, and document solutions",
+      "Train users and guide implementation change",
+    ],
+    tools: ["SAP", "Salesforce", "SQL", "Excel"],
+    expectations: [
+      "Business process fundamentals",
+      "Requirements documentation",
+      "Systems thinking",
+      "Comfort learning platforms",
+    ],
+    competitive: [
+      "A process improvement example",
+      "Client empathy",
+      "Structured problem solving",
+      "Adaptability across industries",
+    ],
+    salary: "Entry $66k / Mid $93k / Senior $126k",
+    skills: ["solving", "people", "systems", "collaborative"],
+    matches: { build: 2, data: 2, protect: 1, solve: 4, design: 2, cloud: 2 },
+  },
+  {
+    id: "cloud-infrastructure-engineer",
+    name: "Cloud / Infrastructure Engineer",
+    category: "Scaling",
+    accent: "CLOUD",
+    description:
+      "Build the dependable systems beneath modern products. Infrastructure engineers make software available, secure, and resilient.",
+    dayToDay: [
+      "Automate deployments and infrastructure",
+      "Monitor reliability, performance, and cost",
+      "Design systems for scale and recovery",
+    ],
+    tools: ["AWS", "Azure", "Linux", "Terraform"],
+    expectations: [
+      "Networking and operating systems",
+      "Cloud service fundamentals",
+      "Scripting and automation",
+      "Monitoring and incident basics",
+    ],
+    competitive: [
+      "A hands-on cloud project",
+      "Infrastructure as code",
+      "Reliability mindset",
+      "Strong troubleshooting",
+    ],
+    salary: "Entry $74k / Mid $108k / Senior $145k",
+    skills: ["cloud", "building", "puzzles", "independent"],
+    matches: { build: 4, data: 1, protect: 3, solve: 2, design: 0, cloud: 5 },
+  },
 ];
+const careerOrder = [
+  "software-developer",
+  "business-systems-analyst",
+  "data-analyst",
+  "cybersecurity-analyst",
+  "it-project-manager",
+  "ux-product-manager",
+  "erp-systems-consultant",
+  "cloud-infrastructure-engineer",
+];
+careers.sort((a, b) => careerOrder.indexOf(a.id) - careerOrder.indexOf(b.id));
 const quizQuestions = [
   {
     prompt: "What kind of problem makes you lose track of time?",
