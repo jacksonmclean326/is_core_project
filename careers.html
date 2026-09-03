@@ -672,7 +672,7 @@
           <div class="journey-column option-column empty" id="option-column">
             <p class="empty-message" id="empty-message">
               Select a path to reveal the next layer: skills, daily work,
-              courses, and interview practice.
+              salary, courses, and interview practice.
             </p>
             <div class="option-nodes" id="option-nodes" hidden></div>
             <article class="detail-panel" id="detail-panel" hidden></article>
@@ -706,6 +706,7 @@
         const options = [
           ["skills", "Needed skills", "what to build"],
           ["day", "Day in the life", "what you will do"],
+          ["salary", "Salary range", "entry, mid, and senior"],
           ["courses", "Suggested courses", "how to prepare"],
           ["interview", "Practice interview", "test your thinking"],
         ];
@@ -754,6 +755,7 @@
           const titles = {
             skills: "Needed skills",
             day: "Day in the life",
+            salary: "Salary range",
             courses: "Suggested courses",
             interview: "Practice interview",
           };
@@ -762,6 +764,8 @@
             content = `<div class="tag-list">${career.skills.map((skill) => `<span class="tag">${skill}</span>`).join("")}</div>`;
           if (type === "day")
             content = `<ul>${career.dayToDay.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+          if (type === "salary")
+            content = `<p>${career.salary}</p><p>Typical compensation for this path can help you compare roles and negotiate confidently.</p>`;
           if (type === "courses")
             content = `<ul><li>Relevant IS coursework in ${career.category.toLowerCase()}</li><li>Build one portfolio project with ${career.tools[0]}</li><li>Practice explaining your work to a real person</li></ul>`;
           if (type === "interview")
