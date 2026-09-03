@@ -228,36 +228,57 @@
       .detail-panel {
         background: var(--ink);
         color: var(--paper);
-        padding: 28px;
-        min-height: 330px;
+        padding: 22px 24px 18px;
+        min-height: 210px;
+        max-height: min(52vh, 390px);
+        overflow: auto;
         box-shadow: 8px 8px 0 rgba(23, 35, 33, 0.13);
         animation: detail-in 0.4s ease both;
       }
       .detail-panel h2 {
-        font-size: 32px;
-        line-height: 1;
-        margin: 8px 0 12px;
+        font-size: clamp(24px, 2.8vw, 32px);
+        line-height: 1.05;
+        margin: 6px 0 10px;
       }
-      .detail-panel p {
+      .detail-panel p,
+      .detail-panel li {
         color: #c5cec6;
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1.5;
+        margin: 0;
+      }
+      .detail-panel p + p {
+        margin-top: 10px;
       }
       .detail-panel .eyebrow {
         color: var(--lime);
         margin-bottom: 8px;
       }
       .detail-panel .tag-list {
-        margin: 19px 0 0;
+        margin: 16px 0 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
       .detail-panel .tag {
         color: var(--lime);
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 10px;
+        border: 1px solid rgba(200, 240, 90, 0.35);
+        background: rgba(200, 240, 90, 0.08);
+        border-radius: 999px;
+        font: 500 11px var(--mono);
+        line-height: 1.1;
       }
       .detail-panel ul {
         color: #c5cec6;
         font-size: 13px;
-        line-height: 1.55;
+        line-height: 1.5;
         padding-left: 18px;
+        margin: 0;
+        display: grid;
+        gap: 7px;
       }
       @keyframes detail-in {
         from {
@@ -536,15 +557,17 @@
         align-items: center;
       }
       .explore-page .option-nodes {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 14px;
-        justify-items: center;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        justify-items: stretch;
+        width: 100%;
       }
       .explore-page .option-node {
-        min-height: 108px;
+        min-height: 88px;
         opacity: 0.42;
-        width: min(100%, 215px);
+        width: 100%;
         text-align: center;
+        padding: 12px 10px;
       }
       .explore-page .option-node.selected,
       .explore-page .option-node:hover,
@@ -555,8 +578,9 @@
         border-color: var(--ink);
       }
       .explore-page .detail-panel {
-        width: min(740px, 100%);
+        width: min(700px, 100%);
         min-height: 210px;
+        max-height: min(42vh, 330px);
         margin: 26px auto 0;
       }
       .explore-page .journey:has(.detail-panel:not([hidden])) .option-column {
@@ -566,12 +590,15 @@
         .explore-page .journey {
           min-height: 830px;
         }
-        .explore-page .role-nodes,
-        .explore-page .option-nodes {
+        .explore-page .role-nodes {
           grid-template-columns: repeat(2, 1fr);
         }
+        .explore-page .option-nodes {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 8px;
+        }
         .explore-page .option-column {
-          min-height: 520px;
+          min-height: 420px;
         }
       }
       @media (max-width: 620px) {
@@ -598,10 +625,15 @@
         .explore-page .option-column {
           margin: 34px 0 0;
           padding-top: 0;
-          min-height: 520px;
+          min-height: 420px;
         }
         .explore-page .option-nodes {
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 6px;
+        }
+        .explore-page .option-node {
+          min-height: 72px;
+          padding: 10px 6px;
         }
       }
     </style>
