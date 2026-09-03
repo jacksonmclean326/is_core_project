@@ -130,10 +130,24 @@
     recordingTimerInterval = null,
     recordingStartTime = 0,
     recordedVideoBlob = null,
+    recordedVideoUrl = null,
     speechRecognition = null,
     isListening = false,
     isRecordingVideo = false,
     recordedTimestamps = [];
+
+  function finalizeRecordedPlayback() {
+    if (!recordedVideoBlob || !videoPlayer) return;
+
+    if (recordedVideoUrl) {
+      URL.revokeObjectURL(recordedVideoUrl);
+    }
+
+    recordedVideoUrl = URL.createObjectURL(recordedVideoBlob);
+    videoPlayer.src = recordedVideoUrl;
+    videoPlayer.load();
+    if (playbackContainer) playbackContainer.hidden = false;
+  }
 
   const textModeBtn = byId("mode-text-btn"),
     voiceModeBtn = byId("mode-voice-btn"),
@@ -414,10 +428,9 @@
         mediaRecorder.onstop = () => {
           const finalType = selectedMimeType || "video/webm";
           recordedVideoBlob = new Blob(recordedChunks, { type: finalType });
-          if (videoPlayer) {
-            const videoUrl = URL.createObjectURL(recordedVideoBlob);
-            videoPlayer.src = videoUrl;
-            videoPlayer.load();
+
+          if (recordedVideoBlob.size > 0) {
+            finalizeRecordedPlayback();
           }
         };
 
@@ -458,6 +471,11 @@
       mediaRecorder.stop();
     }
 
+    if (!recordedVideoBlob && recordedChunks.length > 0) {
+      recordedVideoBlob = new Blob(recordedChunks, { type: mediaRecorder?.mimeType || "video/webm" });
+      finalizeRecordedPlayback();
+    }
+
     if (camBadge) {
       camBadge.textContent = mediaStream ? "Camera On" : "Camera Off";
       camBadge.className = mediaStream ? "status-badge active" : "status-badge idle";
@@ -481,6 +499,10 @@
   function resetMediaState() {
     if (isListening) stopSpeechRecognition();
     if (isRecordingVideo) stopVideoRecording();
+    if (recordedVideoUrl) {
+      URL.revokeObjectURL(recordedVideoUrl);
+      recordedVideoUrl = null;
+    }
     recordedVideoBlob = null;
     recordedTimestamps = [];
     if (playbackContainer) playbackContainer.hidden = true;
@@ -556,60 +578,64 @@
       byId("feedback-strong").textContent = q.strongAnswer;
       byId("feedback-followup").textContent = q.followUp;
 
-      // Render Video Playback & Timestamp Analysis
+      // Render Video Playback & Timestamp Analysis only when a recording exists
       if (playbackContainer && timestampList) {
-        // Build timestamp list
-        const items = [...recordedTimestamps];
+        if (!recordedVideoBlob) {
+          playbackContainer.hidden = true;
+          timestampList.innerHTML = "";
+        } else {
+          const items = [...recordedTimestamps];
 
-        // Ensure key feedback markers are present as timestamp milestones
-        if (items.length === 0) {
-          items.push({ time: 0, timeDisplay: "00:00", note: "Opening thoughts & introduction" });
-          items.push({ time: 10, timeDisplay: "00:10", note: "Core explanation & technical detail" });
-          items.push({ time: 25, timeDisplay: "00:25", note: "Conclusion & outcome" });
-        }
+          // Ensure key feedback markers are present as timestamp milestones
+          if (items.length === 0) {
+            items.push({ time: 0, timeDisplay: "00:00", note: "Opening thoughts & introduction" });
+            items.push({ time: 10, timeDisplay: "00:10", note: "Core explanation & technical detail" });
+            items.push({ time: 25, timeDisplay: "00:25", note: "Conclusion & outcome" });
+          }
 
-        // Add coaching callouts at relevant timestamps
-        if (hits > 0) {
-          items.push({
-            time: 12,
-            timeDisplay: "00:12",
-            note: `💡 Good inclusion of key concept: "${q.lookFor.find((t) => answer.includes(t.toLowerCase())) || "keyword"}"`,
+          // Add coaching callouts at relevant timestamps
+          if (hits > 0) {
+            items.push({
+              time: 12,
+              timeDisplay: "00:12",
+              note: `💡 Good inclusion of key concept: "${q.lookFor.find((t) => answer.includes(t.toLowerCase())) || "keyword"}"`,
+            });
+          }
+          if (missingKeywords.length > 0) {
+            items.push({
+              time: 20,
+              timeDisplay: "00:20",
+              note: `🎯 Opportunity to add technical depth: mention "${missingKeywords[0]}"`,
+            });
+          }
+
+          // Sort items chronologically
+          items.sort((a, b) => a.time - b.time);
+
+          timestampList.innerHTML = items
+            .map(
+              (item) => `
+            <li class="timestamp-item" data-time="${item.time}">
+              <span class="timestamp-badge">${item.timeDisplay}</span>
+              <span class="timestamp-note">${item.note}</span>
+            </li>
+          `,
+            )
+            .join("");
+
+          // Attach click listener to jump video player to timestamp
+          timestampList.querySelectorAll(".timestamp-item").forEach((el) => {
+            el.addEventListener("click", () => {
+              const time = parseFloat(el.dataset.time);
+              if (videoPlayer) {
+                videoPlayer.currentTime = time;
+                videoPlayer.play().catch(() => {});
+              }
+            });
           });
+
+          playbackContainer.hidden = false;
         }
-        if (missingKeywords.length > 0) {
-          items.push({
-            time: 20,
-            timeDisplay: "00:20",
-            note: `🎯 Opportunity to add technical depth: mention "${missingKeywords[0]}"`,
-          });
-        }
-
-        // Sort items chronologically
-        items.sort((a, b) => a.time - b.time);
-
-        timestampList.innerHTML = items
-          .map(
-            (item) => `
-          <li class="timestamp-item" data-time="${item.time}">
-            <span class="timestamp-badge">${item.timeDisplay}</span>
-            <span class="timestamp-note">${item.note}</span>
-          </li>
-        `,
-          )
-          .join("");
-
-        // Attach click listener to jump video player to timestamp
-        timestampList.querySelectorAll(".timestamp-item").forEach((el) => {
-          el.addEventListener("click", () => {
-            const time = parseFloat(el.dataset.time);
-            if (videoPlayer) {
-              videoPlayer.currentTime = time;
-              videoPlayer.play().catch(() => {});
-            }
-          });
-        });
-
-        playbackContainer.hidden = false;
       }
 
       byId("feedback-panel").hidden = false;

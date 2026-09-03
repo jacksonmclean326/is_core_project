@@ -494,7 +494,7 @@ h2 em {
   width: 100%;
   border: 1px solid var(--ink);
   background: var(--paper);
-  padding: 14px 16px;
+  padding: 14px 42px 14px 16px;
   font: 500 15px var(--sans);
   color: var(--ink);
   cursor: pointer;
@@ -508,14 +508,17 @@ h2 em {
   box-shadow: 0 0 0 2px var(--ink);
 }
 .select-wrapper::after {
-  content: "â†“";
-  font: 12px var(--mono);
+  content: "";
   position: absolute;
   right: 16px;
   top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid var(--ink);
   transform: translateY(-50%);
   pointer-events: none;
-  color: var(--ink);
 }
 .start-btn {
   height: 48px;
