@@ -19,6 +19,12 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex: 1;
 }
 a {
   color: inherit;
