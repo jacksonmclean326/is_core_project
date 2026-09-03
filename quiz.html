@@ -11,6 +11,28 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
+    <style>
+      .quiz-wrap {
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 0;
+      }
+      .quiz-section {
+        min-height: clamp(420px, calc(100vh - 330px), 720px);
+        display: flex;
+        align-items: center;
+        padding: 45px 10vw;
+      }
+      @media (max-width: 700px) {
+        .quiz-section {
+          min-height: 0;
+          padding: 45px 5vw;
+        }
+        .quiz-wrap {
+          margin-top: 40px;
+        }
+      }
+    </style>
   </head>
   <body>
     <header class="site-header">
