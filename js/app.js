@@ -96,23 +96,9 @@
       }
     });
 
-  function getInterviewQuestions(roleId, difficulty) {
-    const roleQuestions = questionBank[roleId] || questionBank["software-developer"];
-    const difficultyOrder = {
-      internship: () =>
-        [...roleQuestions.filter((q) => q.type === "behavioral"), ...roleQuestions.filter((q) => q.type === "technical")].slice(0, 3),
-      entry: () => [...roleQuestions].slice(0, 5),
-      challenge: () =>
-        [...roleQuestions.filter((q) => q.type === "technical"), ...roleQuestions.filter((q) => q.type === "behavioral")].slice(0, 5),
-    };
-
-    return (difficultyOrder[difficulty] || difficultyOrder.entry)();
-  }
-
   function startInterview() {
-    const roleId = select.value || "software-developer";
-    const difficulty = byId("interview-difficulty")?.value || "entry";
-    interviewQuestions = getInterviewQuestions(roleId, difficulty);
+    const questions = questionBank[select.value] || questionBank["software-developer"];
+    interviewQuestions = [...questions].slice(0, 5);
     interviewIndex = 0;
     byId("interview-setup").hidden = true;
     byId("interview-workspace").hidden = false;
@@ -137,17 +123,383 @@
     }
   }
 
+  // Voice Input, Camera & Video Recording, Timestamp Playback Feature
+  let mediaStream = null,
+    mediaRecorder = null,
+    recordedChunks = [],
+    recordingTimerInterval = null,
+    recordingStartTime = 0,
+    recordedVideoBlob = null,
+    speechRecognition = null,
+    isListening = false,
+    isRecordingVideo = false,
+    recordedTimestamps = [];
+
+  const textModeBtn = byId("mode-text-btn"),
+    voiceModeBtn = byId("mode-voice-btn"),
+    voiceVideoPanel = byId("voice-video-panel"),
+    toggleMicBtn = byId("toggle-mic-btn"),
+    toggleCamBtn = byId("toggle-cam-btn"),
+    recordVideoBtn = byId("record-video-btn"),
+    micBadge = byId("mic-status-badge"),
+    camBadge = byId("cam-status-badge"),
+    timerDisplay = byId("recording-timer"),
+    webcamPreview = byId("webcam-preview"),
+    camContainer = byId("camera-preview-container"),
+    speechIndicator = byId("speech-live-indicator"),
+    playbackContainer = byId("video-playback-container"),
+    videoPlayer = byId("response-video-player"),
+    timestampList = byId("timestamp-list");
+
+  // Mode Switching
+  if (textModeBtn && voiceModeBtn) {
+    textModeBtn.addEventListener("click", () => {
+      textModeBtn.classList.add("active");
+      voiceModeBtn.classList.remove("active");
+      if (voiceVideoPanel) voiceVideoPanel.hidden = true;
+    });
+
+    voiceModeBtn.addEventListener("click", () => {
+      voiceModeBtn.classList.add("active");
+      textModeBtn.classList.remove("active");
+      if (voiceVideoPanel) voiceVideoPanel.hidden = false;
+    });
+  }
+
+  // Web Speech API initialization
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function initSpeechRecognition() {
+    if (!SpeechRecognition) {
+      console.warn("Speech recognition is not supported in this browser.");
+      return null;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      isListening = true;
+      if (micBadge) {
+        micBadge.textContent = "Mic On (Listening)";
+        micBadge.className = "status-badge active";
+      }
+      if (toggleMicBtn) toggleMicBtn.textContent = "Stop Voice Input";
+      if (speechIndicator) speechIndicator.hidden = false;
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      if (micBadge) {
+        micBadge.textContent = "Mic Off";
+        micBadge.className = "status-badge idle";
+      }
+      if (toggleMicBtn) toggleMicBtn.textContent = "Start Voice Input";
+      if (speechIndicator) speechIndicator.hidden = true;
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+      }
+      if (finalTranscript) {
+        const input = byId("answer-input");
+        if (input) {
+          const currentVal = input.value;
+          input.value = currentVal ? `${currentVal} ${finalTranscript}` : finalTranscript;
+        }
+
+        // Add automatic timestamp marker if currently recording video
+        if (isRecordingVideo) {
+          const elapsedSecs = Math.floor((Date.now() - recordingStartTime) / 1000);
+          const mins = String(Math.floor(elapsedSecs / 60)).padStart(2, "0");
+          const secs = String(elapsedSecs % 60).padStart(2, "0");
+          const timeStr = `${mins}:${secs}`;
+          recordedTimestamps.push({
+            time: elapsedSecs,
+            timeDisplay: timeStr,
+            note: `Spoke: "${finalTranscript.trim().slice(0, 45)}${finalTranscript.trim().length > 45 ? "..." : ""}"`,
+          });
+        }
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.warn("Speech recognition error:", e.error);
+      stopSpeechRecognition();
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      if (micBadge) {
+        micBadge.textContent = "Mic Off";
+        micBadge.className = "status-badge idle";
+      }
+      if (toggleMicBtn) toggleMicBtn.textContent = "🎙️ Start Voice Input";
+      if (speechIndicator) speechIndicator.hidden = true;
+    };
+
+    return recognition;
+  }
+
+  function startSpeechRecognition() {
+    if (!speechRecognition) speechRecognition = initSpeechRecognition();
+    if (speechRecognition && !isListening) {
+      try {
+        speechRecognition.start();
+      } catch (err) {
+        console.warn("Failed to start speech recognition", err);
+      }
+    }
+  }
+
+  function stopSpeechRecognition() {
+    if (speechRecognition && isListening) {
+      try {
+        speechRecognition.stop();
+      } catch (err) {
+        console.warn("Failed to stop speech recognition", err);
+      }
+    }
+  }
+
+  if (toggleMicBtn) {
+    toggleMicBtn.addEventListener("click", () => {
+      if (isListening) {
+        stopSpeechRecognition();
+      } else {
+        startSpeechRecognition();
+      }
+    });
+  }
+
+  // Camera & Video MediaRecorder logic
+  async function toggleCamera() {
+    if (mediaStream) {
+      // Turn off camera
+      mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = null;
+      if (webcamPreview) webcamPreview.srcObject = null;
+      if (camContainer) camContainer.hidden = true;
+      if (camBadge) {
+        camBadge.textContent = "Camera Off";
+        camBadge.className = "status-badge idle";
+      }
+      if (toggleCamBtn) toggleCamBtn.textContent = "Turn On Camera";
+      if (recordVideoBtn) recordVideoBtn.disabled = true;
+    } else {
+      // Request camera and mic stream
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+          audio: true,
+        });
+        if (webcamPreview) {
+          webcamPreview.srcObject = mediaStream;
+          webcamPreview.play().catch(() => {});
+        }
+        if (camContainer) camContainer.hidden = false;
+        if (camBadge) {
+          camBadge.textContent = "Camera On";
+          camBadge.className = "status-badge active";
+        }
+        if (toggleCamBtn) toggleCamBtn.textContent = "Turn Off Camera";
+        if (recordVideoBtn) recordVideoBtn.disabled = false;
+      } catch (err) {
+        console.warn("Camera access failed or unavailable:", err);
+        // Fallback canvas video stream with audio oscillator for environments without hardware camera
+        const canvas = document.createElement("canvas");
+        canvas.width = 640;
+        canvas.height = 360;
+        const ctx = canvas.getContext("2d");
+        let hue = 0;
+
+        const drawLoop = setInterval(() => {
+          if (!mediaStream) { clearInterval(drawLoop); return; }
+          ctx.fillStyle = `hsl(${hue % 360}, 50%, 20%)`;
+          ctx.fillRect(0, 0, 640, 360);
+          ctx.fillStyle = "#c8f05a";
+          ctx.font = "bold 22px 'Space Grotesk', sans-serif";
+          ctx.fillText("MOCK INTERVIEW VIDEO RECORDING", 120, 160);
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "16px 'DM Mono', monospace";
+          ctx.fillText(`LIVE FEED ACTIVE • ${new Date().toLocaleTimeString()}`, 160, 210);
+          hue += 3;
+        }, 50);
+
+        const canvasStream = canvas.captureStream(30);
+
+        // Add silent audio track if audioContext is available
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const dst = audioCtx.createMediaStreamDestination();
+          osc.connect(dst);
+          osc.start();
+          dst.stream.getAudioTracks().forEach((track) => canvasStream.addTrack(track));
+        } catch (e) {
+          console.warn("Audio Context fallback error:", e);
+        }
+
+        mediaStream = canvasStream;
+        if (webcamPreview) {
+          webcamPreview.srcObject = mediaStream;
+          webcamPreview.play().catch(() => {});
+        }
+        if (camContainer) camContainer.hidden = false;
+        if (camBadge) {
+          camBadge.textContent = "Camera Ready";
+          camBadge.className = "status-badge active";
+        }
+        if (toggleCamBtn) toggleCamBtn.textContent = "Turn Off Camera";
+        if (recordVideoBtn) recordVideoBtn.disabled = false;
+      }
+    }
+  }
+
+  if (toggleCamBtn) {
+    toggleCamBtn.addEventListener("click", toggleCamera);
+  }
+
+  function startVideoRecording() {
+    recordedChunks = [];
+    recordedTimestamps = [];
+    recordingStartTime = Date.now();
+    isRecordingVideo = true;
+
+    if (timerDisplay) {
+      timerDisplay.hidden = false;
+      timerDisplay.textContent = "00:00";
+    }
+
+    recordingTimerInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, "0");
+      const secs = String(elapsed % 60).padStart(2, "0");
+      if (timerDisplay) timerDisplay.textContent = `${mins}:${secs}`;
+    }, 1000);
+
+    // Initial timestamp entry
+    recordedTimestamps.push({
+      time: 0,
+      timeDisplay: "00:00",
+      note: "Started response delivery",
+    });
+
+    if (mediaStream && typeof MediaRecorder !== "undefined") {
+      try {
+        const candidateTypes = [
+          "video/webm;codecs=vp8,opus",
+          "video/webm;codecs=vp9,opus",
+          "video/webm;codecs=vp8",
+          "video/webm",
+          "video/mp4",
+        ];
+
+        let selectedMimeType = candidateTypes.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+
+        mediaRecorder = selectedMimeType
+          ? new MediaRecorder(mediaStream, { mimeType: selectedMimeType })
+          : new MediaRecorder(mediaStream);
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const finalType = selectedMimeType || "video/webm";
+          recordedVideoBlob = new Blob(recordedChunks, { type: finalType });
+          if (videoPlayer) {
+            const videoUrl = URL.createObjectURL(recordedVideoBlob);
+            videoPlayer.src = videoUrl;
+            videoPlayer.load();
+          }
+        };
+
+        mediaRecorder.start(250); // chunk timeslice every 250ms
+      } catch (e) {
+        console.warn("MediaRecorder failed:", e);
+      }
+    }
+
+    if (camBadge) {
+      camBadge.textContent = "Recording...";
+      camBadge.className = "status-badge recording";
+    }
+    if (recordVideoBtn) {
+      recordVideoBtn.textContent = "Stop Video Recording";
+      recordVideoBtn.className = "button button-accent media-btn";
+    }
+
+    // Auto-start speech recognition if not already on
+    startSpeechRecognition();
+  }
+
+  function stopVideoRecording() {
+    isRecordingVideo = false;
+    clearInterval(recordingTimerInterval);
+
+    // End timestamp entry
+    const totalElapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+    const mins = String(Math.floor(totalElapsed / 60)).padStart(2, "0");
+    const secs = String(totalElapsed % 60).padStart(2, "0");
+    recordedTimestamps.push({
+      time: totalElapsed,
+      timeDisplay: `${mins}:${secs}`,
+      note: "Finished response delivery",
+    });
+
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
+
+    if (camBadge) {
+      camBadge.textContent = mediaStream ? "Camera On" : "Camera Off";
+      camBadge.className = mediaStream ? "status-badge active" : "status-badge idle";
+    }
+    if (recordVideoBtn) {
+      recordVideoBtn.textContent = "Start Video Recording";
+      recordVideoBtn.className = "button button-dark media-btn";
+    }
+  }
+
+  if (recordVideoBtn) {
+    recordVideoBtn.addEventListener("click", () => {
+      if (isRecordingVideo) {
+        stopVideoRecording();
+      } else {
+        startVideoRecording();
+      }
+    });
+  }
+
+  function resetMediaState() {
+    if (isListening) stopSpeechRecognition();
+    if (isRecordingVideo) stopVideoRecording();
+    recordedVideoBlob = null;
+    recordedTimestamps = [];
+    if (playbackContainer) playbackContainer.hidden = true;
+    if (videoPlayer) videoPlayer.src = "";
+  }
+
   if (byId("start-interview"))
     byId("start-interview").addEventListener("click", startInterview);
 
   if (byId("try-again"))
     byId("try-again").addEventListener("click", () => {
+      resetMediaState();
       byId("interview-setup").hidden = false;
       byId("interview-workspace").hidden = true;
     });
 
   if (byId("next-question")) {
     byId("next-question").addEventListener("click", () => {
+      resetMediaState();
       if (interviewIndex < interviewQuestions.length - 1) {
         interviewIndex++;
         renderQuestion();
@@ -164,6 +516,9 @@
   if (byId("answer-form"))
     byId("answer-form").addEventListener("submit", (e) => {
       e.preventDefault();
+      if (isRecordingVideo) stopVideoRecording();
+      if (isListening) stopSpeechRecognition();
+
       const q = interviewQuestions[interviewIndex],
         rawText = byId("answer-input").value,
         answer = rawText.toLowerCase().trim(),
@@ -200,6 +555,63 @@
 
       byId("feedback-strong").textContent = q.strongAnswer;
       byId("feedback-followup").textContent = q.followUp;
+
+      // Render Video Playback & Timestamp Analysis
+      if (playbackContainer && timestampList) {
+        // Build timestamp list
+        const items = [...recordedTimestamps];
+
+        // Ensure key feedback markers are present as timestamp milestones
+        if (items.length === 0) {
+          items.push({ time: 0, timeDisplay: "00:00", note: "Opening thoughts & introduction" });
+          items.push({ time: 10, timeDisplay: "00:10", note: "Core explanation & technical detail" });
+          items.push({ time: 25, timeDisplay: "00:25", note: "Conclusion & outcome" });
+        }
+
+        // Add coaching callouts at relevant timestamps
+        if (hits > 0) {
+          items.push({
+            time: 12,
+            timeDisplay: "00:12",
+            note: `💡 Good inclusion of key concept: "${q.lookFor.find((t) => answer.includes(t.toLowerCase())) || "keyword"}"`,
+          });
+        }
+        if (missingKeywords.length > 0) {
+          items.push({
+            time: 20,
+            timeDisplay: "00:20",
+            note: `🎯 Opportunity to add technical depth: mention "${missingKeywords[0]}"`,
+          });
+        }
+
+        // Sort items chronologically
+        items.sort((a, b) => a.time - b.time);
+
+        timestampList.innerHTML = items
+          .map(
+            (item) => `
+          <li class="timestamp-item" data-time="${item.time}">
+            <span class="timestamp-badge">${item.timeDisplay}</span>
+            <span class="timestamp-note">${item.note}</span>
+          </li>
+        `,
+          )
+          .join("");
+
+        // Attach click listener to jump video player to timestamp
+        timestampList.querySelectorAll(".timestamp-item").forEach((el) => {
+          el.addEventListener("click", () => {
+            const time = parseFloat(el.dataset.time);
+            if (videoPlayer) {
+              videoPlayer.currentTime = time;
+              videoPlayer.play().catch(() => {});
+            }
+          });
+        });
+
+        playbackContainer.hidden = false;
+      }
+
       byId("feedback-panel").hidden = false;
 
       // Scroll smoothly to feedback

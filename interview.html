@@ -71,9 +71,50 @@
               <span class="eyebrow question-eyebrow">Prompt</span>
               <h2 id="interview-question"></h2>
             </div>
+            <div class="response-mode-selector">
+              <span class="eyebrow">Answer Mode</span>
+              <div class="mode-buttons">
+                <button id="mode-text-btn" class="mode-btn active" type="button">
+                  Type Answer
+                </button>
+                <button id="mode-voice-btn" class="mode-btn" type="button">
+                  Record Answer
+                </button>
+              </div>
+            </div>
+
+            <!-- Voice & Video Recording Controls Panel -->
+            <div id="voice-video-panel" class="voice-video-panel" hidden>
+              <div class="media-controls">
+                <button id="toggle-mic-btn" class="button button-accent media-btn" type="button">
+                  Start Voice Input
+                </button>
+                <button id="toggle-cam-btn" class="button button-accent media-btn" type="button">
+                  Turn On Camera
+                </button>
+                <button id="record-video-btn" class="button button-dark media-btn" type="button" disabled>
+                  Start Video Recording
+                </button>
+              </div>
+              <div id="media-status" class="media-status">
+                <span id="mic-status-badge" class="status-badge idle">Mic Off</span>
+                <span id="cam-status-badge" class="status-badge idle">Camera Off</span>
+                <span id="recording-timer" class="recording-timer" hidden>00:00</span>
+              </div>
+              <div id="camera-preview-container" class="camera-preview-container" hidden>
+                <video id="webcam-preview" autoplay playsinline muted></video>
+                <div class="live-tag">LIVE CAMERA</div>
+              </div>
+            </div>
+
             <form id="answer-form" class="answer-form">
               <div class="textarea-wrapper">
-                <label for="answer-input" class="eyebrow input-label">Your Response</label>
+                <div class="label-row">
+                  <label for="answer-input" class="eyebrow input-label">Your Response</label>
+                  <span id="speech-live-indicator" class="speech-live-indicator" hidden>
+                    <span class="pulse-dot"></span> Transcribing speech...
+                  </span>
+                </div>
                 <textarea
                   id="answer-input"
                   required
@@ -114,6 +155,23 @@
                   <strong>Follow-up Question</strong>
                   <p id="feedback-followup"></p>
                 </div>
+
+                <!-- Recorded Video Playback & Timestamp Analysis Section -->
+                <div id="video-playback-container" class="video-playback-container" hidden>
+                  <p class="eyebrow">Response Playback & Timestamped Analysis</p>
+                  <h3>Review Your Recorded Performance</h3>
+                  <div class="playback-grid">
+                    <div class="video-wrapper">
+                      <video id="response-video-player" controls playsinline preload="auto"></video>
+                    </div>
+                    <div class="timestamps-panel">
+                      <h4>Timestamps & Coaching Points</h4>
+                      <p class="timestamp-help">Click any timestamp to jump to that moment in your response:</p>
+                      <ul id="timestamp-list" class="timestamp-list"></ul>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="feedback-actions">
                   <button id="next-question" class="button button-accent" type="button">
                     Next question <span>-></span>
