@@ -36,7 +36,7 @@
         <div class="quiz-wrap">
           <form id="quiz-form">
             <div class="quiz-meta">
-              <span id="quiz-progress">Question 1 / 5</span><span>2 min</span>
+              <span id="quiz-progress">Question 1 / 20</span><span>5 min</span>
             </div>
             <h2 id="quiz-question"></h2>
             <div id="quiz-options" class="quiz-options"></div>
@@ -54,7 +54,243 @@
       ><span>2026</span>
     </footer>
     <script src="js/data.js"></script>
-    <script src="js/questions.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+      (() => {
+        const quizQuestions = [
+          {
+            prompt: "What kind of problem makes you lose track of time?",
+            options: [
+              ["Building an app or tool from scratch", ["software-developer"]],
+              ["Finding a pattern in messy information", ["data-analyst"]],
+              ["Investigating a suspicious signal", ["business-systems-analyst"]],
+              ["Improving how a team or system works", ["erp-systems-consultant"]],
+            ],
+          },
+          {
+            prompt: "Which project role sounds most energizing?",
+            options: [
+              ["Writing and testing the implementation", ["software-developer"]],
+              ["Turning user needs into a useful experience", ["ux-product-manager"]],
+              ["Coordinating people, scope, and deadlines", ["it-project-manager"]],
+              ["Designing reliable technical foundations", ["cloud-infrastructure-engineer"]],
+            ],
+          },
+          {
+            prompt: "Your ideal workday has more...",
+            options: [
+              ["Code, prototypes, and creating", ["software-developer"]],
+              ["Charts, evidence, and analysis", ["data-analyst"]],
+              ["Logs, puzzles, and investigation", ["business-systems-analyst"]],
+              ["Stakeholders, plans, and decisions", ["business-systems-analyst"]],
+            ],
+          },
+          {
+            prompt: "How do you prefer to learn about a problem?",
+            options: [
+              ["Run experiments and inspect the results", ["business-systems-analyst"]],
+              ["Interview people and observe their workflow", ["ux-product-manager"]],
+              ["Trace events through logs and systems", ["cybersecurity-analyst"]],
+              ["Understand the business process end to end", ["erp-systems-consultant"]],
+            ],
+          },
+          {
+            prompt: "Which outcome feels most satisfying?",
+            options: [
+              ["A tool people actually use", ["software-developer"]],
+              ["A decision backed by evidence", ["erp-systems-consultant"]],
+              ["A risk prevented or threat stopped", ["cybersecurity-analyst"]],
+              ["A better, clearer way of working", ["business-systems-analyst"]],
+            ],
+          },
+          {
+            prompt: "What do teammates count on you for?",
+            options: [
+              ["Making ideas technically real", ["cloud-infrastructure-engineer"]],
+              ["Making information and insights clear", ["erp-systems-consultant"]],
+              ["Noticing risks others miss", ["cybersecurity-analyst"]],
+              ["Getting people aligned and moving", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "Which deliverable would you most enjoy creating?",
+            options: [
+              ["A working feature or application", ["cloud-infrastructure-engineer"]],
+              ["A dashboard or predictive model", ["erp-systems-consultant"]],
+              ["A wireframe, prototype, or product roadmap", ["ux-product-manager"]],
+              ["A project plan with milestones and risks", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "Which technical challenge sounds most interesting?",
+            options: [
+              ["Designing APIs and application logic", ["software-developer"]],
+              ["Building automated cloud infrastructure", ["cloud-infrastructure-engineer"]],
+              ["Configuring an enterprise platform for a client", ["erp-systems-consultant"]],
+              ["Analyzing access, vulnerabilities, and alerts", ["cybersecurity-analyst"]],
+            ],
+          },
+          {
+            prompt: "When requirements are unclear, you usually want to...",
+            options: [
+              ["Prototype a few possible solutions", ["software-developer"]],
+              ["Gather data and define measurable questions", ["business-systems-analyst"]],
+              ["Facilitate conversations to uncover needs", ["business-systems-analyst"]],
+              ["Clarify scope, owners, and next steps", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "Which type of impact matters most to you?",
+            options: [
+              ["Make a product easier and more pleasant to use", ["ux-product-manager"]],
+              ["Help leaders make smarter decisions", ["data-analyst"]],
+              ["Keep systems safe and trustworthy", ["cybersecurity-analyst"]],
+              ["Help an organization operate more effectively", ["erp-systems-consultant"]],
+            ],
+          },
+          {
+            prompt: "Which toolset would you be happiest exploring?",
+            options: [
+              ["JavaScript, Python, Git, and APIs", ["software-developer"]],
+              ["SQL, Excel, Python, and visualization tools", ["data-analyst"]],
+              ["Figma, research tools, and product analytics", ["ux-product-manager"]],
+              ["Jira, roadmaps, and collaboration tools", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "What kind of ambiguity feels like a good challenge?",
+            options: [
+              ["A vague product idea that needs a prototype", ["ux-product-manager"]],
+              ["Incomplete data that needs careful interpretation", ["data-analyst"]],
+              ["An incident with unknown cause and scope", ["cybersecurity-analyst"]],
+              ["A complex business process needing a system solution", ["erp-systems-consultant"]],
+            ],
+          },
+          {
+            prompt: "Which responsibility would you choose first?",
+            options: [
+              ["Debug a failing service", ["cloud-infrastructure-engineer"]],
+              ["Map a process and write requirements", ["business-systems-analyst"]],
+              ["Prioritize a product backlog", ["it-project-manager"]],
+              ["Review an alert and recommend controls", ["cybersecurity-analyst"]],
+            ],
+          },
+          {
+            prompt: "How do you like to communicate your work?",
+            options: [
+              ["With a demo of something working", ["cloud-infrastructure-engineer"]],
+              ["With a clear chart and written insight", ["data-analyst"]],
+              ["With a story, sketch, or prototype", ["ux-product-manager"]],
+              ["With a concise status update and action plan", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "What kind of system would you like to improve?",
+            options: [
+              ["A customer-facing application", ["software-developer"]],
+              ["A data pipeline or reporting process", ["data-analyst"]],
+              ["An organization's security monitoring", ["cybersecurity-analyst"]],
+              ["An enterprise workflow in SAP or Salesforce", ["erp-systems-consultant"]],
+            ],
+          },
+          {
+            prompt: "Which success metric would you watch most closely?",
+            options: [
+              ["Application performance and reliability", ["cloud-infrastructure-engineer"]],
+              ["Accuracy, adoption, or business impact of an insight", ["data-analyst"]],
+              ["User satisfaction and task completion", ["ux-product-manager"]],
+              ["Milestones delivered and risks reduced", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "When something goes wrong, your first instinct is to...",
+            options: [
+              ["Reproduce it and isolate the root cause", ["software-developer"]],
+              ["Check logs, scope the issue, and contain risk", ["cybersecurity-analyst"]],
+              ["Talk with affected people and understand the workflow", ["business-systems-analyst"]],
+              ["Coordinate the response and communicate clearly", ["it-project-manager"]],
+            ],
+          },
+          {
+            prompt: "Which long-term improvement sounds most rewarding?",
+            options: [
+              ["Automating deployments and scaling infrastructure", ["cloud-infrastructure-engineer"]],
+              ["Creating a trusted source of business insight", ["data-analyst"]],
+              ["Making a product more intuitive through research and iteration", ["ux-product-manager"]],
+              ["Standardizing processes through an enterprise system", ["erp-systems-consultant"]],
+            ],
+          },
+          {
+            prompt: "What would you most like to be known for?",
+            options: [
+              ["Thoughtful, maintainable software", ["software-developer"]],
+              ["Practical analysis that changes decisions", ["data-analyst"]],
+              ["Calm, precise protection of systems", ["cybersecurity-analyst"]],
+              ["Reliable systems that stay available", ["cloud-infrastructure-engineer"]],
+            ],
+          },
+          {
+            prompt: "Which statement best describes your preferred way to work?",
+            options: [
+              ["I translate needs into clear requirements and solutions", ["business-systems-analyst"]],
+              ["I turn user problems into product priorities and experiences", ["ux-product-manager"]],
+              ["I create momentum by organizing people and decisions", ["it-project-manager"]],
+              ["I enjoy solving technical problems through hands-on building", ["cloud-infrastructure-engineer"]],
+            ],
+          },
+        ];
+
+        const form = document.getElementById("quiz-form");
+        const progress = document.getElementById("quiz-progress");
+        const question = document.getElementById("quiz-question");
+        const options = document.getElementById("quiz-options");
+        const results = document.getElementById("quiz-results");
+        let currentQuestion = 0;
+        const scores = Object.fromEntries(careers.map((career) => [career.id, 0]));
+
+        const renderQuestion = () => {
+          const current = quizQuestions[currentQuestion];
+          progress.textContent = `Question ${currentQuestion + 1} / ${quizQuestions.length}`;
+          question.textContent = current.prompt;
+          options.innerHTML = current.options
+            .map(
+              ([label, careerIds]) =>
+                `<label class="quiz-option"><input type="radio" name="quiz-answer" value="${careerIds.join(",")}" required>${label}</label>`,
+            )
+            .join("");
+        };
+
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const selected = new FormData(form).get("quiz-answer");
+          selected.split(",").forEach((careerId) => {
+            scores[careerId] += 1;
+          });
+          currentQuestion += 1;
+
+          if (currentQuestion < quizQuestions.length) {
+            renderQuestion();
+            return;
+          }
+
+          const ranked = careers
+            .map((career) => ({ career, score: scores[career.id] }))
+            .sort((a, b) => b.score - a.score);
+          form.hidden = true;
+          results.hidden = false;
+          results.innerHTML = `<p class="eyebrow">Your top matches</p><h3>Follow the signal.</h3>${ranked
+            .slice(0, 3)
+            .map(
+              (match, index) =>
+                `<div class="match"><a href="careers.html">${index + 1}. ${match.career.name}</a><span class="match-score">${Math.round((match.score / quizQuestions.length) * 100)}%</span></div>`,
+            )
+            .join("")}<p class="detail-copy">Your answers point toward work that values ${ranked[0].career.skills.slice(0, 2).join(" and ")}. Explore the matches to decide what to try next.</p><button class="button button-accent" type="button" id="restart-quiz">Take it again <span>-></span></button>`;
+          document.getElementById("restart-quiz").addEventListener("click", () => {
+            window.location.reload();
+          });
+        });
+
+        renderQuestion();
+      })();
+    </script>
   </body>
 </html>
