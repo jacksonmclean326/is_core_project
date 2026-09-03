@@ -24,6 +24,22 @@ const questionBank = {
       lookFor: ["measure", "logs", "recent", "database", "monitor"],
       followUp: "What metric would you check first?",
     },
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you had to learn a new programming language or framework quickly.",
+      strongAnswer:
+        "Discuss why you needed to learn it, your learning strategy (docs, sample projects), how you applied it, and key takeaways.",
+      lookFor: ["learn", "documentation", "apply", "build", "framework"],
+      followUp: "What was the hardest concept to grasp in that framework?",
+    },
+    {
+      type: "technical",
+      prompt: "Explain the difference between SQL and NoSQL databases.",
+      strongAnswer:
+        "SQL databases are relational, structured, and use schemas with ACID compliance. NoSQL databases are non-relational, flexible, and scale horizontally.",
+      lookFor: ["relational", "schema", "flexible", "scale", "document"],
+      followUp: "When would you choose NoSQL over a relational database?",
+    },
   ],
   "data-analyst": [
     {
@@ -49,6 +65,22 @@ const questionBank = {
         "First understand why it is missing, quantify the impact, then choose to remove, impute, flag, or leave it based on the business context.",
       lookFor: ["why", "impact", "remove", "impute", "context"],
       followUp: "How would you explain your choice to a stakeholder?",
+    },
+    {
+      type: "behavioral",
+      prompt: "How do you ensure data accuracy before presenting findings to stakeholders?",
+      strongAnswer:
+        "Describe validation steps such as cross-checking sources, testing edge cases, checking for outliers, and performing sanity checks.",
+      lookFor: ["validate", "outliers", "cross-check", "verify", "source"],
+      followUp: "What would you do if a stakeholder questioned your numbers?",
+    },
+    {
+      type: "technical",
+      prompt: "What makes a data visualization or dashboard effective?",
+      strongAnswer:
+        "Clear hierarchy, minimal noise, targeted metrics, intuitive color schemes, and answering key business questions at a glance.",
+      lookFor: ["metric", "clarity", "audience", "visual", "insights"],
+      followUp: "How do you decide which chart type to use?",
     },
   ],
   "cybersecurity-analyst": [
@@ -84,6 +116,22 @@ const questionBank = {
       lookFor: ["baseline", "source", "destination", "logs", "contain"],
       followUp: "How would you avoid disrupting a legitimate service?",
     },
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you identified a security vulnerability or risk.",
+      strongAnswer:
+        "Explain how you discovered it, assessed severity, communicated risk to the team, and helped remediate it.",
+      lookFor: ["risk", "discover", "assess", "remediate", "severity"],
+      followUp: "How did you ensure the vulnerability was patched properly?",
+    },
+    {
+      type: "technical",
+      prompt: "What is phishing, and how do organizations defend against it?",
+      strongAnswer:
+        "Phishing tricks users into revealing credentials. Defense includes security awareness training, email filtering, MFA, and endpoint protection.",
+      lookFor: ["social engineering", "credentials", "mfa", "filter", "training"],
+      followUp: "Why is multi-factor authentication so effective against phishing?",
+    },
   ],
   "business-systems-analyst": [
     {
@@ -114,6 +162,22 @@ const questionBank = {
       followUp:
         "Give an example of turning a quality into a testable requirement.",
     },
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you mapped out a business process.",
+      strongAnswer:
+        "Describe the process scope, how you interviewed stakeholders, created process flow diagrams, identified bottlenecks, and recommended improvements.",
+      lookFor: ["diagram", "process", "bottleneck", "stakeholder", "flow"],
+      followUp: "How did you measure the impact of your process improvement?",
+    },
+    {
+      type: "technical",
+      prompt: "What is User Acceptance Testing (UAT), and what is your role in it?",
+      strongAnswer:
+        "UAT verifies a system meets business needs before deployment. The analyst writes test cases, guides business users, tracks defects, and ensures sign-off.",
+      lookFor: ["testing", "test cases", "defects", "business", "sign-off"],
+      followUp: "How do you handle critical defects found during UAT right before launch?",
+    },
   ],
   "it-project-manager": [
     {
@@ -132,6 +196,30 @@ const questionBank = {
       lookFor: ["delay", "scope", "dependency", "stakeholder", "plan"],
       followUp: "What would you communicate first?",
     },
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time you managed a disagreement among team members.",
+      strongAnswer:
+        "Describe listening to both perspectives, focusing on project goals, facilitating a compromise, and maintaining team morale.",
+      lookFor: ["conflict", "listen", "compromise", "goal", "morale"],
+      followUp: "How did you follow up with team members afterward?",
+    },
+    {
+      type: "technical",
+      prompt: "What is the difference between Agile and Waterfall project management?",
+      strongAnswer:
+        "Waterfall is sequential and plan-driven; Agile is iterative, adaptable, and delivers incremental value through continuous feedback.",
+      lookFor: ["iterative", "sequential", "sprint", "feedback", "adapt"],
+      followUp: "When would Waterfall still be preferred over Agile?",
+    },
+    {
+      type: "technical",
+      prompt: "How do you create and manage a risk register?",
+      strongAnswer:
+        "Identify potential risks, evaluate probability and impact, assign ownership, define mitigation strategies, and review regularly.",
+      lookFor: ["probability", "impact", "mitigation", "ownership", "review"],
+      followUp: "How do you communicate high-level risks to executives?",
+    },
   ],
   "ux-product-manager": [
     {
@@ -149,6 +237,30 @@ const questionBank = {
         "Compare user value, business impact, effort, risk, and evidence, then make the tradeoff visible to the team.",
       lookFor: ["value", "impact", "effort", "risk", "evidence"],
       followUp: "How would you respond when a stakeholder disagrees?",
+    },
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time user research changed your product direction.",
+      strongAnswer:
+        "Explain initial assumptions, findings from user testing or interviews, how you pivoted, and the positive outcome.",
+      lookFor: ["assumption", "testing", "interview", "pivot", "outcome"],
+      followUp: "How did you convince engineering or business leads to change course?",
+    },
+    {
+      type: "technical",
+      prompt: "What is an MVP (Minimum Viable Product), and how do you define its scope?",
+      strongAnswer:
+        "An MVP is the simplest version of a product that delivers core user value and collects feedback to validate key assumptions.",
+      lookFor: ["simplest", "core", "value", "feedback", "validate"],
+      followUp: "How do you avoid scope creep when defining an MVP?",
+    },
+    {
+      type: "technical",
+      prompt: "How do you measure product success after launching a new feature?",
+      strongAnswer:
+        "Define success metrics upfront (e.g. adoption, retention, task completion rate, NPS), track telemetry data, and collect user feedback.",
+      lookFor: ["metrics", "adoption", "retention", "telemetry", "feedback"],
+      followUp: "What do you do if metrics drop after launch?",
     },
   ],
   "erp-systems-consultant": [
@@ -174,6 +286,30 @@ const questionBank = {
       ],
       followUp: "How would you handle conflicting department needs?",
     },
+    {
+      type: "behavioral",
+      prompt: "Tell me about a time a client or business unit resisted system change.",
+      strongAnswer:
+        "Discuss understanding their concerns, demonstrating benefits, offering hands-on training, and facilitating smooth change management.",
+      lookFor: ["resistance", "concerns", "training", "benefits", "change"],
+      followUp: "How did you track user adoption post-launch?",
+    },
+    {
+      type: "technical",
+      prompt: "What are core modules in an Enterprise Resource Planning (ERP) system?",
+      strongAnswer:
+        "ERP integrates core functions: Finance/Accounting, Supply Chain, Human Resources, Procurement, and Customer Relationship Management.",
+      lookFor: ["finance", "supply chain", "hr", "procurement", "integrate"],
+      followUp: "Why is data migration often the biggest risk in ERP projects?",
+    },
+    {
+      type: "technical",
+      prompt: "How do you handle data migration from legacy systems to an ERP?",
+      strongAnswer:
+        "Extract data, clean/deduplicate, map to target schema, perform test trial loads, validate accuracy with business leads, and execute cutover.",
+      lookFor: ["extract", "clean", "map", "validate", "cutover"],
+      followUp: "What is your rollback plan if data migration fails during cutover?",
+    },
   ],
   "cloud-infrastructure-engineer": [
     {
@@ -197,6 +333,30 @@ const questionBank = {
         "recovery",
       ],
       followUp: "How would you test disaster recovery?",
+    },
+    {
+      type: "behavioral",
+      prompt: "Tell me about an outage or production incident you helped resolve.",
+      strongAnswer:
+        "Explain immediate response, incident triage, communication updates, resolving root cause, and conducting a post-mortem.",
+      lookFor: ["incident", "triage", "communication", "root cause", "post-mortem"],
+      followUp: "How did you ensure the issue wouldn't happen again?",
+    },
+    {
+      type: "technical",
+      prompt: "What is Infrastructure as Code (IaC), and why is it important?",
+      strongAnswer:
+        "IaC manages cloud resources using configuration files (e.g. Terraform) enabling version control, repeatability, automated deployments, and drift detection.",
+      lookFor: ["terraform", "version control", "automated", "repeatable", "configuration"],
+      followUp: "How do you manage secrets when using IaC?",
+    },
+    {
+      type: "technical",
+      prompt: "Explain the concept of Least Privilege in cloud security.",
+      strongAnswer:
+        "Grant identities and services only the exact permissions needed to perform their tasks, minimizing attack surface and blast radius.",
+      lookFor: ["permission", "access", "iam", "role", "security"],
+      followUp: "How do you audit inactive permissions in cloud accounts?",
     },
   ],
 };

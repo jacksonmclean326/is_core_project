@@ -34,64 +34,92 @@
         </p>
       </section>
       <section class="practice page-section">
-        <div id="interview-setup" class="interview-setup">
-          <label>Role<select id="interview-career"></select></label
-          ><label
-            >Difficulty<select id="interview-difficulty">
-              <option value="internship">Internship</option>
-              <option value="entry">Entry level</option>
-              <option value="challenge">Challenge</option>
-            </select></label
-          ><button
-            id="start-interview"
-            class="button button-accent"
-            type="button"
-          >
-            Start interview <span>-></span>
-          </button>
-        </div>
-        <div id="interview-workspace" class="interview-workspace" hidden>
-          <div class="interview-top">
-            <span id="interview-progress">Question 1 / 3</span
-            ><button id="try-again" class="text-button" type="button">
-              Reset interview
+        <div class="interview-container">
+          <div id="interview-setup" class="interview-setup">
+            <div class="setup-field">
+              <label for="interview-career">Target Role</label>
+              <div class="select-wrapper">
+                <select id="interview-career"></select>
+              </div>
+            </div>
+            <div class="setup-field">
+              <label for="interview-difficulty">Difficulty</label>
+              <div class="select-wrapper">
+                <select id="interview-difficulty">
+                  <option value="internship">Internship</option>
+                  <option value="entry">Entry level</option>
+                  <option value="challenge">Challenge</option>
+                </select>
+              </div>
+            </div>
+            <button
+              id="start-interview"
+              class="button button-accent start-btn"
+              type="button"
+            >
+              Start interview <span>-></span>
             </button>
           </div>
-          <h2 id="interview-question"></h2>
-          <form id="answer-form">
-            <textarea
-              id="answer-input"
-              required
-              placeholder="Write your answer here..."
-            ></textarea
-            ><button class="button button-dark" type="submit">
-              Submit answer <span>-></span>
-            </button>
-          </form>
-          <div id="feedback-panel" class="feedback-panel" hidden>
-            <div class="feedback-score">
-              <span id="feedback-score">0</span><small>/ 10</small>
+          <div id="interview-workspace" class="interview-workspace" hidden>
+            <div class="interview-top">
+              <span id="interview-progress" class="question-badge">Question 1 / 3</span>
+              <button id="try-again" class="text-button reset-btn" type="button">
+                Reset interview
+              </button>
             </div>
-            <div>
-              <p class="eyebrow">Interviewer notes</p>
-              <h3>Keep this in your toolkit.</h3>
-              <div class="feedback-grid">
-                <div>
-                  <strong>What worked</strong>
-                  <p id="feedback-good"></p>
-                </div>
-                <div>
-                  <strong>What to add</strong>
-                  <p id="feedback-missing"></p>
+            <div class="question-card">
+              <span class="eyebrow question-eyebrow">Prompt</span>
+              <h2 id="interview-question"></h2>
+            </div>
+            <form id="answer-form" class="answer-form">
+              <div class="textarea-wrapper">
+                <label for="answer-input" class="eyebrow input-label">Your Response</label>
+                <textarea
+                  id="answer-input"
+                  required
+                  placeholder="Structure your thoughts clearly. Mention relevant tools, frameworks, and concrete experiences..."
+                ></textarea>
+              </div>
+              <div class="form-actions">
+                <button class="button button-dark submit-btn" type="submit">
+                  Submit answer <span>-></span>
+                </button>
+              </div>
+            </form>
+            <div id="feedback-panel" class="feedback-panel" hidden>
+              <div class="feedback-score-card">
+                <p class="eyebrow">Score</p>
+                <div class="score-display">
+                  <span id="feedback-score">0</span><small>/ 10</small>
                 </div>
               </div>
-              <div class="strong-answer">
-                <strong>A stronger answer could include</strong>
-                <p id="feedback-strong"></p>
+              <div class="feedback-content">
+                <p class="eyebrow">Interviewer notes</p>
+                <h3>Keep this in your toolkit</h3>
+                <div class="feedback-grid">
+                  <div class="feedback-box feedback-good-box">
+                    <strong>What worked</strong>
+                    <p id="feedback-good"></p>
+                  </div>
+                  <div class="feedback-box feedback-missing-box">
+                    <strong>What to add</strong>
+                    <p id="feedback-missing"></p>
+                  </div>
+                </div>
+                <div class="strong-answer">
+                  <strong>A stronger answer could include</strong>
+                  <p id="feedback-strong"></p>
+                </div>
+                <div class="follow-up">
+                  <strong>Follow-up Question</strong>
+                  <p id="feedback-followup"></p>
+                </div>
+                <div class="feedback-actions">
+                  <button id="next-question" class="button button-accent" type="button">
+                    Next question <span>-></span>
+                  </button>
+                </div>
               </div>
-              <p class="follow-up">
-                <strong>Follow-up:</strong> <span id="feedback-followup"></span>
-              </p>
             </div>
           </div>
         </div>
