@@ -767,7 +767,8 @@
           if (type === "salary")
             content = `<p>${career.salary}</p><p>Typical compensation for this path can help you compare roles and negotiate confidently.</p>`;
           if (type === "courses")
-            content = `<ul><li>Relevant IS coursework in ${career.category.toLowerCase()}</li><li>Build one portfolio project with ${career.tools[0]}</li><li>Practice explaining your work to a real person</li></ul>`;
+            content = `<ul>${career.courses.map((course) => `<li>${course}</li>`).join("")}</ul>`;
+          if (type === "salary") content = `<p>${career.salary}</p>`;
           if (type === "interview")
             content = `<p>Ready to test this route with a realistic prompt?</p><a class="button button-accent" href="interview.html?career=${career.id}">Open interview practice <span>-&gt;</span></a>`;
           detailPanel.hidden = false;
