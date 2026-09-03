@@ -36,13 +36,18 @@
         <div class="quiz-wrap">
           <form id="quiz-form">
             <div class="quiz-meta">
-              <span id="quiz-progress">Question 1 / 20</span><span>5 min</span>
+              <span id="quiz-progress">Question 1 / 20</span>
             </div>
             <h2 id="quiz-question"></h2>
             <div id="quiz-options" class="quiz-options"></div>
-            <button class="button button-dark" type="submit">
-              Next question <span>-></span>
-            </button>
+            <div style="display:flex; gap:12px; align-items:center;">
+              <button class="button text-button" type="button" id="quiz-back" hidden>
+                <- Back
+              </button>
+              <button class="button button-dark" type="submit">
+                Next question <span>-></span>
+              </button>
+            </div>
           </form>
           <div id="quiz-results" class="quiz-results" hidden></div>
         </div>
@@ -244,7 +249,9 @@
         const question = document.getElementById("quiz-question");
         const options = document.getElementById("quiz-options");
         const results = document.getElementById("quiz-results");
+        const backButton = document.getElementById("quiz-back");
         let currentQuestion = 0;
+        const answerHistory = [];
         const scores = Object.fromEntries(careers.map((career) => [career.id, 0]));
 
         const renderQuestion = () => {
@@ -257,14 +264,22 @@
                 `<label class="quiz-option"><input type="radio" name="quiz-answer" value="${careerIds.join(",")}" required>${label}</label>`,
             )
             .join("");
+          if (answerHistory[currentQuestion]) {
+            const previousValue = answerHistory[currentQuestion].join(",");
+            const previousInput = options.querySelector(`input[value="${previousValue}"]`);
+            if (previousInput) previousInput.checked = true;
+          }
+          backButton.hidden = currentQuestion === 0;
         };
 
         form.addEventListener("submit", (event) => {
           event.preventDefault();
           const selected = new FormData(form).get("quiz-answer");
-          selected.split(",").forEach((careerId) => {
+          const careerIds = selected.split(",");
+          careerIds.forEach((careerId) => {
             scores[careerId] += 1;
           });
+          answerHistory[currentQuestion] = careerIds;
           currentQuestion += 1;
 
           if (currentQuestion < quizQuestions.length) {
@@ -283,10 +298,24 @@
               (match, index) =>
                 `<div class="match"><a href="careers.html">${index + 1}. ${match.career.name}</a><span class="match-score">${Math.round((match.score / quizQuestions.length) * 100)}%</span></div>`,
             )
+            .join("")}<h4>Selection breakdown</h4>${careers
+            .map(
+              (career) =>
+                `<div class="match"><span>${career.name}</span><span class="match-score">${scores[career.id]} option${scores[career.id] === 1 ? "" : "s"} / ${Math.round((scores[career.id] / quizQuestions.length) * 100)}%</span></div>`,
+            )
             .join("")}<p class="detail-copy">Your answers point toward work that values ${ranked[0].career.skills.slice(0, 2).join(" and ")}. Explore the matches to decide what to try next.</p><button class="button button-accent" type="button" id="restart-quiz">Take it again <span>-></span></button>`;
           document.getElementById("restart-quiz").addEventListener("click", () => {
             window.location.reload();
           });
+        });
+
+        backButton.addEventListener("click", () => {
+          if (currentQuestion === 0) return;
+          currentQuestion -= 1;
+          answerHistory[currentQuestion].forEach((careerId) => {
+            scores[careerId] -= 1;
+          });
+          renderQuestion();
         });
 
         renderQuestion();
