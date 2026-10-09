@@ -3,7 +3,7 @@ College students often struggle to budget effectively due to limited time, incom
 
 ## ERD:
 
-<img width="468" height="273" alt="image" src="https://github.com/user-attachments/assets/0adb3b78-6da4-47f0-9ca7-5c87a40518d9" />
+<img width="754" height="458" alt="Screenshot 2026-10-09 at 9 21 23 AM" src="https://github.com/user-attachments/assets/e55333e1-a1df-4d0b-ab80-619b2c09e480" />
 
  
 ## Tech Stack:
