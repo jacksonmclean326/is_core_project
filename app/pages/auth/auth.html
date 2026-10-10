@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f5ef">
+    <meta name="description" content="Sign in or create your Money Man account.">
+    <title>Money Man - Sign in</title>
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="auth.css">
+  </head>
+  <body>
+    <main class="auth-page">
+      <section class="auth-card" aria-labelledby="auth-title">
+        <a class="auth-brand" href="#/auth">Money Man</a>
+        <p class="eyebrow">A LITTLE CLARITY GOES A LONG WAY</p>
+        <h1 id="auth-title">Welcome back.</h1>
+        <p class="auth-description">Sign in to pick up where you left off, or create an account to get started.</p>
+        <form id="auth-form" class="auth-form">
+          <label id="name-label" for="auth-name" hidden>Name</label>
+          <input id="auth-name" name="name" type="text" autocomplete="name" placeholder="Your name" hidden>
+          <label for="auth-email">Email</label>
+          <input id="auth-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <label for="auth-password">Password</label>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required>
+          <p id="auth-feedback" class="auth-feedback" role="status" aria-live="polite"></p>
+          <button id="auth-submit" class="primary-button auth-submit" type="submit">Sign in</button>
+        </form>
+        <p class="auth-switch"><span id="auth-switch-prompt">New to Money Man?</span> <button id="auth-switch" class="auth-switch-button" type="button">Create an account</button></p>
+      </section>
+    </main>
+    <script type="module" src="auth.js"></script>
+  </body>
+</html>

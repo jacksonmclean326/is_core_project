@@ -6,14 +6,17 @@ import {
   showToast,
   state,
 } from "../../core.js";
+import { supabase } from "../../supabase.js";
+
+let friendCode = "";
 
 function renderLeaderboard() {
   const friends = [
     ...state.friends.map((friend) => ({ ...friend })),
     {
       id: "you",
-      name: state.profile.name,
-      initials: state.profile.name
+      name: state.profile.name || "You",
+      initials: (state.profile.name || "You")
         .split(/\s+/)
         .map((part) => part[0])
         .slice(0, 2)
@@ -74,7 +77,7 @@ $("#add-friend-form").addEventListener("submit", (event) => {
   const feedback = $("#friend-feedback");
   if (
     !code ||
-    code === state.friendCode ||
+    code === friendCode ||
     state.friends.some((friend) => friend.code === code)
   ) {
     feedback.textContent = "Enter a different, unused friend code.";
@@ -95,13 +98,50 @@ $("#add-friend-form").addEventListener("submit", (event) => {
   feedback.textContent = "Friend added to your circle.";
 });
 $("#copy-code").addEventListener("click", async () => {
+  if (!friendCode) return;
   try {
-    await navigator.clipboard.writeText(state.friendCode);
+    await navigator.clipboard.writeText(friendCode);
     showToast("Your friend code is copied.");
   } catch {
-    showToast(`Your friend code is ${state.friendCode}.`);
+    showToast(`Your friend code is ${friendCode}.`);
   }
 });
 
+async function loadFriendCode() {
+  const codeElement = $("#friend-code");
+  const feedback = $("#friend-code-feedback");
+  try {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    if (!authData.user) throw new Error("No authenticated user was returned.");
+
+    const { data, error } = await supabase
+      .from("User")
+      .select("friend_code")
+      .eq("id", authData.user.id)
+      .single();
+    if (error) throw error;
+
+    const code = typeof data.friend_code === "string"
+      ? data.friend_code.trim().toUpperCase()
+      : "";
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      throw new Error("The signed-in profile does not have a valid six-character friend code.");
+    }
+
+    friendCode = code;
+    codeElement.textContent = friendCode;
+    $("#copy-code").disabled = false;
+    $("#friend-code-input").disabled = false;
+    $("#add-friend-form button[type='submit']").disabled = false;
+  } catch (error) {
+    console.error("Unable to load the signed-in user's friend code.", error);
+    codeElement.textContent = "Unavailable";
+    feedback.textContent = "Could not load your friend code. Check your profile setup and try refreshing.";
+    feedback.classList.add("is-error");
+  }
+}
+
 renderLeaderboard();
 refreshIcons();
+loadFriendCode();

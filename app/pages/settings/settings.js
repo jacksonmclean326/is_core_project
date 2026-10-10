@@ -9,6 +9,50 @@ import {
   checkCategoryWarnings,
   updateCategoryBudgets,
 } from "../../core.js";
+import { supabase } from "../../supabase.js";
+
+async function renderAuthenticatedProfile() {
+  const nameElement = $("#account-name");
+  const emailElement = $("#account-email");
+  const initialsElement = $("#account-initials");
+  const feedback = $("#account-feedback");
+
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    if (!data.user) throw new Error("No authenticated user was returned.");
+
+    const user = data.user;
+    const metadata = user.user_metadata || {};
+    const metadataName = [metadata.first_name, metadata.last_name]
+      .filter((part) => typeof part === "string" && part.trim())
+      .join(" ");
+    const name =
+      metadataName ||
+      (typeof metadata.full_name === "string" ? metadata.full_name.trim() : "") ||
+      (typeof metadata.name === "string" ? metadata.name.trim() : "");
+    const email = user.email || "";
+
+    nameElement.textContent = name || "Name not provided";
+    emailElement.textContent = email || "Email unavailable";
+    initialsElement.textContent = (name || email || "?")
+      .split(/\s+/)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+    if (!name) {
+      feedback.textContent = "Add your name to your account profile to see it here.";
+    }
+  } catch (error) {
+    console.error("Unable to load the signed-in account profile.", error);
+    nameElement.textContent = "Account details unavailable";
+    emailElement.textContent = "";
+    initialsElement.textContent = "?";
+    feedback.textContent = "Could not load your account details. Try refreshing the page.";
+    feedback.classList.add("is-error");
+  }
+}
 
 function renderSettings() {
   $("#bank-list").innerHTML = state.accounts
@@ -24,17 +68,6 @@ function renderSettings() {
   $("#sync-toggle").checked = state.preferences.sync;
   $("#reminder-toggle").checked = state.preferences.reminders;
   $("#leaderboard-toggle").checked = state.preferences.leaderboard;
-  $(".profile-row > div strong").textContent = state.profile.name;
-  $(".profile-row > div > span").textContent = state.profile.email;
-  $(".profile-button .profile-initials").textContent = state.profile.name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-  $(".large-initials").textContent = $(
-    ".profile-button .profile-initials",
-  ).textContent;
   refreshIcons();
 }
 
@@ -101,11 +134,6 @@ Object.entries(preferenceControls).forEach(([selector, key]) => {
   });
 });
 
-$("#edit-profile").addEventListener("click", () => {
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Edit account details</h2><p class="dialog-subtitle">Update the name shown in your friend circle.</p><form id="profile-edit-form" class="profile-edit-form"><label for="profile-name">Name</label><input id="profile-name" maxlength="50" value="${escapeHTML(state.profile.name)}" required><label for="profile-email">Email</label><input id="profile-email" type="email" value="${escapeHTML(state.profile.email)}" required><button class="primary-button" type="submit">Save details</button></form>`;
-  $("#detail-dialog").showModal();
-});
 $("#privacy-link").addEventListener("click", () => {
   $("#dialog-content").innerHTML =
     `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Privacy & data</h2><p class="dialog-subtitle">This prototype stores your sample budget, categories, goals, and friend list in this browser only. No bank connection or data sharing service is active.</p>`;
@@ -116,16 +144,6 @@ $("#help-link").addEventListener("click", () => {
     `<p class="eyebrow">HERE TO HELP</p><h2 class="dialog-title">Help & support</h2><p class="dialog-subtitle">For this prototype, bank connections and support messaging are simulated. Your budgets and goals can be changed in Settings or from Edit on the Details page.</p>`;
   $("#detail-dialog").showModal();
 });
-$("#detail-dialog").addEventListener("submit", (event) => {
-  if (event.target.id !== "profile-edit-form") return;
-  event.preventDefault();
-  state.profile.name = $("#profile-name").value.trim() || state.profile.name;
-  state.profile.email = $("#profile-email").value.trim() || state.profile.email;
-  saveState();
-  $("#detail-dialog").close();
-  renderSettings();
-  showToast("Your account details are saved.");
-});
-
 renderSettings();
+renderAuthenticatedProfile();
 refreshIcons();

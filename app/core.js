@@ -33,8 +33,7 @@ const initialState = {
     { id: "card", institution: "Discover Card", detail: "•••• 1906 · Credit card", balance: -386 }
   ],
   preferences: { sync: true, reminders: true, leaderboard: true },
-  profile: { name: "Jordan Davis", email: "jordan.davis@email.com" },
-  friendCode: "PEN-4827"
+  profile: { name: "", email: "" }
 };
 
 function loadState() {
@@ -42,6 +41,8 @@ function loadState() {
     const savedValue = localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey);
     const saved = JSON.parse(savedValue);
     if (!saved || typeof saved !== "object") return structuredClone(initialState);
+    const savedState = { ...saved };
+    delete savedState.friendCode;
     const savedFriends = Array.isArray(saved.friends) ? saved.friends : [];
     const sampleFriendIds = new Set(initialState.friends.map((friend) => friend.id));
     const friends = Number(saved.friendSeedVersion) >= 1
@@ -52,7 +53,7 @@ function loadState() {
         ];
     return {
       ...structuredClone(initialState),
-      ...saved,
+      ...savedState,
       friendSeedVersion: 1,
       categories: initialState.categories.map((category) => ({
         ...category,
@@ -62,7 +63,7 @@ function loadState() {
       friends,
       accounts: Array.isArray(saved.accounts) ? saved.accounts : structuredClone(initialState.accounts),
       preferences: { ...initialState.preferences, ...saved.preferences },
-      profile: { ...initialState.profile, ...saved.profile }
+      profile: structuredClone(initialState.profile)
     };
   } catch {
     return structuredClone(initialState);
@@ -95,7 +96,7 @@ export const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (characte
 export const refreshIcons = () => window.lucide?.createIcons();
 
 document.querySelectorAll(".profile-button .profile-initials").forEach((element) => {
-  element.textContent = state.profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+  element.textContent = state.profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "?";
 });
 
 export function showToast(message) {

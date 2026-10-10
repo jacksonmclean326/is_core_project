@@ -1,4 +1,5 @@
 const routes = {
+  auth: "app/pages/auth/auth.html",
   home: "app/pages/home/home.html",
   details: "app/pages/details/details.html",
   chat: "app/pages/chat/chat.html",
@@ -9,6 +10,8 @@ const routes = {
 const app = document.querySelector("#app-root");
 const pageStylesheet = document.querySelector("#page-stylesheet");
 let navigationId = 0;
+let authReady = false;
+let session = null;
 const routeByPath = new Map(
   Object.entries(routes).map(([name, path]) => [
     new URL(path, document.baseURI).pathname,
@@ -18,7 +21,23 @@ const routeByPath = new Map(
 
 function routeFromHash() {
   const route = window.location.hash.slice(2).toLowerCase();
-  return Object.hasOwn(routes, route) ? route : "home";
+  return Object.hasOwn(routes, route) ? route : (authReady && !session ? "auth" : "home");
+}
+
+function navigateTo(route, replace = false) {
+  const nextHash = `#/${route}`;
+  if (window.location.hash === nextHash) {
+    renderRoute();
+  } else if (replace) {
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${window.location.search}${nextHash}`
+    );
+    renderRoute();
+  } else {
+    window.location.hash = nextHash;
+  }
 }
 
 function setPageUrlAttributes(pageDocument, pageUrl) {
@@ -50,7 +69,18 @@ function showLoadError(route, error) {
 }
 
 async function renderRoute() {
+  if (!authReady) return;
+
   const route = routeFromHash();
+  if (!session && route !== "auth") {
+    navigateTo("auth", true);
+    return;
+  }
+  if (session && route === "auth") {
+    navigateTo("home", true);
+    return;
+  }
+
   const canonicalHash = `#/${route}`;
   if (window.location.hash !== canonicalHash) {
     window.history.replaceState(
@@ -73,15 +103,16 @@ async function renderRoute() {
 
     const stylesheet = [...pageDocument.querySelectorAll('link[rel="stylesheet"]')]
       .map((link) => new URL(link.href, pageUrl))
-      .find((url) =>
-        url.origin === pageUrl.origin &&
-        url.pathname !== new URL("app/global.css", document.baseURI).pathname
-      );
+      .filter((url) => url.origin === pageUrl.origin)
+      .at(-1);
     if (!stylesheet) throw new Error(`No page stylesheet found for ${route}`);
 
-    const moduleScript = pageDocument.querySelector('script[type="module"][src]');
+    const moduleScript = [...pageDocument.querySelectorAll('script[type="module"][src]')]
+      .find((script) =>
+        new URL(script.getAttribute("src"), pageUrl).pathname !== "/@vite/client"
+      );
     if (!moduleScript) throw new Error(`No page module found for ${route}`);
-    const moduleUrl = new URL(moduleScript.src, pageUrl);
+    const moduleUrl = new URL(moduleScript.getAttribute("src"), pageUrl);
 
     if (pageStylesheet.href !== stylesheet.href) {
       await new Promise((resolve, reject) => {
@@ -103,6 +134,7 @@ async function renderRoute() {
     routedModule.searchParams.set("navigation", String(requestId));
     await import(routedModule.href);
     if (requestId !== navigationId) return;
+    if (session && route !== "auth") addSignOutControl();
     window.lucide?.createIcons();
     app.setAttribute("aria-busy", "false");
   } catch (error) {
@@ -110,7 +142,31 @@ async function renderRoute() {
   }
 }
 
+function addSignOutControl() {
+  const actions = app.querySelector(".topbar-actions");
+  if (!actions || actions.querySelector("[data-sign-out]")) return;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "text-button auth-sign-out";
+  button.dataset.signOut = "";
+  button.textContent = "Sign out";
+  actions.append(button);
+}
+
 app.addEventListener("click", (event) => {
+  const signOut = event.target.closest?.("[data-sign-out]");
+  if (signOut) {
+    signOut.disabled = true;
+    supabase.auth.signOut().then(({ error }) => {
+      if (error) throw error;
+    }).catch((error) => {
+      console.error("Unable to sign out.", error);
+      signOut.disabled = false;
+      signOut.textContent = "Sign out failed";
+    });
+    return;
+  }
+
   const link = event.target.closest?.("a[href]");
   if (
     !link ||
@@ -129,9 +185,28 @@ app.addEventListener("click", (event) => {
   if (!route) return;
 
   event.preventDefault();
-  const nextHash = `#/${route}`;
-  if (window.location.hash !== nextHash) window.location.hash = nextHash;
+  navigateTo(route);
+});
+
+import { supabase } from "./supabase.js";
+
+supabase.auth.onAuthStateChange((_event, nextSession) => {
+  session = nextSession;
+  if (!authReady) return;
+  const route = routeFromHash();
+  if (!session && route !== "auth") {
+    navigateTo("auth", true);
+  } else if (session && route === "auth") {
+    navigateTo("home", true);
+  }
 });
 
 window.addEventListener("hashchange", renderRoute);
-renderRoute();
+const { data, error } = await supabase.auth.getSession();
+if (error) {
+  showLoadError("authentication", error);
+} else {
+  session = data.session;
+  authReady = true;
+  renderRoute();
+}

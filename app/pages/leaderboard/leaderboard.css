@@ -31,6 +31,7 @@
 .invite-code-row > div { display: grid; gap: 3px; }
 .invite-code-row span { color: var(--muted); font-size: 10px; }
 .invite-code-row strong { font: 700 16px var(--font-display); letter-spacing: 1px; }
+.invite-section .form-feedback.is-error { color: #a33f30; }
 .copy-code { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); font-size: 11px; font-weight: 700; cursor: pointer; }
 .copy-code .lucide { width: 14px; height: 14px; }
 .add-friend-form { display: flex; gap: 8px; }
