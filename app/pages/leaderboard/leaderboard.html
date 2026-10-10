@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f5ef">
+    <meta name="description" content="Track your progress with friends and invite someone to join.">
+    <title>Money Man - Friends</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="leaderboard.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="../home/home.html" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
+        <div class="topbar-actions"><a class="icon-button profile-button" href="../settings/settings.html" aria-label="Open settings" title="Settings"><span class="profile-initials">JD</span></a></div>
+      </header>
+      <main id="main-content">
+        <section class="page leaderboard-page" aria-labelledby="leaderboard-title">
+          <div class="page-heading"><div><p class="eyebrow">A LITTLE FRIENDLY MOMENTUM</p><h1 id="leaderboard-title">Better, together.</h1><p class="subheading">Your group is making good progress.</p></div><button class="icon-button invite-shortcut" type="button" id="focus-invite" aria-label="Add a friend"><i data-lucide="user-plus" aria-hidden="true"></i></button></div>
+          <section class="leaderboard-intro"><div><p class="eyebrow">OCTOBER GROUP</p><h2>Under budget, on a roll.</h2><p>Points reflect how far under budget you are and your app-use streak.</p></div><div class="score-note"><strong>60%</strong><span>budget<br>progress</span></div></section>
+          <section class="podium-section" aria-label="Top three friends"><div class="podium-person second-place"><span class="podium-avatar avatar-sage">AL</span><span class="podium-name">Alex</span><strong>820</strong><div class="podium-block">2</div></div><div class="podium-person first-place"><span class="podium-avatar avatar-coral">JD</span><span class="podium-name">You</span><strong>940</strong><div class="podium-block">1</div></div><div class="podium-person third-place"><span class="podium-avatar avatar-blue">MS</span><span class="podium-name">Morgan</span><strong>710</strong><div class="podium-block">3</div></div></section>
+          <section class="friends-section"><div class="section-heading compact-heading"><div><p class="eyebrow">YOUR CIRCLE</p><h2>Friends</h2></div><span class="quiet-note" id="friend-count">3 people</span></div><div class="friend-list" id="friend-list"></div></section>
+          <section class="invite-section" id="invite-section"><div class="section-heading compact-heading"><div><p class="eyebrow">GROW YOUR CIRCLE</p><h2>Add a friend</h2></div><i data-lucide="users-round" aria-hidden="true"></i></div><div class="invite-code-row"><div><span>Your friend code</span><strong id="friend-code">PEN-4827</strong></div><button class="copy-code" type="button" id="copy-code"><i data-lucide="copy" aria-hidden="true"></i><span>Copy</span></button></div><form class="add-friend-form" id="add-friend-form"><label class="sr-only" for="friend-code-input">Friend's unique code</label><input id="friend-code-input" type="text" placeholder="Enter a friend's code" maxlength="12"><button type="submit"><i data-lucide="plus" aria-hidden="true"></i> Add</button></form><p class="form-feedback" id="friend-feedback" aria-live="polite"></p></section>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="../home/home.html" class="nav-item"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="../details/details.html" class="nav-item"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="../chat/chat.html" class="nav-item"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="leaderboard.html" class="nav-item is-current" aria-current="page"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+    <script type="module" src="leaderboard.js"></script>
+  </body>
+</html>

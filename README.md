@@ -15,8 +15,11 @@ This combination of HTML/CSS/JS and Supabase allows for a smooth, easy-to-use st
 
 
 ## How to Get It Running:
-On the repo select ‘Settings’ > ‘Pages’ > ‘Deploy page.’
-Once the page is running, any user with the link can access the page.
+The site opens at `index.html` and uses hash routes such as `/#/home`, `/#/details`, `/#/chat`, `/#/leaderboard`, and `/#/settings`. The small client-side router in `app/router.js` loads each page into the app shell; page navigation supports browser back/forward and can be bookmarked. The underlying static page files remain accessible by their file paths, so routing only provides cleaner URLs and does not restrict access.
+
+Each app page lives in its own folder under `app/pages/` and keeps its HTML, CSS, and JavaScript together, named after the folder. Shared styles are in `app/global.css`; browser-persisted app state is in `app/core.js`.
+
+To publish with GitHub Pages, select **Settings** > **Pages** and deploy the repository from the desired branch. Once the page is running, any user with the link can access it.
 Also on Settings, go to Environments to set up the env file with the database (supabase). Simply paste in the credentials from the main page of the supabase account.
 
 ## Verifying the Vertical Slice:

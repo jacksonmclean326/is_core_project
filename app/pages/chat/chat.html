@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f5ef">
+    <meta name="description" content="Get a friendly perspective on your budget and savings goals.">
+    <title>Money Man - Ask</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="chat.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="../home/home.html" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
+        <div class="topbar-actions"><a class="icon-button profile-button" href="../settings/settings.html" aria-label="Open settings" title="Settings"><span class="profile-initials">JD</span></a></div>
+      </header>
+      <main id="main-content">
+        <section class="page chat-page" aria-labelledby="chat-title">
+          <div class="page-heading chat-heading"><div><p class="eyebrow">A SECOND SET OF EYES</p><h1 id="chat-title">Ask Mr. Moneyman.</h1><p class="subheading">A friendly place to think things through.</p></div></div>
+          <div class="chat-window" id="chat-window" aria-label="Conversation with Mr. Moneyman">
+            <div class="chat-date">TODAY</div>
+            <div class="message-row assistant-row"><img class="money-avatar" src="../../assets/money-man-mascot.png" alt=""><div class="message-bubble assistant-bubble"><strong>Mr. Moneyman</strong><p>Hey Jordan. Want to take a look at anything in your budget together?</p><time>8:42 AM</time></div></div>
+            <div class="message-list" id="message-list" aria-live="polite"></div>
+          </div>
+          <div class="suggestion-area">
+            <button class="suggestion-toggle" id="suggestion-toggle" type="button" aria-expanded="false" aria-controls="suggestions"><span><i data-lucide="message-circle-question" aria-hidden="true"></i> Need a place to start?</span><i data-lucide="chevron-down" class="suggestion-chevron" aria-hidden="true"></i></button>
+            <div class="suggestion-list" id="suggestions" hidden><button type="button">How can I spend less on food?</button><button type="button">Am I on track with my savings goal?</button><button type="button">What does 90% of my budget look like?</button></div>
+          </div>
+          <form class="chat-compose" id="chat-form"><label class="sr-only" for="chat-input">Write a message</label><input id="chat-input" type="text" placeholder="Write a message..." autocomplete="off"><button type="submit" aria-label="Send message"><i data-lucide="arrow-up" aria-hidden="true"></i></button></form>
+          <p class="chat-disclaimer">Mr. Moneyman is a demo and doesn't provide financial advice.</p>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="../home/home.html" class="nav-item"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="../details/details.html" class="nav-item"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="chat.html" class="nav-item is-current" aria-current="page"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="../leaderboard/leaderboard.html" class="nav-item"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+    <script type="module" src="chat.js"></script>
+  </body>
+</html>

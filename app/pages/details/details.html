@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f5ef">
+    <meta name="description" content="Explore your monthly spending, categories, and savings goals.">
+    <title>Money Man - Spending details</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="details.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="../home/home.html" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
+        <div class="topbar-actions"><a class="icon-button profile-button" href="../settings/settings.html" aria-label="Open settings" title="Settings"><span class="profile-initials">JD</span></a></div>
+      </header>
+      <main id="main-content">
+        <section class="page details-page" aria-labelledby="details-title">
+          <div class="page-heading summary-heading">
+            <div><p class="eyebrow">OCTOBER 2026</p><h1 id="details-title">Spending, broken down.</h1></div>
+            <button class="edit-summary-button" type="button" id="edit-summary" aria-label="Edit summary page and goals" title="Edit summary and goals"><i data-lucide="settings-2" aria-hidden="true"></i><span>Edit</span></button>
+          </div>
+          <div class="summary-balance-row"><div class="current-spending"><span>Current monthly spending</span><strong id="summary-spent">$1,740</strong><span class="current-budget-note">of <span id="summary-budget">$2,200</span> budget</span></div><div class="spending-available"><span>Spending Money Available:</span><strong id="summary-available">$460</strong></div></div>
+          <section class="spending-layout" aria-label="Monthly category spending">
+            <div class="donut-panel">
+              <div class="donut-chart" id="donut-chart" tabindex="0" role="group" aria-roledescription="interactive doughnut chart" aria-label="Spending by category. Focus and use arrow keys to preview, then press Enter for details.">
+                <svg class="donut-slices" id="donut-slices" viewBox="0 0 220 220" aria-hidden="true"></svg>
+                <div class="donut-center" aria-live="polite"><span id="donut-center-label">THIS MONTH</span><strong id="donut-total">$1,740</strong><small id="donut-center-subtitle">across categories</small></div>
+              </div>
+              <div class="category-legend" id="category-legend"></div>
+            </div>
+            <div class="top-categories-panel"><div class="section-heading compact-heading"><div><p class="eyebrow">WHERE IT GOES</p><h2>Top categories</h2></div><span class="quiet-note">% of spending</span></div><div class="top-category-list" id="top-category-list"></div></div>
+          </section>
+          <section class="goals-section" aria-labelledby="goals-title">
+            <div class="section-heading compact-heading"><div><p class="eyebrow">SMALL STEPS ADD UP</p><h2 id="goals-title">Your goals</h2></div><button class="text-button" type="button" id="edit-goals-link">Edit goals <i data-lucide="arrow-up-right" aria-hidden="true"></i></button></div>
+            <div class="goal-card-list" id="goal-card-list"></div>
+          </section>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="../home/home.html" class="nav-item"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="details.html" class="nav-item is-current" aria-current="page"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="../chat/chat.html" class="nav-item"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="../leaderboard/leaderboard.html" class="nav-item"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <dialog id="detail-dialog" class="detail-dialog"><button class="dialog-close" type="button" aria-label="Close"><i data-lucide="x" aria-hidden="true"></i></button><div id="dialog-content"></div></dialog>
+    </div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+    <script type="module" src="details.js"></script>
+  </body>
+</html>
