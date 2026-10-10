@@ -118,7 +118,7 @@ async function loadFriendCode() {
     const { data, error } = await supabase
       .from("User")
       .select("friend_code")
-      .eq("id", authData.user.id)
+      .eq("user_id", authData.user.id)
       .single();
     if (error) throw error;
 

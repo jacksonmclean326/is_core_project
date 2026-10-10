@@ -68,7 +68,7 @@ In Supabase **Authentication** settings, enable email/password sign-in and add `
 
 The app uses Supabase Auth as its hosted backend for account creation, sign-in, persisted sessions, and sign-out. The hash routes include `/#/auth`, `/#/home`, `/#/details`, `/#/chat`, `/#/leaderboard`, and `/#/settings`; signed-out visitors are routed to sign-in.
 
-For the Friends page's dynamic friend code, the Supabase project must have a `public."User"` profile row whose `id` matches the Auth user ID and whose `friend_code` is a unique six-character code. The table's Row Level Security policy must allow authenticated users to select their own profile row. The sign-up form sends `first_name`, `last_name`, and `full_name` as Auth user metadata; configure the Auth-to-profile trigger to copy the names and generate the friend code in the database.
+For the Friends page's dynamic friend code, the Supabase project must have a `public."User"` profile row whose `user_id` matches the Auth user ID and whose `friend_code` is a unique six-character code. The table's Row Level Security policy must allow authenticated users to select their own profile row (for example, `auth.uid() = user_id`). The sign-up form sends `first_name`, `last_name`, and `full_name` as Auth user metadata; configure the Auth-to-profile trigger to copy the names and generate the friend code in the database.
 
 ### Build and preview
 
