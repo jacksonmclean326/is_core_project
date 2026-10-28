@@ -56,7 +56,7 @@ If either command is not found, install Node.js LTS as described above, then reo
 5. Start Vite:
 
    ```powershell
-   npm run dev
+   npm start
    ```
 
 6. Open the local URL printed by Vite (normally `http://localhost:5173`).
@@ -88,4 +88,4 @@ Each app page lives in its own folder under `app/pages/` and keeps its HTML, CSS
 
 ## Verifying the Vertical Slice:
 
-Run `npm run dev`, create an account from the sign-in screen, and confirm the email if email confirmations are enabled in Supabase. Then sign in, refresh to verify the session persists, and use **Sign out** to return to the sign-in screen.
+Run `npm start`, create an account from the sign-in screen, and confirm the email if email confirmations are enabled in Supabase. Then sign in, refresh to verify the session persists, and use **Sign out** to return to the sign-in screen.
