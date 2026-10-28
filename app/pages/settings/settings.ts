@@ -63,18 +63,18 @@ function renderSettings() {
     .join("");
   $("#account-count").textContent =
     `${state.accounts.length} ${state.accounts.length === 1 ? "account" : "accounts"}`;
-  $("#monthly-budget").value = state.budget || "";
-  $("#monthly-income").value = state.income || "";
-  $("#sync-toggle").checked = state.preferences.sync;
-  $("#reminder-toggle").checked = state.preferences.reminders;
-  $("#leaderboard-toggle").checked = state.preferences.leaderboard;
+  $<HTMLInputElement>("#monthly-budget").value = state.budget ? String(state.budget) : "";
+  $<HTMLInputElement>("#monthly-income").value = state.income ? String(state.income) : "";
+  $<HTMLInputElement>("#sync-toggle").checked = state.preferences.sync;
+  $<HTMLInputElement>("#reminder-toggle").checked = state.preferences.reminders;
+  $<HTMLInputElement>("#leaderboard-toggle").checked = state.preferences.leaderboard;
   refreshIcons();
 }
 
 $("#budget-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  const budgetValue = $("#monthly-budget").value;
-  const income = Number($("#monthly-income").value);
+  const budgetValue = $<HTMLInputElement>("#monthly-budget").value;
+  const income = Number($<HTMLInputElement>("#monthly-income").value);
   const budget = budgetValue ? Number(budgetValue) : null;
   const feedback = $("#budget-feedback");
   if (budget && budget > income) {
@@ -103,12 +103,12 @@ $("#connect-bank").addEventListener("click", () => {
     feedback.textContent =
       "Still having trouble? Add your budget manually for now.";
     $("#manual-entry").hidden = false;
-    $("#manual-budget").focus();
+    $<HTMLInputElement>("#manual-budget").focus();
   }
 });
 $("#manual-entry").addEventListener("submit", (event) => {
   event.preventDefault();
-  state.budget = Number($("#manual-budget").value);
+  state.budget = Number($<HTMLInputElement>("#manual-budget").value);
   saveState();
   renderSettings();
   $("#link-feedback").textContent =
@@ -116,18 +116,19 @@ $("#manual-entry").addEventListener("submit", (event) => {
   $("#manual-entry").hidden = true;
 });
 
-const preferenceControls = {
-  "#sync-toggle": "sync",
-  "#reminder-toggle": "reminders",
-  "#leaderboard-toggle": "leaderboard",
-};
-Object.entries(preferenceControls).forEach(([selector, key]) => {
-  $(selector).addEventListener("change", (event) => {
-    state.preferences[key] = event.target.checked;
+const preferenceControls: [string, keyof typeof state.preferences][] = [
+  ["#sync-toggle", "sync"],
+  ["#reminder-toggle", "reminders"],
+  ["#leaderboard-toggle", "leaderboard"],
+];
+preferenceControls.forEach(([selector, key]) => {
+  $<HTMLInputElement>(selector).addEventListener("change", (event) => {
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    state.preferences[key] = checked;
     saveState();
     if (key === "leaderboard")
       showToast(
-        event.target.checked
+        checked
           ? "Your progress is visible to friends."
           : "Your leaderboard progress is hidden.",
       );
@@ -137,12 +138,12 @@ Object.entries(preferenceControls).forEach(([selector, key]) => {
 $("#privacy-link").addEventListener("click", () => {
   $("#dialog-content").innerHTML =
     `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Privacy & data</h2><p class="dialog-subtitle">This prototype stores your sample budget, categories, goals, and friend list in this browser only. No bank connection or data sharing service is active.</p>`;
-  $("#detail-dialog").showModal();
+  $<HTMLDialogElement>("#detail-dialog").showModal();
 });
 $("#help-link").addEventListener("click", () => {
   $("#dialog-content").innerHTML =
     `<p class="eyebrow">HERE TO HELP</p><h2 class="dialog-title">Help & support</h2><p class="dialog-subtitle">For this prototype, bank connections and support messaging are simulated. Your budgets and goals can be changed in Settings or from Edit on the Details page.</p>`;
-  $("#detail-dialog").showModal();
+  $<HTMLDialogElement>("#detail-dialog").showModal();
 });
 renderSettings();
 renderAuthenticatedProfile();

@@ -2,6 +2,7 @@ import {
   $,
   $$,
   escapeHTML,
+  eventElement,
   money,
   openCategoryDetails,
   refreshIcons,
@@ -77,7 +78,7 @@ function renderSummary() {
   refreshIcons();
 }
 
-function previewDonutCategory(category) {
+function previewDonutCategory(category: (typeof state.categories)[number] | undefined) {
   if (!category) return resetDonutPreview();
   const visibleTotal = state.categories
     .filter((item) => item.visible)
@@ -128,7 +129,7 @@ function resetDonutPreview() {
   $("#donut-center-subtitle").textContent = "across categories";
 }
 
-function categoryAtDonutPoint(event) {
+function categoryAtDonutPoint(event: PointerEvent) {
   const chart = $("#donut-chart");
   const rect = chart.getBoundingClientRect();
   const radius = Math.min(rect.width, rect.height) / 2;
@@ -170,7 +171,7 @@ function openSummaryEditor() {
     .join("");
   $("#dialog-content").innerHTML =
     `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3>${categoryRows}<h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
-  $("#detail-dialog").showModal();
+  $<HTMLDialogElement>("#detail-dialog").showModal();
   refreshIcons();
 }
 
@@ -183,15 +184,16 @@ function addGoalEditorRow() {
   refreshIcons();
 }
 
-function saveSummaryEditor(event) {
+function saveSummaryEditor(event: SubmitEvent) {
   event.preventDefault();
   const feedback = $("#edit-feedback");
-  const goalRows = $$(".goal-edit-row", event.currentTarget);
+  const form = event.currentTarget as HTMLFormElement;
+  const goalRows = $$(".goal-edit-row", form);
   const goals = [];
   for (const row of goalRows) {
-    const name = $(".goal-name-input", row).value.trim();
-    const target = Number($(".goal-target-input", row).value);
-    const kind = $(".goal-kind-input", row).value;
+    const name = $<HTMLInputElement>(".goal-name-input", row).value.trim();
+    const target = Number($<HTMLInputElement>(".goal-target-input", row).value);
+    const kind = $<HTMLSelectElement>(".goal-kind-input", row).value;
     if (!name || !target || target > state.income) {
       feedback.textContent =
         target > state.income
@@ -200,8 +202,10 @@ function saveSummaryEditor(event) {
       return;
     }
     const oldGoal = state.goals.find((goal) => goal.id === row.dataset.goalRow);
+    const id = oldGoal?.id ?? row.dataset.goalRow;
+    if (!id) throw new Error("Goal editor row is missing its identifier.");
     goals.push({
-      id: oldGoal?.id || row.dataset.goalRow,
+      id,
       kind,
       name,
       target,
@@ -209,20 +213,20 @@ function saveSummaryEditor(event) {
     });
   }
   state.categories.forEach((category) => {
-    const nameInput = $(
+    const nameInput = $<HTMLInputElement>(
       `.category-name[data-category-id="${category.id}"]`,
-      event.currentTarget,
+      form,
     );
-    const visibleInput = $(
+    const visibleInput = $<HTMLInputElement>(
       `.category-visible[data-category-id="${category.id}"]`,
-      event.currentTarget,
+      form,
     );
     category.name = nameInput.value.trim() || category.name;
     category.visible = visibleInput.checked;
   });
   state.goals = goals;
   saveState();
-  $("#detail-dialog").close();
+  $<HTMLDialogElement>("#detail-dialog").close();
   renderSummary();
   showToast("Your summary and goals are updated.");
 }
@@ -230,15 +234,17 @@ function saveSummaryEditor(event) {
 $("#edit-summary").addEventListener("click", openSummaryEditor);
 $("#edit-goals-link").addEventListener("click", openSummaryEditor);
 $("#detail-dialog").addEventListener("submit", (event) => {
-  if (event.target.id === "summary-edit-form") saveSummaryEditor(event);
+  if (event.target instanceof Element && event.target.id === "summary-edit-form") saveSummaryEditor(event);
 });
 $("#detail-dialog").addEventListener("click", (event) => {
-  if (event.target.closest("#add-goal-row")) addGoalEditorRow();
-  const removeGoal = event.target.closest("[data-remove-goal]");
-  if (removeGoal) removeGoal.closest(".goal-edit-row").remove();
+  const target = eventElement(event);
+  if (!target) return;
+  if (target.closest("#add-goal-row")) addGoalEditorRow();
+  const removeGoal = target.closest("[data-remove-goal]");
+  removeGoal?.closest(".goal-edit-row")?.remove();
 });
 $(".app-shell").addEventListener("click", (event) => {
-  const categoryButton = event.target.closest(
+  const categoryButton = eventElement(event)?.closest<HTMLButtonElement>(
     ".legend-row, .top-category-name",
   );
   if (categoryButton) openCategoryDetails(categoryButton.dataset.categoryId);
@@ -288,7 +294,7 @@ donutChart.addEventListener("keydown", (event) => {
   previewDonutCategory(categories[nextIndex]);
 });
 $(".app-shell").addEventListener("pointerover", (event) => {
-  const row = event.target.closest(".legend-row, .top-category-name");
+  const row = eventElement(event)?.closest<HTMLElement>(".legend-row, .top-category-name");
   if (row)
     previewDonutCategory(
       state.categories.find(
@@ -297,11 +303,11 @@ $(".app-shell").addEventListener("pointerover", (event) => {
     );
 });
 $(".app-shell").addEventListener("pointerout", (event) => {
-  const row = event.target.closest(".legend-row, .top-category-name");
-  if (row && !row.contains(event.relatedTarget)) resetDonutPreview();
+  const row = eventElement(event)?.closest<HTMLElement>(".legend-row, .top-category-name");
+  if (row && !(event.relatedTarget instanceof Node && row.contains(event.relatedTarget))) resetDonutPreview();
 });
 $(".app-shell").addEventListener("focusin", (event) => {
-  const row = event.target.closest(".legend-row, .top-category-name");
+  const row = eventElement(event)?.closest<HTMLElement>(".legend-row, .top-category-name");
   if (row)
     previewDonutCategory(
       state.categories.find(
@@ -310,8 +316,8 @@ $(".app-shell").addEventListener("focusin", (event) => {
     );
 });
 $(".app-shell").addEventListener("focusout", (event) => {
-  const row = event.target.closest(".legend-row, .top-category-name");
-  if (row && !row.contains(event.relatedTarget)) resetDonutPreview();
+  const row = eventElement(event)?.closest<HTMLElement>(".legend-row, .top-category-name");
+  if (row && !(event.relatedTarget instanceof Node && row.contains(event.relatedTarget))) resetDonutPreview();
 });
 
 renderSummary();

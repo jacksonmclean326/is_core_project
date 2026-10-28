@@ -1,8 +1,8 @@
-import { $, escapeHTML, money, state, totalSpent } from "../../core.js";
+import { $, escapeHTML, eventElement, money, state, totalSpent } from "../../core.js";
 
 const mascotUrl = new URL("../../assets/money-man-mascot.png", import.meta.url).href;
 
-function sendMessage(message) {
+function sendMessage(message: string) {
   const cleanMessage = message.trim();
   if (!cleanMessage) return;
   const list = $("#message-list");
@@ -18,10 +18,10 @@ function sendMessage(message) {
     behavior: "smooth",
     block: "center",
   });
-  $("#chat-input").value = "";
+  $<HTMLInputElement>("#chat-input").value = "";
 }
 
-function makeChatReply(message) {
+function makeChatReply(message: string): string {
   const question = message.toLowerCase();
   if (question.includes("food") || question.includes("eating out")) {
     const food = state.categories.find((category) => category.id === "food");
@@ -57,18 +57,18 @@ function makeChatReply(message) {
 }
 
 $("#suggestion-toggle").addEventListener("click", (event) => {
-  const button = event.currentTarget;
+  const button = event.currentTarget as HTMLButtonElement;
   const expanded = button.getAttribute("aria-expanded") === "true";
   button.setAttribute("aria-expanded", String(!expanded));
   $("#suggestions").hidden = expanded;
 });
 $("#suggestions").addEventListener("click", (event) => {
-  const suggestion = event.target.closest("button");
+  const suggestion = eventElement(event)?.closest("button");
   if (!suggestion) return;
-  $("#chat-input").value = suggestion.textContent;
-  $("#chat-form").requestSubmit();
+  $<HTMLInputElement>("#chat-input").value = suggestion.textContent;
+  $<HTMLFormElement>("#chat-form").requestSubmit();
 });
 $("#chat-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  sendMessage($("#chat-input").value);
+  sendMessage($<HTMLInputElement>("#chat-input").value);
 });

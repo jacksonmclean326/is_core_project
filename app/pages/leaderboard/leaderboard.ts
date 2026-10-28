@@ -1,6 +1,8 @@
 import {
   $,
   escapeHTML,
+  eventElement,
+  type Friend,
   refreshIcons,
   saveState,
   showToast,
@@ -11,7 +13,7 @@ import { supabase } from "../../supabase.js";
 let friendCode = "";
 
 function renderLeaderboard() {
-  const friends = [
+  const friends: Friend[] = [
     ...state.friends.map((friend) => ({ ...friend })),
     {
       id: "you",
@@ -34,11 +36,12 @@ function renderLeaderboard() {
         `<div class="friend-row"><span class="friend-avatar avatar-${friend.color}">${escapeHTML(friend.initials)}</span><span class="friend-name">${escapeHTML(friend.name)}${friend.isYou ? " (you)" : ""}</span><span class="friend-streak">${friend.streak}-day streak</span><span class="friend-score">${friend.points}</span>${friend.isYou ? "" : `<button type="button" class="remove-friend" data-remove-friend="${escapeHTML(friend.id)}" aria-label="Remove ${escapeHTML(friend.name)}" title="Remove friend"><i data-lucide="x" aria-hidden="true"></i></button>`}</div>`,
     )
     .join("");
-  [
+  const podium: [string, Friend | undefined][] = [
     [".first-place", friends[0]],
     [".second-place", friends[1]],
     [".third-place", friends[2]],
-  ].forEach(([selector, friend]) => {
+  ];
+  podium.forEach(([selector, friend]) => {
     const place = $(selector);
     if (!friend) {
       place.hidden = true;
@@ -51,7 +54,7 @@ function renderLeaderboard() {
     $(".podium-name", place).textContent = friend.isYou
       ? "You"
       : friend.name.split(" ")[0];
-    $("strong", place).textContent = friend.points;
+    $("strong", place).textContent = String(friend.points);
   });
   $("#friend-count").textContent =
     `${friends.length} ${friends.length === 1 ? "person" : "people"}`;
@@ -59,7 +62,7 @@ function renderLeaderboard() {
 }
 
 $("#friend-list").addEventListener("click", (event) => {
-  const removeFriend = event.target.closest("[data-remove-friend]");
+  const removeFriend = eventElement(event)?.closest<HTMLButtonElement>("[data-remove-friend]");
   if (!removeFriend) return;
   state.friends = state.friends.filter(
     (friend) => friend.id !== removeFriend.dataset.removeFriend,
@@ -72,7 +75,7 @@ $("#focus-invite").addEventListener("click", () =>
 );
 $("#add-friend-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  const input = $("#friend-code-input");
+  const input = $<HTMLInputElement>("#friend-code-input");
   const code = input.value.trim().toUpperCase();
   const feedback = $("#friend-feedback");
   if (
@@ -131,9 +134,9 @@ async function loadFriendCode() {
 
     friendCode = code;
     codeElement.textContent = friendCode;
-    $("#copy-code").disabled = false;
-    $("#friend-code-input").disabled = false;
-    $("#add-friend-form button[type='submit']").disabled = false;
+    $<HTMLButtonElement>("#copy-code").disabled = false;
+    $<HTMLInputElement>("#friend-code-input").disabled = false;
+    $<HTMLButtonElement>("#add-friend-form button[type='submit']").disabled = false;
   } catch (error) {
     console.error("Unable to load the signed-in user's friend code.", error);
     codeElement.textContent = "Unavailable";

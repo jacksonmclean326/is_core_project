@@ -2,7 +2,50 @@ const palette = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f
 const storageKey = "money-man-prototype";
 const legacyStorageKey = "monarch-prototype";
 
-const initialState = {
+export interface Category {
+  id: string;
+  name: string;
+  amount: number;
+  limit: number;
+  color: string;
+  visible: boolean;
+}
+
+export interface Goal {
+  id: string;
+  kind: string;
+  name: string;
+  target: number;
+  progress: number;
+}
+
+export interface Friend {
+  id: string;
+  name: string;
+  initials: string;
+  points: number;
+  streak: number;
+  color: string;
+  code?: string;
+  isYou?: boolean;
+}
+
+export interface AppState {
+  budget: number | null;
+  income: number;
+  streak: number;
+  friendSeedVersion: number;
+  categories: Category[];
+  goals: Goal[];
+  friends: Friend[];
+  accounts: { id: string; institution: string; detail: string; balance: number }[];
+  preferences: { sync: boolean; reminders: boolean; leaderboard: boolean };
+  profile: { name: string; email: string };
+}
+
+type TrendMode = "spending" | "under" | "saved";
+
+const initialState: AppState = {
   budget: 2200,
   income: 3200,
   streak: 12,
@@ -39,13 +82,13 @@ const initialState = {
 function loadState() {
   try {
     const savedValue = localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey);
-    const saved = JSON.parse(savedValue);
-    if (!saved || typeof saved !== "object") return structuredClone(initialState);
-    const savedState = { ...saved };
+    const saved: unknown = JSON.parse(savedValue ?? "null");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return structuredClone(initialState);
+    const savedState = saved as Partial<AppState> & Record<string, unknown>;
     delete savedState.friendCode;
-    const savedFriends = Array.isArray(saved.friends) ? saved.friends : [];
+    const savedFriends = Array.isArray(savedState.friends) ? savedState.friends : [];
     const sampleFriendIds = new Set(initialState.friends.map((friend) => friend.id));
-    const friends = Number(saved.friendSeedVersion) >= 1
+    const friends = Number(savedState.friendSeedVersion) >= 1
       ? savedFriends
       : [
           ...initialState.friends.map((friend) => savedFriends.find((savedFriend) => savedFriend.id === friend.id) || friend),
@@ -57,12 +100,12 @@ function loadState() {
       friendSeedVersion: 1,
       categories: initialState.categories.map((category) => ({
         ...category,
-        ...(saved.categories || []).find((item) => item.id === category.id)
+        ...(savedState.categories || []).find((item) => item.id === category.id)
       })),
-      goals: Array.isArray(saved.goals) ? saved.goals : structuredClone(initialState.goals),
+      goals: Array.isArray(savedState.goals) ? savedState.goals : structuredClone(initialState.goals),
       friends,
-      accounts: Array.isArray(saved.accounts) ? saved.accounts : structuredClone(initialState.accounts),
-      preferences: { ...initialState.preferences, ...saved.preferences },
+      accounts: Array.isArray(savedState.accounts) ? savedState.accounts : structuredClone(initialState.accounts),
+      preferences: { ...initialState.preferences, ...savedState.preferences },
       profile: structuredClone(initialState.profile)
     };
   } catch {
@@ -70,15 +113,15 @@ function loadState() {
   }
 }
 
-export const state = loadState();
+export const state: AppState = loadState();
 export const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 export const months = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
-export const trends = {
+export const trends: Record<TrendMode, { values: number[]; caption: string; format: (value: number) => string }> = {
   spending: { values: [1920, 1880, 2050, 1800, 1890, 1740], caption: "spent this month", format: (value) => currency.format(value) },
   under: { values: [13, 18, 7, 15, 14, 21], caption: "under budget this month", format: (value) => `${value}%` },
   saved: { values: [240, 290, 190, 330, 310, 460], caption: "saved this month", format: (value) => currency.format(value) }
 };
-export const transactions = {
+export const transactions: Record<string, [string, string][]> = {
   housing: [["Campus apartment", "$540"], ["Campus parking", "$90"], ["Renter's insurance", "$60"]],
   food: [["Green Market", "$74"], ["Cedar Cafe", "$48"], ["Grocery Co-op", "$154"]],
   transport: [["City transit pass", "$68"], ["Ride share", "$36"]],
@@ -88,31 +131,40 @@ export const transactions = {
   other: [["Coffee shop", "$32"], ["Campus event", "$48"], ["Other purchases", "$190"]]
 };
 
-export const $ = (selector, root = document) => root.querySelector(selector);
-export const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+export const $ = <T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document): T => {
+  const element = root.querySelector<T>(selector);
+  if (!element) throw new Error(`Required page element not found: ${selector}`);
+  return element;
+};
+export const $$ = <T extends Element = HTMLElement>(selector: string, root: ParentNode = document): T[] =>
+  [...root.querySelectorAll<T>(selector)];
+export const eventElement = (event: Event): Element | null =>
+  event.target instanceof Element ? event.target : null;
 export const totalSpent = () => state.categories.reduce((total, category) => total + Number(category.amount || 0), 0);
-export const money = (amount) => currency.format(Math.abs(Number(amount) || 0));
-export const escapeHTML = (value) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+export const money = (amount: number) => currency.format(Math.abs(Number(amount) || 0));
+export const escapeHTML = (value: unknown) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
 export const refreshIcons = () => window.lucide?.createIcons();
 
 document.querySelectorAll(".profile-button .profile-initials").forEach((element) => {
   element.textContent = state.profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "?";
 });
 
-export function showToast(message) {
-  const toast = $("#toast");
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+export function showToast(message: string) {
+  const toast = document.querySelector<HTMLElement>("#toast");
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add("is-visible");
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove("is-visible"), 3400);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 3400);
 }
 
 export function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(state));
 }
 
-export function updateCategoryBudgets(totalBudget) {
+export function updateCategoryBudgets(totalBudget: number) {
   const categories = state.categories.filter((category) => Number(category.limit) > 0);
   const currentTotal = categories.reduce((total, category) => total + Number(category.limit), 0);
   if (!currentTotal || !categories.length) return;
@@ -132,7 +184,8 @@ export function checkCategoryWarnings() {
   if (nearLimit) showToast(`${nearLimit.name} is at ${Math.round(nearLimit.amount / nearLimit.limit * 100)}% of its category budget.`);
 }
 
-export function openCategoryDetails(categoryId) {
+export function openCategoryDetails(categoryId: string | undefined) {
+  if (!categoryId) return;
   const category = state.categories.find((item) => item.id === categoryId);
   if (!category) return;
   const rows = transactions[categoryId] || [["Recent purchase", money(category.amount)]];
@@ -145,12 +198,12 @@ export function openCategoryDetails(categoryId) {
   const status = limit ? (used >= 100 ? "Category limit reached" : isClose ? "Close to category limit" : "Within category budget") : "No category limit set";
   const average = rows.length ? category.amount / rows.length : category.amount;
   $("#dialog-content").innerHTML = `<p class="eyebrow">OCTOBER SPENDING</p><h2 class="dialog-title">${escapeHTML(category.name)}</h2><p class="dialog-subtitle">Category spending details</p><section class="category-detail-summary" aria-label="${escapeHTML(category.name)} spending summary"><p>Spent in October</p><strong class="category-detail-amount">${money(category.amount)}</strong><span class="category-detail-limit">${limit ? `of ${money(limit)} monthly limit` : "No monthly limit"}</span><div class="category-detail-track"><span style="width:${used}%;background:${category.color}"></span></div><div class="category-detail-status${isClose ? " is-close" : ""}"><i data-lucide="${isClose ? "triangle-alert" : "circle-check"}" aria-hidden="true"></i><span>${status}</span></div><div class="category-detail-stats"><div><span>Share</span><strong>${share.toFixed(1)}%</strong></div><div><span>Purchases</span><strong>${rows.length}</strong></div><div><span>Average</span><strong>${money(average)}</strong></div></div></section><section class="category-detail-transactions"><h3>Transactions</h3>${detailRows}</section>`;
-  $("#detail-dialog").showModal();
+  $<HTMLDialogElement>("#detail-dialog").showModal();
   refreshIcons();
 }
 
 document.addEventListener("click", (event) => {
-  const dialog = $("#detail-dialog");
-  if (!dialog) return;
-  if (event.target === dialog || event.target.closest?.(".dialog-close")) dialog.close();
+  const dialog = document.querySelector<HTMLDialogElement>("#detail-dialog");
+  const target = event.target;
+  if (dialog && (target === dialog || target instanceof Element && target.closest(".dialog-close"))) dialog.close();
 });

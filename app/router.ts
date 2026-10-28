@@ -1,3 +1,6 @@
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "./supabase.js";
+
 const routes = {
   auth: "app/pages/auth/auth.html",
   home: "app/pages/home/home.html",
@@ -6,25 +9,33 @@ const routes = {
   leaderboard: "app/pages/leaderboard/leaderboard.html",
   settings: "app/pages/settings/settings.html"
 };
+type Route = keyof typeof routes;
 
-const app = document.querySelector("#app-root");
-const pageStylesheet = document.querySelector("#page-stylesheet");
+const appElement = document.querySelector<HTMLElement>("#app-root");
+const stylesheetElement = document.querySelector<HTMLLinkElement>("#page-stylesheet");
+if (!appElement || !stylesheetElement) throw new Error("The app shell is missing required elements.");
+const app: HTMLElement = appElement;
+const pageStylesheet: HTMLLinkElement = stylesheetElement;
 let navigationId = 0;
 let authReady = false;
-let session = null;
-const routeByPath = new Map(
+let session: Session | null = null;
+const routeByPath = new Map<string, Route>(
   Object.entries(routes).map(([name, path]) => [
     new URL(path, document.baseURI).pathname,
-    name
+    name as Route
   ])
 );
 
-function routeFromHash() {
-  const route = window.location.hash.slice(2).toLowerCase();
-  return Object.hasOwn(routes, route) ? route : (authReady && !session ? "auth" : "home");
+function isRoute(value: string): value is Route {
+  return Object.hasOwn(routes, value);
 }
 
-function navigateTo(route, replace = false) {
+function routeFromHash(): Route {
+  const route = window.location.hash.slice(2).toLowerCase();
+  return isRoute(route) ? route : (authReady && !session ? "auth" : "home");
+}
+
+function navigateTo(route: Route, replace = false) {
   const nextHash = `#/${route}`;
   if (window.location.hash === nextHash) {
     renderRoute();
@@ -40,7 +51,7 @@ function navigateTo(route, replace = false) {
   }
 }
 
-function setPageUrlAttributes(pageDocument, pageUrl) {
+function setPageUrlAttributes(pageDocument: Document, pageUrl: URL) {
   const attributes = ["href", "src", "action", "formaction", "poster", "cite", "data"];
   for (const element of pageDocument.querySelectorAll(
     attributes.map((attribute) => `[${attribute}]`).join(", ")
@@ -53,7 +64,7 @@ function setPageUrlAttributes(pageDocument, pageUrl) {
   }
 }
 
-function showLoadError(route, error) {
+function showLoadError(route: string, error: unknown) {
   console.error(`Unable to load the ${route} page.`, error);
   app.replaceChildren();
   const message = document.createElement("main");
@@ -101,18 +112,21 @@ async function renderRoute() {
     if (requestId !== navigationId) return;
     setPageUrlAttributes(pageDocument, pageUrl);
 
-    const stylesheet = [...pageDocument.querySelectorAll('link[rel="stylesheet"]')]
+    const stylesheet = [...pageDocument.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')]
       .map((link) => new URL(link.href, pageUrl))
       .filter((url) => url.origin === pageUrl.origin)
       .at(-1);
     if (!stylesheet) throw new Error(`No page stylesheet found for ${route}`);
 
-    const moduleScript = [...pageDocument.querySelectorAll('script[type="module"][src]')]
-      .find((script) =>
-        new URL(script.getAttribute("src"), pageUrl).pathname !== "/@vite/client"
-      );
+    const moduleScript = [...pageDocument.querySelectorAll<HTMLScriptElement>('script[type="module"][src]')]
+      .find((script) => {
+        const source = script.getAttribute("src");
+        return source && new URL(source, pageUrl).pathname !== "/@vite/client";
+      });
     if (!moduleScript) throw new Error(`No page module found for ${route}`);
-    const moduleUrl = new URL(moduleScript.getAttribute("src"), pageUrl);
+    const moduleSource = moduleScript.getAttribute("src");
+    if (!moduleSource) throw new Error(`No page module source found for ${route}`);
+    const moduleUrl = new URL(moduleSource, pageUrl);
 
     if (pageStylesheet.href !== stylesheet.href) {
       await new Promise((resolve, reject) => {
@@ -154,7 +168,9 @@ function addSignOutControl() {
 }
 
 app.addEventListener("click", (event) => {
-  const signOut = event.target.closest?.("[data-sign-out]");
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const signOut = target.closest<HTMLButtonElement>("[data-sign-out]");
   if (signOut) {
     signOut.disabled = true;
     supabase.auth.signOut().then(({ error }) => {
@@ -167,7 +183,7 @@ app.addEventListener("click", (event) => {
     return;
   }
 
-  const link = event.target.closest?.("a[href]");
+  const link = target.closest<HTMLAnchorElement>("a[href]");
   if (
     !link ||
     event.defaultPrevented ||
@@ -179,16 +195,14 @@ app.addEventListener("click", (event) => {
     (link.target && link.target !== "_self")
   ) return;
 
-  const target = new URL(link.href);
-  if (target.origin !== window.location.origin) return;
-  const route = routeByPath.get(target.pathname);
+  const targetUrl = new URL(link.href);
+  if (targetUrl.origin !== window.location.origin) return;
+  const route = routeByPath.get(targetUrl.pathname);
   if (!route) return;
 
   event.preventDefault();
   navigateTo(route);
 });
-
-import { supabase } from "./supabase.js";
 
 supabase.auth.onAuthStateChange((_event, nextSession) => {
   session = nextSession;

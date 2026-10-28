@@ -1,17 +1,19 @@
 import { supabase } from "../../supabase.js";
+import { $ } from "../../core.js";
 
-const form = document.querySelector("#auth-form");
-const nameInput = document.querySelector("#auth-name");
-const nameLabel = document.querySelector("#name-label");
-const passwordInput = document.querySelector("#auth-password");
-const submitButton = document.querySelector("#auth-submit");
-const feedback = document.querySelector("#auth-feedback");
-const title = document.querySelector("#auth-title");
-const switchPrompt = document.querySelector("#auth-switch-prompt");
-const switchButton = document.querySelector("#auth-switch");
+const form = $<HTMLFormElement>("#auth-form");
+const nameInput = $<HTMLInputElement>("#auth-name");
+const emailInput = $<HTMLInputElement>("#auth-email");
+const nameLabel = $("#name-label");
+const passwordInput = $<HTMLInputElement>("#auth-password");
+const submitButton = $<HTMLButtonElement>("#auth-submit");
+const feedback = $("#auth-feedback");
+const title = $("#auth-title");
+const switchPrompt = $("#auth-switch-prompt");
+const switchButton = $<HTMLButtonElement>("#auth-switch");
 let isSignUp = false;
 
-function setMode(signUp) {
+function setMode(signUp: boolean) {
   isSignUp = signUp;
   title.textContent = isSignUp ? "Create your account." : "Welcome back.";
   nameInput.hidden = !isSignUp;
@@ -34,8 +36,8 @@ form.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
   submitButton.textContent = isSignUp ? "Creating account..." : "Signing in...";
 
-  const email = form.elements.email.value.trim();
-  const password = form.elements.password.value;
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
   const fullName = nameInput.value.trim().replace(/\s+/g, " ");
   const [firstName, ...lastNameParts] = fullName.split(" ");
   const lastName = lastNameParts.join(" ");
@@ -63,7 +65,11 @@ form.addEventListener("submit", async (event) => {
         })
       : await supabase.auth.signInWithPassword({ email, password });
   } catch (error) {
-    result = { error };
+    submitButton.disabled = false;
+    submitButton.textContent = isSignUp ? "Create account" : "Sign in";
+    feedback.textContent = error instanceof Error ? error.message : "Unable to complete sign-in. Please try again.";
+    feedback.classList.add("is-error");
+    return;
   }
 
   submitButton.disabled = false;

@@ -8,11 +8,11 @@ College students often struggle to budget effectively due to limited time, incom
 
 ## Tech Stack:
 
-For our front end, we decided to go with a standard HTML/CSS/JS stack. This allows us to stick with what we know, keeps things easy to understand, gives us the ability to make edits quickly, and makes team development easier. We didn’t want to waste time learning a new framework, so we believe this stack best meets our goals.
+For our front end, we use HTML, CSS, and TypeScript with Vite. TypeScript adds static checking while keeping the app framework-free and easy to work on as a team.
 
 On the back end, we’re using Supabase. It gives us a solid place that will handle a lot of the backend work that is usually complex, allowing us to do solid backend work. It allows us to build the system fast and focus on the actual features of our product without getting slowed down by excessive configuration.
 
-This combination of HTML/CSS/JS and Supabase allows for a smooth, easy-to-use stack for our app. It uses systems that we are already familiar with and allows us to focus on what really matters when trying to build new features for our product.
+This combination of HTML, CSS, TypeScript, and Supabase allows us to focus on building the app without introducing an additional front-end framework.
 
 ## Development Setup
 
@@ -72,19 +72,20 @@ For the Friends page's dynamic friend code, the Supabase project must have a `pu
 Use these commands when needed:
 
 ```powershell
+npm run typecheck
 npm run build
 npm run preview
 ```
 
-Vite writes production files to `dist/`; `npm run preview` serves that build locally.
+`npm run build` type-checks the TypeScript before building. Vite writes production files to `dist/`; `npm run preview` serves that build locally.
 
 ### Server-side code
 
-There is no custom server-side application code in this repository; Supabase provides the hosted backend. The files in `app/` run in the browser. `vite.config.js` is Vite development/build tooling and must remain at the repository root; it is not application server code. No `src/` directory is needed unless custom server-side code is added later.
+There is no custom server-side application code in this repository; Supabase provides the hosted backend. The TypeScript files in `app/` run in the browser. `vite.config.ts` is Vite development/build tooling and must remain at the repository root; it is not application server code. No `src/` directory is needed unless custom server-side code is added later.
 
 For hosting, deploy the `dist/` directory produced by `npm run build` to Netlify, Vercel, or another static host, and set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as build environment variables there. Supabase Auth is the backend; this prototype's budgeting data still lives in browser storage and is not yet stored per user in Supabase. Before using it for real financial data, add database tables with Row Level Security policies and move that data to Supabase. Client-side route guards are for navigation only and are not data security.
 
-Each app page lives in its own folder under `app/pages/` and keeps its HTML, CSS, and JavaScript together, named after the folder. Shared styles are in `app/global.css`; browser-persisted prototype state is in `app/core.js`.
+Each app page lives in its own folder under `app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `app/global.css`; browser-persisted prototype state is in `app/core.ts`.
 
 ## Verifying the Vertical Slice:
 

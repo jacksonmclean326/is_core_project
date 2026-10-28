@@ -6,13 +6,15 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1"
   },
   "devDependencies": {
+    "typescript": "^5.9.3",
     "vite": "^7.1.7"
   }
 }

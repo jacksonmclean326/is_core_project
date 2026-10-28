@@ -1,6 +1,7 @@
 import {
   $,
   escapeHTML,
+  eventElement,
   months,
   money,
   openCategoryDetails,
@@ -10,7 +11,12 @@ import {
   trends,
 } from "../../core.js";
 
-function renderTrend(mode = $("#trend-mode").value) {
+function selectedTrendMode(): keyof typeof trends {
+  const mode = $<HTMLSelectElement>("#trend-mode").value;
+  return mode === "under" || mode === "saved" ? mode : "spending";
+}
+
+function renderTrend(mode: keyof typeof trends = selectedTrendMode()) {
   const trend = trends[mode];
   const values = [...trend.values];
   const budget = Number(state.budget) || 0;
@@ -22,8 +28,8 @@ function renderTrend(mode = $("#trend-mode").value) {
       : 0;
   if (mode === "saved")
     values[values.length - 1] = budget ? Math.max(0, budget - spent) : 0;
-  const current = values.at(-1);
-  const previous = values.at(-2);
+  const current = values.at(-1) ?? 0;
+  const previous = values.at(-2) ?? 0;
   const difference = current - previous;
   const relative = previous
     ? Math.round(Math.abs(difference / previous) * 100)
@@ -56,6 +62,8 @@ function renderTrend(mode = $("#trend-mode").value) {
     x: left + ((right - left) * index) / (values.length - 1),
     y: bottom - ((value - min) / (max - min)) * (bottom - top),
   }));
+  const currentPoint = points.at(-1);
+  if (!currentPoint) return;
   const linePath = points
     .map(
       (point, index) =>
@@ -89,7 +97,7 @@ function renderTrend(mode = $("#trend-mode").value) {
         : "Monthly spending";
   $("#trend-chart").setAttribute("aria-label", `${label}, May through October`);
   $("#trend-chart").innerHTML =
-    `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8eaa96" stop-opacity=".32"/><stop offset="100%" stop-color="#8eaa96" stop-opacity=".015"/></linearGradient></defs>${grid}<path class="chart-area" d="${areaPath}"/><path class="chart-line" d="${linePath}"/><line class="chart-guide" x1="${points.at(-1).x}" y1="${top}" x2="${points.at(-1).x}" y2="${bottom}"/>${dots}${labels}</svg>`;
+    `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8eaa96" stop-opacity=".32"/><stop offset="100%" stop-color="#8eaa96" stop-opacity=".015"/></linearGradient></defs>${grid}<path class="chart-area" d="${areaPath}"/><path class="chart-line" d="${linePath}"/><line class="chart-guide" x1="${currentPoint.x}" y1="${top}" x2="${currentPoint.x}" y2="${bottom}"/>${dots}${labels}</svg>`;
   refreshIcons();
 }
 
@@ -97,12 +105,12 @@ function renderDashboard() {
   const spent = totalSpent();
   const budget = Number(state.budget) || 0;
   const remaining = budget - spent;
-  $("#streak-count").textContent = state.streak || 0;
+  $("#streak-count").textContent = String(state.streak || 0);
   $(".streak-indicator").setAttribute(
     "aria-label",
     `${state.streak || 0} day streak`,
   );
-  $("#sync-account-count").textContent = state.accounts.length;
+  $("#sync-account-count").textContent = String(state.accounts.length);
   $("#budget-total").textContent = budget ? money(budget) : "NO BUDGET";
   $("#spent-total").textContent = money(spent);
   $("#remaining-total").textContent = budget
@@ -149,11 +157,9 @@ function renderDashboard() {
   renderTrend();
 }
 
-$("#trend-mode").addEventListener("change", (event) =>
-  renderTrend(event.target.value),
-);
+$("#trend-mode").addEventListener("change", () => renderTrend(selectedTrendMode()));
 $("#watch-categories").addEventListener("click", (event) => {
-  const categoryButton = event.target.closest("[data-category-id]");
+  const categoryButton = eventElement(event)?.closest<HTMLButtonElement>("[data-category-id]");
   if (categoryButton) openCategoryDetails(categoryButton.dataset.categoryId);
 });
 renderDashboard();
