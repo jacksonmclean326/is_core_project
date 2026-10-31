@@ -58,19 +58,13 @@ If either command is not found, install Node.js LTS as described above, then reo
    npm ci
    ```
 
-5. Start the backend in one terminal:
+5. Start the server:
 
    ```powershell
-   npm run server
+   npm start
    ```
 
-6. Start the Vite frontend in a second terminal:
-
-   ```powershell
-   npm run dev
-   ```
-
-7. Open the local URL printed by Vite (normally `http://localhost:5173`). Vite maps the clean page paths to their HTML entries and proxies `/api` requests to the Node.js backend on port `3000`.
+6. Open the local URL printed by Vite (normally `http://localhost:3000`). Vite maps the clean page paths to their HTML entries and proxies `/api` requests to the Node.js backend on port `3000`.
 
 In Supabase **Authentication** settings, enable email/password sign-in and add `http://localhost:5173` to the allowed site/redirect URLs. If email confirmation is enabled, confirm the address after signing up before signing in.
 
@@ -82,8 +76,6 @@ For the Friends page's dynamic friend code, the Supabase project must have a `pu
 
 ### Plaid bank connections
 
-Apply `supabase/migrations/20261030193000_plaid_linked_accounts.sql` to the Supabase project before connecting an institution. The migration removes the unused `Income Source.account_no`, adds Plaid account metadata and a connection table, and changes transaction deletion behavior to `ON DELETE SET NULL`. Disconnecting an institution deletes its saved Plaid account rows and encrypted connection token while preserving transaction rows without their `source_id`.
-
 Plaid starts in Sandbox. The web client loads Plaid Link from Plaid's CDN; the server creates Link tokens, exchanges public tokens, encrypts access tokens with AES-256-GCM, and stores them only in the server-managed Plaid Item table. Account metadata and cached balances are synced with Plaid's `/accounts/get` endpoint when Settings opens. The Home page reads the saved linked-account count without triggering a sync. Cached balances are not guaranteed to be real-time.
 
 Plaid requires at least one product for new Link sessions. This integration initializes Transactions to enable the selected institution/account coverage, but Money Man does not call Plaid's Transactions endpoints or import/store transaction data. Plaid's product access and any applicable pricing still apply, especially before changing `PLAID_MODE` to `production`; review your Plaid Dashboard access and pricing before production use.
@@ -93,16 +85,14 @@ Plaid requires at least one product for new Link sessions. This integration init
 Use these commands when needed:
 
 ```powershell
-npm run typecheck
-npm run build
 npm start
 ```
 
-`npm run build` type-checks the frontend and backend TypeScript, builds the frontend, and compiles the backend into `dist/server/`. `npm start` serves the frontend and backend together on port `3000` (or set `PORT`). For production HTTPS deployments, set `NODE_ENV=production` so the session cookie is marked `Secure`; deploy the Node.js server rather than the static `dist/` folder alone.
+`npm start` first runs the full build: it type-checks the frontend and backend TypeScript, builds the frontend, and compiles the backend into `dist/server/`. It then serves the frontend and backend together on port `3000` (or set `PORT`). For production HTTPS deployments, set `NODE_ENV=production` so the session cookie is marked `Secure`; deploy the Node.js server rather than the static `dist/` folder alone.
 
 ### Server-side code
 
-The HTTP API and Supabase client live in `src/server/index.ts`; browser code in `src/app/` calls those endpoints. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production runs the compiled server from `dist/server/`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
+The HTTP API and Supabase client live in `src/server/index.ts`; browser code in `src/app/` calls those endpoints. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
 Most budgeting data still lives in browser storage and is not yet stored per user in Supabase. Bank connection data is stored per user in Supabase as described above. Client-side route guards are for navigation only and are not data security.
 
