@@ -71,10 +71,7 @@ const initialState: AppState = {
     { id: "sam", name: "Sam Patel", initials: "SP", points: 650, streak: 6, color: "sage" },
     { id: "riley", name: "Riley Chen", initials: "RC", points: 590, streak: 4, color: "blue" }
   ],
-  accounts: [
-    { id: "checking", institution: "Chase Checking", detail: "•••• 2841 · Checking", balance: 2148 },
-    { id: "card", institution: "Discover Card", detail: "•••• 1906 · Credit card", balance: -386 }
-  ],
+  accounts: [],
   preferences: { sync: true, reminders: true, leaderboard: true },
   profile: { name: "", email: "" }
 };
@@ -104,7 +101,7 @@ function loadState() {
       })),
       goals: Array.isArray(savedState.goals) ? savedState.goals : structuredClone(initialState.goals),
       friends,
-      accounts: Array.isArray(savedState.accounts) ? savedState.accounts : structuredClone(initialState.accounts),
+      accounts: [],
       preferences: { ...initialState.preferences, ...savedState.preferences },
       profile: structuredClone(initialState.profile)
     };
@@ -161,7 +158,8 @@ export function showToast(message: string) {
 }
 
 export function saveState() {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  const { accounts: _accounts, ...savedState } = state;
+  localStorage.setItem(storageKey, JSON.stringify(savedState));
 }
 
 export function updateCategoryBudgets(totalBudget: number) {

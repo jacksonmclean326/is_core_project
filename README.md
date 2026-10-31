@@ -44,7 +44,13 @@ If either command is not found, install Node.js LTS as described above, then reo
 
 2. Create a local `.env` file next to `.example.env` (copy `.example.env` if helpful).
 
-3. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `.env` using your Supabase project's API settings. These values are read only by the Node.js backend and are never included in the browser build. The app does not need a Supabase secret or legacy `service_role` key. `.env` is ignored by Git and should stay local.
+3. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `.env` using your Supabase project's API settings. For Plaid account connections, also set the server-only `SUPABASE_SECRET_KEY` from Supabase, `CLIENT_ID`, `PLAID_SECRET`, and `PLAID_MODE=sandbox`. Generate a 32-byte encryption key for `PLAID_TOKEN_ENCRYPTION_KEY` with:
+
+   ```powershell
+   node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+   ```
+
+   Keep all secret keys in the backend environment only. `.env` is ignored by Git and should stay local. Back up the encryption key securely; changing it without first re-encrypting saved Plaid tokens will require users to reconnect their institutions.
 
 4. Install the exact dependency versions from the lockfile:
 
@@ -68,11 +74,19 @@ If either command is not found, install Node.js LTS as described above, then reo
 
 In Supabase **Authentication** settings, enable email/password sign-in and add `http://localhost:5173` to the allowed site/redirect URLs. If email confirmation is enabled, confirm the address after signing up before signing in.
 
-The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, and friend-code lookups through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include the Supabase SDK or API credentials. Supabase requests use each signed-in user's session, so database Row Level Security remains in effect.
+The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, and friend-code lookups through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include Supabase credentials. Normal Supabase requests use the signed-in user's session and Row Level Security. Plaid connection records and encrypted access tokens are managed server-side using the Supabase secret key; the Plaid Item table has no authenticated-user policies.
 
 The server serves the pages at `/auth`, `/home`, `/details`, `/chat`, `/leaderboard`, and `/settings`. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`.
 
 For the Friends page's dynamic friend code, the Supabase project must have a `public."User"` profile row whose `user_id` matches the Auth user ID and whose `friend_code` is a unique six-character code. The table's Row Level Security policy must allow authenticated users to select their own profile row (for example, `auth.uid() = user_id`). The sign-up form sends `first_name`, `last_name`, and `full_name` as Auth user metadata; configure the Auth-to-profile trigger to copy the names and generate the friend code in the database.
+
+### Plaid bank connections
+
+Apply `supabase/migrations/20261030193000_plaid_linked_accounts.sql` to the Supabase project before connecting an institution. The migration removes the unused `Income Source.account_no`, adds Plaid account metadata and a connection table, and changes transaction deletion behavior to `ON DELETE SET NULL`. Disconnecting an institution deletes its saved Plaid account rows and encrypted connection token while preserving transaction rows without their `source_id`.
+
+Plaid starts in Sandbox. The web client loads Plaid Link from Plaid's CDN; the server creates Link tokens, exchanges public tokens, encrypts access tokens with AES-256-GCM, and stores them only in the server-managed Plaid Item table. Account metadata and cached balances are synced with Plaid's `/accounts/get` endpoint when Settings opens. The Home page reads the saved linked-account count without triggering a sync. Cached balances are not guaranteed to be real-time.
+
+Plaid requires at least one product for new Link sessions. This integration initializes Transactions to enable the selected institution/account coverage, but Money Man does not call Plaid's Transactions endpoints or import/store transaction data. Plaid's product access and any applicable pricing still apply, especially before changing `PLAID_MODE` to `production`; review your Plaid Dashboard access and pricing before production use.
 
 ### Build and run the production server
 
@@ -90,7 +104,7 @@ npm start
 
 The HTTP API and Supabase client live in `src/server/index.ts`; browser code in `src/app/` calls those endpoints. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production runs the compiled server from `dist/server/`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
-The budgeting data still lives in browser storage and is not yet stored per user in Supabase. Before using it for real financial data, add database tables with Row Level Security policies and move that data to Supabase. Client-side route guards are for navigation only and are not data security.
+Most budgeting data still lives in browser storage and is not yet stored per user in Supabase. Bank connection data is stored per user in Supabase as described above. Client-side route guards are for navigation only and are not data security.
 
 Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`; browser-persisted prototype state is in `src/app/core.ts`.
 

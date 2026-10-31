@@ -4,6 +4,30 @@ export interface ApiUser {
   user_metadata: Record<string, unknown> | null;
 }
 
+export interface BankAccount {
+  id: string;
+  name: string;
+  officialName: string | null;
+  mask: string | null;
+  type: string;
+  subtype: string | null;
+  balance: number | null;
+  availableBalance: number | null;
+  currencyCode: string | null;
+}
+
+export interface BankConnection {
+  id: string;
+  institution: string;
+  lastSyncedAt: string | null;
+  accounts: BankAccount[];
+}
+
+export interface BankConnectionsResponse {
+  connections: BankConnection[];
+  syncWarning?: string;
+}
+
 interface AuthResult {
   user: ApiUser | null;
   authenticated: boolean;
@@ -85,4 +109,33 @@ export function getAccount(): Promise<ApiUser> {
 
 export function getFriendCode(): Promise<{ friendCode: string }> {
   return request("/api/friend-code");
+}
+
+export function getBankConnections(): Promise<BankConnectionsResponse> {
+  return request("/api/plaid/accounts");
+}
+
+export function refreshBankConnections(): Promise<BankConnectionsResponse> {
+  return request("/api/plaid/accounts/refresh", { method: "POST" });
+}
+
+export function createPlaidLinkToken(): Promise<{ linkToken: string }> {
+  return request("/api/plaid/link-token", { method: "POST" });
+}
+
+export function exchangePlaidPublicToken(input: {
+  publicToken: string;
+  institutionId: string | null;
+  institutionName: string | null;
+}): Promise<{ ok: boolean }> {
+  return request("/api/plaid/exchange", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function disconnectPlaidItem(itemId: string): Promise<{ ok: boolean }> {
+  return request(`/api/plaid/items/${encodeURIComponent(itemId)}`, {
+    method: "DELETE",
+  });
 }

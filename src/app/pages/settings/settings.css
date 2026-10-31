@@ -3,6 +3,20 @@
 .settings-group { padding: 20px 0 22px; border-bottom: 1px solid var(--line); }
 .account-count { padding: 5px 8px; border-radius: 3px; color: var(--green-dark); background: var(--green-soft); font-size: 10px; font-weight: 700; }
 .bank-list { margin-top: 13px; }
+.bank-connection { padding: 11px 0; border-bottom: 1px solid rgba(223, 227, 218, .75); }
+.bank-connection-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bank-connection-heading > strong { font-size: 12px; }
+.bank-connection-meta, .bank-empty, .bank-disclosure { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.bank-connection-meta { margin: 4px 0 0; }
+.bank-connection .bank-row { padding-bottom: 0; border-bottom: 0; }
+.bank-row { flex-wrap: wrap; }
+.bank-info { min-width: 100px; }
+.bank-balance { text-align: right; }
+.bank-balance small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; font-weight: 400; }
+.bank-empty { margin: 12px 0 0; }
+.bank-disclosure { margin: 12px 0 0; }
+.bank-disconnect { padding: 3px 0; border: 0; color: var(--green-dark); background: transparent; font-size: 10px; font-weight: 700; cursor: pointer; }
+.bank-disconnect:disabled { opacity: .6; cursor: wait; }
 .bank-row { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid rgba(223, 227, 218, .75); }
 .bank-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 5px; color: var(--green-dark); background: #e3ece5; }
 .bank-icon .lucide { width: 17px; height: 17px; }
@@ -11,15 +25,11 @@
 .bank-info span { color: var(--muted); font-size: 10px; }
 .bank-balance { font-size: 12px; font-weight: 700; }
 .bank-actions { margin-top: 12px; }
-.manual-entry { max-width: 380px; margin-top: 13px; padding: 15px; border-left: 3px solid var(--coral); background: rgba(255, 254, 250, .72); }
-.manual-entry p { margin: 0 0 8px; color: var(--muted); font-size: 11px; line-height: 1.5; }
-.manual-entry .manual-title { color: var(--ink); font-size: 13px; font-weight: 700; }
-.manual-entry label, .settings-form > label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.settings-form > label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 11px; font-weight: 600; }
 .input-with-prefix { display: flex; align-items: center; gap: 8px; padding: 0 11px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); }
 .input-with-prefix span { color: var(--muted); font-size: 13px; }
 .input-with-prefix input { width: 100%; min-width: 0; padding: 10px 0; border: 0; outline: 0; background: transparent; font-size: 13px; }
 .input-with-prefix input:focus-visible { outline: 0; }
-.manual-entry .primary-button { margin-top: 11px; }
 .settings-form { display: grid; grid-template-columns: minmax(0, 270px) minmax(0, 270px) auto; align-items: end; gap: 8px 13px; margin-top: 13px; }
 .settings-form > label { grid-row: 1; margin: 0; }
 .settings-form .input-with-prefix { grid-row: 2; }

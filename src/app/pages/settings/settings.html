@@ -54,9 +54,14 @@
                 <p class="eyebrow">CONNECTED MONEY</p>
                 <h2>Bank accounts</h2>
               </div>
-              <span class="account-count" id="account-count">2 accounts</span>
+              <span class="account-count" id="account-count">0 accounts</span>
             </div>
             <div class="bank-list" id="bank-list"></div>
+            <p class="bank-disclosure">
+              Plaid Transactions is enabled for supported connections; Plaid may process
+              transaction data and fees may apply. Money Man stores account details and
+              cached balances only, not transactions. Balances may not be real-time.
+            </p>
             <div class="bank-actions">
               <button class="outline-button" type="button" id="connect-bank">
                 <i data-lucide="landmark" aria-hidden="true"></i> Connect
@@ -68,27 +73,6 @@
                 aria-live="polite"
               ></p>
             </div>
-            <form id="manual-entry" class="manual-entry" hidden>
-              <p class="manual-title">Let's keep your plan moving</p>
-              <p>
-                Set a monthly budget while you sort out your bank connection.
-              </p>
-              <label for="manual-budget">Monthly budget</label>
-              <div class="input-with-prefix">
-                <span>$</span
-                ><input
-                  id="manual-budget"
-                  inputmode="decimal"
-                  type="number"
-                  min="1"
-                  placeholder="1,800"
-                  required
-                />
-              </div>
-              <button class="primary-button" type="submit">
-                Save budget and continue
-              </button>
-            </form>
           </section>
           <section class="settings-group">
             <div class="section-heading compact-heading">

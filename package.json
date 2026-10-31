@@ -12,7 +12,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.76.1"
+    "@supabase/supabase-js": "^2.76.1",
+    "plaid": "^49.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

@@ -3,6 +3,7 @@ import { HttpError } from "../errors.js";
 import { sendJson } from "../http/response.js";
 import { handleAccountApi } from "./account.js";
 import { handleAuthApi } from "./auth.js";
+import { handlePlaidApi } from "./plaid.js";
 
 export async function handleApi(
   request: IncomingMessage,
@@ -15,6 +16,7 @@ export async function handleApi(
   }
 
   if (await handleAuthApi(request, response, pathname)) return;
+  if (await handlePlaidApi(request, response, pathname)) return;
   if (await handleAccountApi(request, response, pathname)) return;
 
   if (pathname.startsWith("/api/")) {

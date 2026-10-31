@@ -10,6 +10,7 @@ import {
   totalSpent,
   trends,
 } from "../../core.js";
+import { getBankConnections } from "../../api.js";
 import "../../page-navigation.js";
 
 function selectedTrendMode(): keyof typeof trends {
@@ -111,7 +112,6 @@ function renderDashboard() {
     "aria-label",
     `${state.streak || 0} day streak`,
   );
-  $("#sync-account-count").textContent = String(state.accounts.length);
   $("#budget-total").textContent = budget ? money(budget) : "NO BUDGET";
   $("#spent-total").textContent = money(spent);
   $("#remaining-total").textContent = budget
@@ -158,10 +158,40 @@ function renderDashboard() {
   renderTrend();
 }
 
+async function loadBankAccountCount() {
+  const status = $("#sync-account-status");
+  try {
+    const result = await getBankConnections();
+    const accounts = result.connections.flatMap((connection) =>
+      connection.accounts.map((account) => ({
+        id: account.id,
+        institution: connection.institution,
+        detail: account.mask
+          ? `•••• ${account.mask} · ${account.subtype || account.type}`
+          : account.subtype || account.type,
+        balance:
+          account.balance === null && account.availableBalance === null
+            ? 0
+            : account.type === "credit" &&
+                (account.balance ?? account.availableBalance ?? 0) > 0
+              ? -(account.balance ?? account.availableBalance ?? 0)
+              : account.balance ?? account.availableBalance ?? 0,
+      })),
+    );
+    state.accounts = accounts;
+    status.textContent = `${accounts.length} linked ${accounts.length === 1 ? "account" : "accounts"}`;
+  } catch (error) {
+    console.error("Unable to load the linked bank account count.", error);
+    state.accounts = [];
+    status.textContent = "Bank account data unavailable. Try Settings.";
+  }
+}
+
 $("#trend-mode").addEventListener("change", () => renderTrend(selectedTrendMode()));
 $("#watch-categories").addEventListener("click", (event) => {
   const categoryButton = eventElement(event)?.closest<HTMLButtonElement>("[data-category-id]");
   if (categoryButton) openCategoryDetails(categoryButton.dataset.categoryId);
 });
 renderDashboard();
+void loadBankAccountCount();
 refreshIcons();
