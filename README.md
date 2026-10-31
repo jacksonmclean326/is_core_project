@@ -42,10 +42,9 @@ If either command is not found, install Node.js LTS as described above, then reo
    cd is_core_project
    ```
 
-2. Create the local environment file from the example:
-   create a file named .env in the same level as .example.env (you can copy the example if you want)
+2. Create a local `.env` file next to `.example.env` (copy `.example.env` if helpful).
 
-3. Open `.env` and set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` using the values from your Supabase project's API settings. These are the only environment values needed to run this frontend. Do not put a Supabase secret key or legacy `service_role` key in frontend code or expose it in the browser build. `.env` is ignored by Git and should stay local.
+3. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `.env` using your Supabase project's API settings. These values are read only by the Node.js backend and are never included in the browser build. The app does not need a Supabase secret or legacy `service_role` key. `.env` is ignored by Git and should stay local.
 
 4. Install the exact dependency versions from the lockfile:
 
@@ -53,39 +52,47 @@ If either command is not found, install Node.js LTS as described above, then reo
    npm ci
    ```
 
-5. Start Vite:
+5. Start the backend in one terminal:
 
    ```powershell
-   npm start
+   npm run server
    ```
 
-6. Open the local URL printed by Vite (normally `http://localhost:5173`).
+6. Start the Vite frontend in a second terminal:
+
+   ```powershell
+   npm run dev
+   ```
+
+7. Open the local URL printed by Vite (normally `http://localhost:5173`). Vite maps the clean page paths to their HTML entries and proxies `/api` requests to the Node.js backend on port `3000`.
 
 In Supabase **Authentication** settings, enable email/password sign-in and add `http://localhost:5173` to the allowed site/redirect URLs. If email confirmation is enabled, confirm the address after signing up before signing in.
 
-The app uses Supabase Auth as its hosted backend for account creation, sign-in, persisted sessions, and sign-out. The hash routes include `/#/auth`, `/#/home`, `/#/details`, `/#/chat`, `/#/leaderboard`, and `/#/settings`; signed-out visitors are routed to sign-in.
+The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, and friend-code lookups through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include the Supabase SDK or API credentials. Supabase requests use each signed-in user's session, so database Row Level Security remains in effect.
+
+The server serves the pages at `/auth`, `/home`, `/details`, `/chat`, `/leaderboard`, and `/settings`. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`.
 
 For the Friends page's dynamic friend code, the Supabase project must have a `public."User"` profile row whose `user_id` matches the Auth user ID and whose `friend_code` is a unique six-character code. The table's Row Level Security policy must allow authenticated users to select their own profile row (for example, `auth.uid() = user_id`). The sign-up form sends `first_name`, `last_name`, and `full_name` as Auth user metadata; configure the Auth-to-profile trigger to copy the names and generate the friend code in the database.
 
-### Build and preview
+### Build and run the production server
 
 Use these commands when needed:
 
 ```powershell
 npm run typecheck
 npm run build
-npm run preview
+npm start
 ```
 
-`npm run build` type-checks the TypeScript before building. Vite writes production files to `dist/`; `npm run preview` serves that build locally.
+`npm run build` type-checks the frontend and backend TypeScript, builds the frontend, and compiles the backend into `dist/server/`. `npm start` serves the frontend and backend together on port `3000` (or set `PORT`). For production HTTPS deployments, set `NODE_ENV=production` so the session cookie is marked `Secure`; deploy the Node.js server rather than the static `dist/` folder alone.
 
 ### Server-side code
 
-There is no custom server-side application code in this repository; Supabase provides the hosted backend. The TypeScript files in `app/` run in the browser. `vite.config.ts` is Vite development/build tooling and must remain at the repository root; it is not application server code. No `src/` directory is needed unless custom server-side code is added later.
+The HTTP API and Supabase client live in `src/server/index.ts`; browser code in `src/app/` calls those endpoints. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production runs the compiled server from `dist/server/`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
-For hosting, deploy the `dist/` directory produced by `npm run build` to Netlify, Vercel, or another static host, and set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as build environment variables there. Supabase Auth is the backend; this prototype's budgeting data still lives in browser storage and is not yet stored per user in Supabase. Before using it for real financial data, add database tables with Row Level Security policies and move that data to Supabase. Client-side route guards are for navigation only and are not data security.
+The budgeting data still lives in browser storage and is not yet stored per user in Supabase. Before using it for real financial data, add database tables with Row Level Security policies and move that data to Supabase. Client-side route guards are for navigation only and are not data security.
 
-Each app page lives in its own folder under `app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `app/global.css`; browser-persisted prototype state is in `app/core.ts`.
+Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`; browser-persisted prototype state is in `src/app/core.ts`.
 
 ## Verifying the Vertical Slice:
 

@@ -9,7 +9,8 @@ import {
   checkCategoryWarnings,
   updateCategoryBudgets,
 } from "../../core.js";
-import { supabase } from "../../supabase.js";
+import { getAccount } from "../../api.js";
+import "../../page-navigation.js";
 
 async function renderAuthenticatedProfile() {
   const nameElement = $("#account-name");
@@ -18,11 +19,7 @@ async function renderAuthenticatedProfile() {
   const feedback = $("#account-feedback");
 
   try {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    if (!data.user) throw new Error("No authenticated user was returned.");
-
-    const user = data.user;
+    const user = await getAccount();
     const metadata = user.user_metadata || {};
     const metadataName = [metadata.first_name, metadata.last_name]
       .filter((part) => typeof part === "string" && part.trim())

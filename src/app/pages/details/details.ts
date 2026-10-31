@@ -11,6 +11,7 @@ import {
   state,
   totalSpent,
 } from "../../core.js";
+import "../../page-navigation.js";
 
 function renderSummary() {
   const spent = totalSpent();

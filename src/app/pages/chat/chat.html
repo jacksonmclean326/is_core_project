@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#f5f5ef">
     <meta name="description" content="Get a friendly perspective on your budget and savings goals.">
     <title>Money Man - Ask</title>
+    <base href="/app/pages/chat/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -15,8 +16,8 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <a class="wordmark" href="../home/home.html" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
-        <div class="topbar-actions"><a class="icon-button profile-button" href="../settings/settings.html" aria-label="Open settings" title="Settings"><span class="profile-initials">?</span></a></div>
+        <a class="wordmark" href="/home" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
+        <div class="topbar-actions"><a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings"><span class="profile-initials">?</span></a></div>
       </header>
       <main id="main-content">
         <section class="page chat-page" aria-labelledby="chat-title">
@@ -35,10 +36,10 @@
         </section>
       </main>
       <nav class="bottom-nav" aria-label="Main navigation">
-        <a href="../home/home.html" class="nav-item"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
-        <a href="../details/details.html" class="nav-item"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
-        <a href="chat.html" class="nav-item is-current" aria-current="page"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
-        <a href="../leaderboard/leaderboard.html" class="nav-item"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
+        <a href="/home" class="nav-item"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/details" class="nav-item"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/chat" class="nav-item is-current" aria-current="page"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="/leaderboard" class="nav-item"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
       </nav>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </div>

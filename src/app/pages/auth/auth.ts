@@ -1,4 +1,5 @@
-import { supabase } from "../../supabase.js";
+import { signIn, signUp } from "../../api.js";
+import "../../page-navigation.js";
 import { $ } from "../../core.js";
 
 const form = $<HTMLFormElement>("#auth-form");
@@ -52,18 +53,8 @@ form.addEventListener("submit", async (event) => {
   let result;
   try {
     result = isSignUp
-      ? await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              first_name: firstName,
-              last_name: lastName,
-              full_name: fullName
-            }
-          }
-        })
-      : await supabase.auth.signInWithPassword({ email, password });
+      ? await signUp(email, password, firstName, lastName, fullName)
+      : await signIn(email, password);
   } catch (error) {
     submitButton.disabled = false;
     submitButton.textContent = isSignUp ? "Create account" : "Sign in";
@@ -75,18 +66,12 @@ form.addEventListener("submit", async (event) => {
   submitButton.disabled = false;
   submitButton.textContent = isSignUp ? "Create account" : "Sign in";
 
-  if (result.error) {
-    feedback.textContent = result.error.message;
-    feedback.classList.add("is-error");
-    return;
-  }
-
-  if (isSignUp && !result.data.session) {
+  if (isSignUp && !result.authenticated) {
     feedback.textContent = "Account created. Check your email for a confirmation link, then sign in.";
     return;
   }
 
-  window.location.hash = "#/home";
+  window.location.assign("/home");
 });
 
 setMode(false);

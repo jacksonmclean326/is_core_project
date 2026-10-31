@@ -8,7 +8,8 @@ import {
   showToast,
   state,
 } from "../../core.js";
-import { supabase } from "../../supabase.js";
+import { getFriendCode } from "../../api.js";
+import "../../page-navigation.js";
 
 let friendCode = "";
 
@@ -114,25 +115,8 @@ async function loadFriendCode() {
   const codeElement = $("#friend-code");
   const feedback = $("#friend-code-feedback");
   try {
-    const { data: authData, error: authError } = await supabase.auth.getUser();
-    if (authError) throw authError;
-    if (!authData.user) throw new Error("No authenticated user was returned.");
-
-    const { data, error } = await supabase
-      .from("User")
-      .select("friend_code")
-      .eq("user_id", authData.user.id)
-      .single();
-    if (error) throw error;
-
-    const code = typeof data.friend_code === "string"
-      ? data.friend_code.trim().toUpperCase()
-      : "";
-    if (!/^[A-Z0-9]{6}$/.test(code)) {
-      throw new Error("The signed-in profile does not have a valid six-character friend code.");
-    }
-
-    friendCode = code;
+    const result = await getFriendCode();
+    friendCode = result.friendCode;
     codeElement.textContent = friendCode;
     $<HTMLButtonElement>("#copy-code").disabled = false;
     $<HTMLInputElement>("#friend-code-input").disabled = false;

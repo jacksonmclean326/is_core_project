@@ -1,4 +1,5 @@
 import { $, escapeHTML, eventElement, money, state, totalSpent } from "../../core.js";
+import "../../page-navigation.js";
 
 const mascotUrl = new URL("../../assets/money-man-mascot.png", import.meta.url).href;
 

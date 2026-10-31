@@ -10,6 +10,7 @@ import {
   totalSpent,
   trends,
 } from "../../core.js";
+import "../../page-navigation.js";
 
 function selectedTrendMode(): keyof typeof trends {
   const mode = $<HTMLSelectElement>("#trend-mode").value;
