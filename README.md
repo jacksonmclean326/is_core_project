@@ -64,11 +64,11 @@ If either command is not found, install Node.js LTS as described above, then reo
    npm start
    ```
 
-6. Open the local URL printed by Vite (normally `http://localhost:3000`). Vite maps the clean page paths to their HTML entries and proxies `/api` requests to the Node.js backend on port `3000`.
+6. Open `http://localhost:3000` (or the port configured with `PORT`). `npm start` serves the built pages and API from the Node.js server. For frontend development with Vite, run `npm run server` and `npm run dev` in separate terminals, then open the URL Vite prints; it proxies `/api` requests to the backend on port `3000`.
 
-In Supabase **Authentication** settings, enable email/password sign-in and add `http://localhost:5173` to the allowed site/redirect URLs. If email confirmation is enabled, confirm the address after signing up before signing in.
+In Supabase **Authentication** settings, enable email/password sign-in and add both `http://localhost:5173` (Vite development) and `http://localhost:3000` (`npm start`) to the allowed redirect URLs. Set the Site URL to the address you use locally. If email confirmation is enabled, confirm the address after signing up before signing in.
 
-The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, and friend-code lookups through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include Supabase credentials. Normal Supabase requests use the signed-in user's session and Row Level Security. Plaid connection records and encrypted access tokens are managed server-side using the Supabase secret key; the Plaid Item table has no authenticated-user policies.
+The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, and friend-code lookups through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include Supabase credentials. Normal Supabase requests use the signed-in user's session and Row Level Security. Plaid connection records and encrypted access tokens are managed server-side using the Supabase secret key. Keep direct table access to `Plaid Item` restricted to the server's service role; review its grants and row-level security policies before deployment.
 
 The server serves the pages at `/auth`, `/home`, `/details`, `/chat`, `/leaderboard`, and `/settings`. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`.
 
@@ -92,7 +92,7 @@ npm start
 
 ### Server-side code
 
-The HTTP API and Supabase client live in `src/server/index.ts`; browser code in `src/app/` calls those endpoints. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
+`src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/`; authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
 Most budgeting data still lives in browser storage and is not yet stored per user in Supabase. Bank connection data is stored per user in Supabase as described above. Client-side route guards are for navigation only and are not data security.
 

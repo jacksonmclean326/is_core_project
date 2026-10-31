@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Gp4kzLUCVm7D56K5YHMcYW2HPiCDr5X9aKg8jxzDpoJft8A0E4swkwyepwbgXkE
+\restrict DTng8SNbMLZAMC1WDniBjmm5YqXfvgVn3S3qIKA2iTr7IMLUSJ5L8DcK4psAs3o
 
 -- Dumped from database version 17.11
 -- Dumped by pg_dump version 18.6
@@ -508,24 +508,10 @@ CREATE POLICY "Enable delete for users based on user_id" ON public."Income Sourc
 
 
 --
--- Name: Plaid Item Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Enable delete for users based on user_id" ON public."Plaid Item" FOR DELETE USING ((( SELECT auth.uid() AS uid) = user_id));
-
-
---
 -- Name: User Enable delete for users based on user_id; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Enable delete for users based on user_id" ON public."User" FOR DELETE TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
-
-
---
--- Name: Plaid Item Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Enable insert for authenticated users only" ON public."Plaid Item" FOR INSERT TO authenticated WITH CHECK (true);
 
 
 --
@@ -589,13 +575,6 @@ CREATE POLICY "Enable users to view their own data only" ON public."Goal" FOR SE
 --
 
 CREATE POLICY "Enable users to view their own data only" ON public."Income Source" FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
-
-
---
--- Name: Plaid Item Enable users to view their own data only; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "Enable users to view their own data only" ON public."Plaid Item" FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
 
 
 --
@@ -789,15 +768,8 @@ CREATE POLICY "Users can view their own transactions" ON public."Transaction" FO
 
 
 --
--- Name: Plaid Item update only your data; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY "update only your data" ON public."Plaid Item" FOR UPDATE USING ((( SELECT auth.uid() AS uid) = user_id)) WITH CHECK ((( SELECT auth.uid() AS uid) = user_id));
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Gp4kzLUCVm7D56K5YHMcYW2HPiCDr5X9aKg8jxzDpoJft8A0E4swkwyepwbgXkE
+\unrestrict DTng8SNbMLZAMC1WDniBjmm5YqXfvgVn3S3qIKA2iTr7IMLUSJ5L8DcK4psAs3o
 
