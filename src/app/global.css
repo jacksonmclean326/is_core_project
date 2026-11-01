@@ -45,9 +45,12 @@ select {
 button {
   color: inherit;
 }
+a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
   outline: 3px solid var(--green);
   outline-offset: 2px;
 }
@@ -984,4 +987,48 @@ html {
 .input-with-prefix:focus-within {
   outline: 3px solid var(--green);
   outline-offset: 2px;
+}
+
+/* The limit next to "Change limit": they were running together ("limitChange limit"). */
+.limit-edit {
+  margin: 0 0 0 10px;
+}
+
+/* Edit summary: the limit box says what it is. A $ sign always; the words "Monthly limit" too on narrow phones,
+   where the box sits under the name instead of beside it. */
+.limit-field {
+  display: block;
+}
+.limit-caption {
+  display: none;
+}
+.limit-field input {
+  padding-left: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='16'%3E%3Ctext x='0' y='13' font-family='sans-serif' font-size='13' fill='%23626c66'%3E$%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 9px center;
+}
+@media (max-width: 560px) {
+  .limit-caption {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+  .category-edit-row .category-limit {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .category-edit-row .limit-field {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+/* Wordmark can give way to the buttons beside it when text is enlarged. */
+.topbar {
+  gap: 8px;
+}
+.wordmark {
+  min-width: 0;
 }
