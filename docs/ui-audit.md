@@ -84,7 +84,7 @@ what was asked. The page declares `color-scheme: light`, so browsers do not dark
 | Page data | Loads from the database in about 90 ms; the browser also draws the last answer instantly |
 | Motion | `prefers-reduced-motion` is respected (existing) |
 | Messages that disappear after 3.4 s | Open (minor): low-vision users may miss a toast. Errors stay on screen. |
-| Icons come from a third-party CDN (unpkg) | Open: offline, icons are missing, but every control still has a text name |
+| Icons came from a third-party CDN (unpkg): a 358 KB script, drawn after the page loaded | **Fixed.** Icons ship with the app and are drawn into each page's HTML at build time, so the menu icons are there from the first paint, even offline. A test fails if a page references a third-party script or an icon is missing. |
 
 ### Bug found along the way
 - Home: the budget progress bar had an `aria-label` on a plain `div` (an axe "serious" violation). Fixed with `role="img"`.

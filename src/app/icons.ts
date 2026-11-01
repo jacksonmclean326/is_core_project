@@ -1,0 +1,63 @@
+import {
+  ArrowDown,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUp,
+  ArrowUpRight,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleDollarSign,
+  Copy,
+  Flame,
+  House,
+  Landmark,
+  MessageCircle,
+  MessageCircleQuestion,
+  Plus,
+  RefreshCw,
+  Settings2,
+  SlidersHorizontal,
+  Target,
+  TriangleAlert,
+  Trophy,
+  UserPlus,
+  UsersRound,
+  X,
+} from "lucide";
+
+/**
+ * Every icon the app uses, shipped with the app itself (no third-party download). Icons written in the page
+ * HTML are also drawn into the HTML at build time, so they are there from the first paint; this list is for the
+ * ones drawn later by code (popups, the trend arrow). Add an icon here when you use a new one:
+ * tests/icons.test.ts fails if a name used anywhere is missing.
+ */
+export const appIcons = {
+  ArrowDown,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUp,
+  ArrowUpRight,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleDollarSign,
+  Copy,
+  Flame,
+  House,
+  Landmark,
+  MessageCircle,
+  MessageCircleQuestion,
+  Plus,
+  RefreshCw,
+  Settings2,
+  SlidersHorizontal,
+  Target,
+  TriangleAlert,
+  Trophy,
+  UserPlus,
+  UsersRound,
+  X,
+};

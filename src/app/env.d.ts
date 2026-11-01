@@ -1,5 +1,1 @@
-interface Window {
-  lucide?: {
-    createIcons: () => void;
-  };
-}
+// Types for the browser build come from vite/client (see tsconfig.json).
