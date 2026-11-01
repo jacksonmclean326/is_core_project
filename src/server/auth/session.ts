@@ -7,6 +7,11 @@ import { sessionCookieName } from "./constants.js";
 import { createSupabaseClient, type SessionClient } from "./supabase.js";
 
 const sessions = new Map<string, SessionClient>();
+// Checking a session with Supabase is a network round trip, and every API call needs it. Remember a
+// successful check briefly. The access token is still refreshed before it expires, and signing out
+// forgets it immediately.
+const verifiedUsers = new Map<string, { user: User; until: number }>();
+const verifiedTtlMs = 30_000;
 
 function getSessionId(request: IncomingMessage): string | null {
   const cookie = request.headers.cookie;
@@ -82,10 +87,15 @@ export async function requireSession(
     throw new HttpError(401, "Please sign in again.");
   }
 
+  const verified = verifiedUsers.get(sessionId);
+  if (verified && verified.until > Date.now()) return { client, user: verified.user, sessionId };
+
   try {
     const user = await authenticatedUser(client);
+    verifiedUsers.set(sessionId, { user, until: Date.now() + verifiedTtlMs });
     return { client, user, sessionId };
   } catch (error) {
+    verifiedUsers.delete(sessionId);
     if (error instanceof HttpError && error.status === 401) {
       sessions.delete(sessionId);
       response.setHeader("Set-Cookie", cookieHeader("", request));
@@ -145,7 +155,10 @@ export async function signIn(
 export async function signOut(request: IncomingMessage): Promise<void> {
   const sessionId = getSessionId(request);
   const client = sessionId ? sessions.get(sessionId) : null;
-  if (sessionId) sessions.delete(sessionId);
+  if (sessionId) {
+    sessions.delete(sessionId);
+    verifiedUsers.delete(sessionId);
+  }
   if (client) {
     const result = await client.auth.signOut({ scope: "local" });
     if (result.error) throw supabaseFailure(result.error);

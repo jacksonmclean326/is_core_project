@@ -143,6 +143,8 @@ Users can add their own categories (up to 12, names up to 24 characters), rename
 
 **Manual transactions.** On the Details page, **Add** records a transaction by hand, and a category's transaction list has **Edit** and **Delete** for those entries. They are stored in the same table with no Plaid ID, count toward totals, charts, and trends, and work without a linked bank (the first entry replaces the sample data). Amounts must be positive, and dates can be at most tomorrow and 24 months back. A bank refresh never changes or deletes them, and merchant rules apply to bank transactions only.
 
+**Speed.** Asking Plaid is the slowest step (about a second), so the server keeps what Plaid returned for each bank in memory for 5 minutes, covering the last six months. Loading a page or switching months inside that window answers in roughly 100 ms, and saving to the database happens after the response is sent and only writes rows that changed. Banks linked in the last 10 minutes are not remembered, because Plaid is still filling in older months. Add `&refresh=1` to `GET /api/transactions` to force a fresh pull. Every response includes a `Server-Timing` header showing how long each step took (visible in the browser's network tab). The first load after a server restart, or after 5 minutes of inactivity, still takes about a second.
+
 ### API
 
 All endpoints require a signed-in session (except sign-up and sign-in) and return JSON.
