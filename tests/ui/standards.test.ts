@@ -64,36 +64,51 @@ test("the menu's inactive labels use the readable muted colour", () => {
 });
 
 // ---- text size ----
-const ownedSelectors = [
-  ".tx-", ".row-action", ".apply-merchant", ".field", ".limits-note", ".limit-form", ".transaction-row", ".edit-row input",
-  ".edit-row select", ".dialog-form-feedback", ".edit-form", ".month-switcher", ".view-all-link", ".nav-item",
-];
-// short uppercase labels may be 11px; everything else in these parts is at least 12px
-const minimumSize = (selector) => (selector === ".tx-day" || selector.startsWith(".nav-item") ? 11 : 12);
+// Short labels and captions may be 11px; everything else is at least 12px. Nothing is below 11px anywhere.
+const smallLabels = new Set([
+  ".eyebrow", ".nav-item", ".tx-day", ".category-detail-stats span", ".chat-date", ".message-bubble time", ".donut-center span", ".donut-center small",
+  ".goal-card .goal-kind", ".legend-row", ".legend-row strong", ".streak-indicator span", ".dashboard-sync", ".trend-change", ".score-note span",
+  ".friend-avatar", ".friend-streak", ".invite-code-row span", ".account-count", ".bank-balance small", ".profile-row > div > span",
+]);
 
-/** The font size each individual selector ends up with (later rules override earlier ones, per media query). */
+/** Size in px of the first length in a font-size / font declaration, whether written in px or rem. */
+function sizeInPx(value) {
+  const match = value.match(/(\d+(?:\.\d+)?)(px|rem)/);
+  if (!match) return null;
+  return parseFloat(match[1]) * (match[2] === "rem" ? 16 : 1);
+}
+
+/** The text size each individual selector ends up with (later rules override earlier ones, per media query). */
 function effectiveFontSizes() {
   const sizes = new Map();
   for (const d of declarations) {
-    if (d.prop !== "font-size" || !/^\d+(\.\d+)?px$/.test(d.value)) continue;
-    for (const selector of d.selector.split(",").map((part) => part.trim())) sizes.set(`${selector}|${d.media}`, { selector, media: d.media, px: parseFloat(d.value), file: d.file });
+    if (d.prop !== "font-size" && d.prop !== "font") continue;
+    const px = sizeInPx(d.value);
+    if (px === null || d.media.includes("pointer: coarse")) continue;
+    for (const selector of d.selector.split(",").map((part) => part.trim())) sizes.set(`${selector}|${d.media}`, { selector, media: d.media, px, file: d.file });
   }
   return [...sizes.values()];
 }
 
-test("text in the parts built for transactions, limits, categories and the menu is never below its minimum size", () => {
-  const tooSmall = effectiveFontSizes()
-    .filter((entry) => ownedSelectors.some((owned) => entry.selector.includes(owned)) && !entry.media.includes("pointer: coarse"))
-    .filter((entry) => entry.px < minimumSize(entry.selector))
-    .map((entry) => `${entry.selector} ${entry.px}px${entry.media ? " [" + entry.media + "]" : ""} (${entry.file})`);
-  assert.deepEqual(tooSmall, [], "text below the minimum size");
+test("all text sizes are in rem, so the browser's text-size setting works (WCAG 1.4.4)", () => {
+  // the one deliberate exception: phones keep fields at 16px or larger, whatever the text-size setting
+  const inPixels = declarations.filter((d) => (d.prop === "font-size" || d.prop === "font") && /\d(\.\d+)?px/.test(d.value) && !/max\(1rem,\s*16px\)/.test(d.value));
+  assert.deepEqual(inPixels.map((d) => `${d.selector}: ${d.prop} ${d.value} (${d.file})`), []);
+});
+
+test("no text anywhere is below 11px, and only short labels are below 12px", () => {
+  const small = effectiveFontSizes().filter((entry) => entry.px < 12);
+  const tooSmall = small.filter((entry) => entry.px < 11).map((entry) => `${entry.selector} ${entry.px}px (${entry.file})`);
+  assert.deepEqual(tooSmall, [], "below 11px");
+  const notLabels = small.filter((entry) => !smallLabels.has(entry.selector)).map((entry) => `${entry.selector} ${entry.px}px${entry.media ? " [" + entry.media + "]" : ""} (${entry.file})`);
+  assert.deepEqual(notLabels, [], "content text between 11px and 12px: raise it to 12px, or list it as a label here");
 });
 
 // ---- phones ----
 const has = (predicate) => declarations.some(predicate);
 
 test("touch screens get 16px fields (no iOS zoom) and 44px targets", () => {
-  assert.ok(has((d) => d.media.includes("pointer: coarse") && /input:not/.test(d.selector) && d.prop === "font-size" && d.value.startsWith("16px")), "16px fields on touch");
+  assert.ok(has((d) => d.media.includes("pointer: coarse") && /input:not/.test(d.selector) && d.prop === "font-size" && d.value.includes("16px") && d.value.includes("1rem")), "16px fields on touch");
   for (const selector of [".small-action", ".dialog-close", ".remove-goal", ".edit-summary-button", ".row-action"]) {
     assert.ok(
       has((d) => d.media.includes("pointer: coarse") && d.selector.includes(selector) && /^min-(width|height)$/.test(d.prop) && d.value === "44px"),
