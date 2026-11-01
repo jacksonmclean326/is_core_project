@@ -1,16 +1,25 @@
-import { loadGoals } from "../../goals.js";
 import {
   $,
   escapeHTML,
   eventElement,
+  loadLinkedTransactions,
+  onDataChanged,
   months,
   money,
   openCategoryDetails,
   refreshIcons,
+  showToast,
   state,
   totalSpent,
+  trendValues,
   trends,
 } from "../../core.js";
+import {
+  currentMonthKey,
+  fullDateEyebrow,
+  localDateString,
+  monthName,
+} from "../../../shared/months.js";
 import { getBankConnections } from "../../api.js";
 import "../../page-navigation.js";
 
@@ -21,16 +30,8 @@ function selectedTrendMode(): keyof typeof trends {
 
 function renderTrend(mode: keyof typeof trends = selectedTrendMode()) {
   const trend = trends[mode];
-  const values = [...trend.values];
+  const values = trendValues(mode);
   const budget = Number(state.budget) || 0;
-  const spent = totalSpent();
-  if (mode === "spending") values[values.length - 1] = spent;
-  if (mode === "under")
-    values[values.length - 1] = budget
-      ? Math.max(0, Math.round(((budget - spent) / budget) * 100))
-      : 0;
-  if (mode === "saved")
-    values[values.length - 1] = budget ? Math.max(0, budget - spent) : 0;
   const current = values.at(-1) ?? 0;
   const previous = values.at(-2) ?? 0;
   const difference = current - previous;
@@ -59,8 +60,10 @@ function renderTrend(mode: keyof typeof trends = selectedTrendMode()) {
   const right = 828;
   const top = 20;
   const bottom = 176;
-  const min = Math.min(...values) * 0.82;
-  const max = Math.max(...values) * 1.08;
+  const lowest = Math.min(...values);
+  const highest = Math.max(...values);
+  const min = highest === lowest ? lowest - 1 : lowest * 0.82;
+  const max = highest === lowest ? highest + 1 : highest * 1.08;
   const points = values.map((value, index) => ({
     x: left + ((right - left) * index) / (values.length - 1),
     y: bottom - ((value - min) / (max - min)) * (bottom - top),
@@ -98,13 +101,22 @@ function renderTrend(mode: keyof typeof trends = selectedTrendMode()) {
       : mode === "saved"
         ? "Amount saved"
         : "Monthly spending";
-  $("#trend-chart").setAttribute("aria-label", `${label}, May through October`);
+  const firstMonth = months[0] ?? "";
+  const lastMonth = months.at(-1) ?? "";
+  $("#trend-chart").setAttribute("aria-label", `${label}, ${firstMonth} through ${lastMonth}`);
   $("#trend-chart").innerHTML =
     `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8eaa96" stop-opacity=".32"/><stop offset="100%" stop-color="#8eaa96" stop-opacity=".015"/></linearGradient></defs>${grid}<path class="chart-area" d="${areaPath}"/><path class="chart-line" d="${linePath}"/><line class="chart-guide" x1="${currentPoint.x}" y1="${top}" x2="${currentPoint.x}" y2="${bottom}"/>${dots}${labels}</svg>`;
   refreshIcons();
 }
 
+function renderPeriodLabels() {
+  const thisMonth = currentMonthKey();
+  $("#today-label").textContent = fullDateEyebrow(localDateString());
+  $("#period-label").textContent = `${monthName(thisMonth).toUpperCase()} OVERVIEW`;
+}
+
 function renderDashboard() {
+  renderPeriodLabels();
   const spent = totalSpent();
   const budget = Number(state.budget) || 0;
   const remaining = budget - spent;
@@ -194,13 +206,17 @@ $("#watch-categories").addEventListener("click", (event) => {
   if (categoryButton) openCategoryDetails(categoryButton.dataset.categoryId);
 });
 renderDashboard();
+void loadLinkedTransactions(currentMonthKey(), months.length - 1).then((result) => {
+  if (result === "linked") {
+    renderDashboard();
+    renderTrend();
+  } else if (result === "error") {
+    showToast("Could not load this month's bank transactions.");
+  }
+});
 void loadBankAccountCount();
 refreshIcons();
-
-void loadGoals().then((goals) => {
-  state.goals = goals;
+onDataChanged(() => {
   renderDashboard();
-}).catch(() => {
-  $("#dashboard-goal-name").textContent = "Unable to load your goals";
-  $("#dashboard-goal-progress").textContent = "Refresh to try again";
+  renderTrend();
 });

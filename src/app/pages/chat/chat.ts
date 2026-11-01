@@ -1,12 +1,5 @@
-import { loadGoals } from "../../goals.js";
-import { $, escapeHTML, eventElement, money, state, totalSpent } from "../../core.js";
+import { $, escapeHTML, eventElement, loadLinkedTransactions, money, state, totalSpent } from "../../core.js";
 import "../../page-navigation.js";
-
-let goalsStatus: "loading" | "ready" | "error" = "loading";
-void loadGoals().then((goals) => {
-  state.goals = goals;
-  goalsStatus = "ready";
-}).catch(() => { goalsStatus = "error"; });
 
 const mascotUrl = new URL("../../assets/money-man-mascot.png", import.meta.url).href;
 
@@ -43,8 +36,6 @@ function makeChatReply(message: string): string {
       : `Food is at ${money(food.amount)} against a ${money(food.limit)} category limit, so it is ${money(difference)} over. You could pause extra food purchases or adjust your plan for the rest of the month.`;
   }
   if (question.includes("savings goal") || question.includes("on track")) {
-    if (goalsStatus === "loading") return "Your goals are still loading. Please try again in a moment.";
-    if (goalsStatus === "error") return "I couldn't load your goals. Refresh the page to try again.";
     const goal = state.goals.find((item) => item.kind === "Savings");
     if (!goal)
       return "You don't have a savings goal set yet. Add one from Details, then you can track your progress here.";
@@ -82,3 +73,6 @@ $("#chat-form").addEventListener("submit", (event) => {
   event.preventDefault();
   sendMessage($<HTMLInputElement>("#chat-input").value);
 });
+
+// Answers use the real current-month spending once a bank is linked.
+void loadLinkedTransactions();

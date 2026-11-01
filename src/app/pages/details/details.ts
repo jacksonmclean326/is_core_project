@@ -1,20 +1,78 @@
-import { loadGoals, saveGoals } from "../../goals.js";
 import {
   $,
   $$,
   escapeHTML,
   eventElement,
+  loadLinkedTransactions,
+  onDataChanged,
+  openTransactionForm,
   money,
   openCategoryDetails,
   refreshIcons,
   saveState,
   showToast,
   state,
+  syncCustomCategories,
   totalSpent,
 } from "../../core.js";
+import { createCategory, deleteCategory, renameCategory } from "../../api.js";
+import {
+  addMonths,
+  compareMonths,
+  currentMonthKey,
+  isMonthKey,
+  monthLabel,
+  monthName,
+  transactionHistoryMonths,
+  type MonthKey,
+} from "../../../shared/months.js";
 import "../../page-navigation.js";
 
+function initialMonth(): MonthKey {
+  const thisMonth = currentMonthKey();
+  const requested = new URLSearchParams(window.location.search).get("month");
+  if (!isMonthKey(requested)) return thisMonth;
+  if (compareMonths(requested, thisMonth) > 0) return thisMonth;
+  if (compareMonths(requested, addMonths(thisMonth, -transactionHistoryMonths)) < 0) return thisMonth;
+  return requested;
+}
+
+let selectedMonth: MonthKey = initialMonth();
+let isLinked = false;
+
+function renderPeriod() {
+  const thisMonth = currentMonthKey();
+  $("#period-label").textContent = monthLabel(selectedMonth).toUpperCase();
+  // Sample data has no history to browse, so only the buttons are hidden.
+  $<HTMLButtonElement>("#month-prev").hidden = !isLinked;
+  $<HTMLButtonElement>("#month-next").hidden = !isLinked;
+  $<HTMLButtonElement>("#month-prev").disabled =
+    compareMonths(selectedMonth, addMonths(thisMonth, -transactionHistoryMonths)) <= 0;
+  $<HTMLButtonElement>("#month-next").disabled = compareMonths(selectedMonth, thisMonth) >= 0;
+}
+
+async function showMonth(month: MonthKey) {
+  selectedMonth = month;
+  const url = new URL(window.location.href);
+  if (month === currentMonthKey()) url.searchParams.delete("month");
+  else url.searchParams.set("month", month);
+  window.history.replaceState(null, "", url);
+  renderPeriod();
+  const result = await loadLinkedTransactions(month);
+  if (result === "stale") return;
+  isLinked = result === "linked";
+  if (result === "error") showToast(`Could not load ${monthLabel(month)}.`);
+  renderPeriod();
+  renderSummary();
+}
+
+function periodWord(): string {
+  return selectedMonth === currentMonthKey() ? "THIS MONTH" : monthName(selectedMonth).toUpperCase();
+}
+
 function renderSummary() {
+  $("#summary-spent-label").textContent =
+    selectedMonth === currentMonthKey() ? "Current monthly spending" : `${monthName(selectedMonth)} spending`;
   const spent = totalSpent();
   const visible = state.categories.filter((category) => category.visible);
   const chartSpent = visible.reduce(
@@ -27,7 +85,7 @@ function renderSummary() {
   $("#summary-available").textContent = budget
     ? money(Math.max(0, budget - spent))
     : "Set a budget";
-  $("#donut-center-label").textContent = "THIS MONTH";
+  $("#donut-center-label").textContent = periodWord();
   $("#donut-total").textContent = money(chartSpent);
   $("#donut-center-subtitle").textContent = "across categories";
   $("#donut-chart").classList.remove("is-previewing");
@@ -126,7 +184,7 @@ function resetDonutPreview() {
     "aria-label",
     `Interactive chart. Focus and use arrow keys to preview a category; press Enter for details. Monthly spending of ${money(total)}. ${visible.map((category) => `${category.name}, ${money(category.amount)}`).join(". ")}`,
   );
-  $("#donut-center-label").textContent = "THIS MONTH";
+  $("#donut-center-label").textContent = periodWord();
   $("#donut-total").textContent = money(total);
   $("#donut-center-subtitle").textContent = "across categories";
 }
@@ -162,16 +220,9 @@ function openSummaryEditor() {
   const categoryRows = state.categories
     .map(
       (category) =>
-        `<div class="edit-row category-edit-row"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Category name" maxlength="24" value="${escapeHTML(category.name)}"></div>`,
+        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Category name" maxlength="24" value="${escapeHTML(category.name)}">${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
     )
     .join("");
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear in your summary.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3>${categoryRows}<button class="primary-button" type="submit">Save changes</button></form>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
-  refreshIcons();
-}
-
-function openGoalsEditor() {
   const goalRows = state.goals
     .map(
       (goal) =>
@@ -179,13 +230,30 @@ function openGoalsEditor() {
     )
     .join("");
   $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Add, update, or remove your goals.</p><form id="goals-edit-form" class="edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-lucide="plus" aria-hidden="true"></i> Add a category</button><h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
   $<HTMLDialogElement>("#detail-dialog").showModal();
   refreshIcons();
 }
 
+const maxCustomCategories = 12;
+const maxCategoryName = 24;
+
+function addCategoryEditorRow() {
+  const form = $("#summary-edit-form");
+  if ($$(".category-edit-row.has-remove", form).length >= maxCustomCategories) {
+    $("#edit-feedback").textContent = `You can add up to ${maxCustomCategories} custom categories.`;
+    return;
+  }
+  $("#add-category-row").insertAdjacentHTML(
+    "beforebegin",
+    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Category name" maxlength="${maxCategoryName}" placeholder="Name your category"><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+  );
+  $$<HTMLInputElement>('[data-new-category="1"] .category-name', form).at(-1)?.focus();
+  refreshIcons();
+}
+
 function addGoalEditorRow() {
-  const id = crypto.randomUUID();
+  const id = `goal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   $("#goal-editor-rows").insertAdjacentHTML(
     "beforeend",
     `<div class="edit-row goal-edit-row" data-goal-row="${id}"><select class="goal-kind-input" aria-label="Goal type"><option>Savings</option><option>Spending</option><option>Earnings</option><option>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" placeholder="400"><button type="button" class="remove-goal" data-remove-goal="${id}" aria-label="Remove new goal"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
@@ -193,18 +261,21 @@ function addGoalEditorRow() {
   refreshIcons();
 }
 
-async function saveGoalsEditor(event: SubmitEvent, form: HTMLFormElement) {
+async function saveSummaryEditor(event: SubmitEvent) {
   event.preventDefault();
   const feedback = $("#edit-feedback");
+  const form = event.currentTarget as HTMLFormElement;
   const goalRows = $$(".goal-edit-row", form);
   const goals = [];
   for (const row of goalRows) {
     const name = $<HTMLInputElement>(".goal-name-input", row).value.trim();
     const target = Number($<HTMLInputElement>(".goal-target-input", row).value);
     const kind = $<HTMLSelectElement>(".goal-kind-input", row).value;
-    if (!name || !Number.isFinite(target) || target <= 0) {
+    if (!name || !target || target > state.income) {
       feedback.textContent =
-        "Add a name and a positive amount to every goal, or remove the empty row.";
+        target > state.income
+          ? "Set each goal below your monthly income."
+          : "Add a name and amount to every goal, or remove the empty row.";
       return;
     }
     const oldGoal = state.goals.find((goal) => goal.id === row.dataset.goalRow);
@@ -218,58 +289,99 @@ async function saveGoalsEditor(event: SubmitEvent, form: HTMLFormElement) {
       progress: oldGoal?.progress || 0,
     });
   }
+
+  const entries = $$(".category-edit-row", form).map((row) => {
+    const id = row.dataset.categoryRow;
+    const existing = state.categories.find((category) => category.id === id);
+    const typed = $<HTMLInputElement>(".category-name", row).value.replace(/\s+/g, " ").trim();
+    return {
+      id,
+      isNew: row.dataset.newCategory === "1",
+      existing,
+      // an emptied built-in name keeps its old name, as before
+      name: typed || (existing && !existing.custom ? existing.name : ""),
+      visible: $<HTMLInputElement>(".category-visible", row).checked,
+    };
+  });
+  const seen = new Set<string>();
+  for (const entry of entries) {
+    if (!entry.name) {
+      feedback.textContent = "Give every new category a name, or remove the empty row.";
+      return;
+    }
+    if (entry.name.length > maxCategoryName || /[<>]/.test(entry.name)) {
+      feedback.textContent = `Category names can be up to ${maxCategoryName} characters and cannot contain < or >.`;
+      return;
+    }
+    if (seen.has(entry.name.toLowerCase())) {
+      feedback.textContent = `You already have a category called "${entry.name}".`;
+      return;
+    }
+    seen.add(entry.name.toLowerCase());
+  }
+
   const submit = $<HTMLButtonElement>('button[type="submit"]', form);
-  if (submit.disabled) return;
   submit.disabled = true;
-  submit.textContent = "Saving…";
-  feedback.textContent = "";
+  feedback.textContent = "Saving...";
   try {
-    const saved = await saveGoals(goals);
-    if (!form.isConnected) return;
-    state.goals = saved;
+    const keptIds = new Set(entries.map((entry) => entry.id));
+    for (const removed of state.categories.filter((category) => category.custom && !keptIds.has(category.id))) {
+      await deleteCategory(removed.id);
+    }
+    const customList: { key: string; name: string; color: string }[] = [];
+    const createdVisibility = new Map<string, boolean>();
+    for (const entry of entries) {
+      if (entry.isNew) {
+        const { category } = await createCategory(entry.name);
+        customList.push(category);
+        createdVisibility.set(category.key, entry.visible);
+      } else if (entry.existing?.custom) {
+        if (entry.name !== entry.existing.name) await renameCategory(entry.existing.id, entry.name);
+        customList.push({ key: entry.existing.id, name: entry.name, color: entry.existing.color });
+      }
+    }
+    syncCustomCategories(customList);
+    for (const entry of entries.filter((item) => !item.isNew && item.existing)) {
+      const category = state.categories.find((item) => item.id === entry.id);
+      if (!category) continue;
+      if (!category.custom) category.name = entry.name;
+      category.visible = entry.visible;
+    }
+    for (const [key, visible] of createdVisibility) {
+      const created = state.categories.find((category) => category.id === key);
+      if (created) created.visible = visible;
+    }
+    state.goals = goals;
+    saveState();
+    await loadLinkedTransactions(selectedMonth); // deleted categories move their spending to Other
     $<HTMLDialogElement>("#detail-dialog").close();
     renderSummary();
-    showToast("Your goals are updated.");
+    showToast("Your summary and goals are updated.");
   } catch (error) {
-    feedback.textContent = `Goals were not saved. ${error instanceof Error ? error.message : "Check your connection and database setup, then try again."}`;
-  } finally {
+    feedback.textContent = error instanceof Error ? error.message : "Could not save your changes.";
     submit.disabled = false;
-    submit.textContent = "Save changes";
+    void loadLinkedTransactions(selectedMonth).then(renderSummary);
   }
 }
 
-function saveSummaryEditor(event: SubmitEvent, form: HTMLFormElement) {
-  event.preventDefault();
-  state.categories.forEach((category) => {
-    const nameInput = $<HTMLInputElement>(
-      `.category-name[data-category-id="${category.id}"]`,
-      form,
-    );
-    const visibleInput = $<HTMLInputElement>(
-      `.category-visible[data-category-id="${category.id}"]`,
-      form,
-    );
-    category.name = nameInput.value.trim() || category.name;
-    category.visible = visibleInput.checked;
-  });
-  saveState();
-  $<HTMLDialogElement>("#detail-dialog").close();
-  renderSummary();
-  showToast("Your summary is updated.");
-}
-
 $("#edit-summary").addEventListener("click", openSummaryEditor);
-$("#edit-goals-link").addEventListener("click", openGoalsEditor);
+$("#add-transaction").addEventListener("click", () => openTransactionForm());
+$("#edit-goals-link").addEventListener("click", openSummaryEditor);
 $("#detail-dialog").addEventListener("submit", (event) => {
-  const form = event.target;
-  if (!(form instanceof HTMLFormElement)) return;
-  if (form.id === "summary-edit-form") saveSummaryEditor(event, form);
-  if (form.id === "goals-edit-form") saveGoalsEditor(event, form);
+  if (event.target instanceof Element && event.target.id === "summary-edit-form") void saveSummaryEditor(event);
 });
 $("#detail-dialog").addEventListener("click", (event) => {
   const target = eventElement(event);
   if (!target) return;
   if (target.closest("#add-goal-row")) addGoalEditorRow();
+  if (target.closest("#add-category-row")) addCategoryEditorRow();
+  const removeCategory = target.closest("[data-remove-category]");
+  if (removeCategory) {
+    const row = removeCategory.closest<HTMLElement>(".category-edit-row");
+    const name = row ? $<HTMLInputElement>(".category-name", row).value : "";
+    const isSaved = Boolean(row?.dataset.categoryRow);
+    if (!isSaved || window.confirm(`Delete "${name}"? Its transactions move to Other.`)) row?.remove();
+  }
   const removeGoal = target.closest("[data-remove-goal]");
   removeGoal?.closest(".goal-edit-row")?.remove();
 });
@@ -350,18 +462,15 @@ $(".app-shell").addEventListener("focusout", (event) => {
   if (row && !(event.relatedTarget instanceof Node && row.contains(event.relatedTarget))) resetDonutPreview();
 });
 
-const goalsContainer = $("#goal-card-list");
-const editGoalsButton = $<HTMLButtonElement>("#edit-goals-link");
-editGoalsButton.disabled = true;
+$("#month-prev").addEventListener("click", () => void showMonth(addMonths(selectedMonth, -1)));
+$("#month-next").addEventListener("click", () => void showMonth(addMonths(selectedMonth, 1)));
+
+renderPeriod();
 renderSummary();
-goalsContainer.textContent = "Loading your goals…";
-void loadGoals().then((goals) => {
-  if (!goalsContainer.isConnected) return;
-  state.goals = goals;
-  renderSummary();
-  editGoalsButton.disabled = false;
-}).catch(() => {
-  if (!goalsContainer.isConnected) return;
-  goalsContainer.textContent = "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again.";
-});
+void showMonth(selectedMonth);
 refreshIcons();
+onDataChanged((result) => {
+  isLinked = result === "linked";
+  renderPeriod();
+  renderSummary();
+});

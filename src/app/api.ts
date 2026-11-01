@@ -140,10 +140,85 @@ export function disconnectPlaidItem(itemId: string): Promise<{ ok: boolean }> {
   });
 }
 
-export function getGoals(): Promise<{ goals: import("./goals.js").GoalRow[] }> {
-  return request("/api/goals");
+export interface LinkedTransaction {
+  id: string;
+  name: string;
+  amount: number;
+  date: string;
+  category: string;
+  account: string;
+  institution: string;
+  /** typed in by the user rather than imported from a bank */
+  manual?: boolean;
 }
 
-export function putGoals(items: { id: string; kind: string; name: string; target: number }[]): Promise<{ goals: import("./goals.js").GoalRow[] }> {
-  return request("/api/goals", { method: "PUT", body: JSON.stringify({ items }) });
+export interface MonthSummary {
+  month: string;
+  total: number;
+  byCategory: Record<string, number>;
+}
+
+export interface CustomCategory {
+  key: string;
+  name: string;
+  color: string;
+}
+
+export interface TransactionsResponse {
+  month: string;
+  customCategories?: CustomCategory[];
+  history?: MonthSummary[];
+  connected: boolean;
+  transactions: LinkedTransaction[];
+  warning?: string;
+}
+
+/** `month` is "YYYY-MM"; `history` adds summaries for that many earlier months. */
+export function getTransactions(month: string, history = 0): Promise<TransactionsResponse> {
+  const params = new URLSearchParams({ month });
+  if (history) params.set("history", String(history));
+  return request(`/api/transactions?${params}`);
+}
+
+export function createCategory(name: string): Promise<{ category: CustomCategory }> {
+  return request("/api/categories", { method: "POST", body: JSON.stringify({ name }) });
+}
+
+export function renameCategory(key: string, name: string): Promise<{ category: CustomCategory }> {
+  return request(`/api/categories/${encodeURIComponent(key)}`, { method: "PATCH", body: JSON.stringify({ name }) });
+}
+
+export function deleteCategory(key: string): Promise<{ ok: boolean }> {
+  return request(`/api/categories/${encodeURIComponent(key)}`, { method: "DELETE" });
+}
+
+/** Moves one transaction; with `applyToMerchant`, every transaction from the same merchant moves (and future ones follow). */
+export function recategorizeTransaction(input: {
+  transactionId: string;
+  category: string;
+  applyToMerchant: boolean;
+}): Promise<{ moved: number }> {
+  return request("/api/transactions/category", { method: "PUT", body: JSON.stringify(input) });
+}
+
+export interface ManualTransactionInput {
+  name: string;
+  amount: number;
+  date: string;
+  category: string;
+}
+
+export function createManualTransaction(input: ManualTransactionInput): Promise<{ transaction: LinkedTransaction }> {
+  return request("/api/transactions/manual", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function updateManualTransaction(
+  id: string,
+  changes: Partial<ManualTransactionInput>
+): Promise<{ transaction: LinkedTransaction }> {
+  return request(`/api/transactions/manual/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(changes) });
+}
+
+export function deleteManualTransaction(id: string): Promise<{ ok: boolean }> {
+  return request(`/api/transactions/manual/${encodeURIComponent(id)}`, { method: "DELETE" });
 }

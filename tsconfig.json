@@ -11,5 +11,5 @@
     "noEmit": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/app/**/*.ts", "vite.config.ts"]
+  "include": ["src/app/**/*.ts", "src/shared/**/*.ts", "vite.config.ts"]
 }
