@@ -44,9 +44,9 @@ See "Still to verify by hand" below. The automated checks run in `npm test` (`te
 ### Text and readability
 | Check | Result |
 | --- | --- |
-| Text size in what was built here | **Fixed.** Was 9-11 px in many places; now at least 12 px (11 px only for the uppercase day labels and the menu labels). Enforced by a test. |
+| Smallest text | **Fixed everywhere.** Was 9-11 px in 52 older styles plus the parts built here. Now nothing is below 11 px, and only short labels and captions (the uppercase kickers, chart centre, timestamps, menu labels) are below 12 px; all real content text is at least 12 px. Enforced by a test. |
+| Text units | **Fixed everywhere.** All 156 text sizes were fixed pixels, so the browser's "larger text" setting was ignored. They are now `rem`: identical at the default size (1rem = 16 px), but they follow the user's setting. Phone form fields use `max(1rem, 16px)` so they can grow but never drop under the 16 px that stops iPhones zooming. |
 | Merchant names cut off with "..." | **Fixed.** They wrap (two lines) so the full name can be read. |
-| Text declared in px, so the browser's default-size preference is ignored | **Open.** All 126 sizes in the app use px. Page zoom works; "larger text" settings do not. Converting to rem is a wider change. |
 
 ### Colour and contrast
 | Pair | Before | After |
@@ -59,8 +59,9 @@ See "Still to verify by hand" below. The automated checks run in `npm test` (`te
 | Body text, buttons, primary button, error text | 5.5-15:1 | unchanged (pass) |
 
 Not text and not required for understanding: the category colour dots (1.5-3:1) are decorative, because every one
-sits beside the category name. Over-budget limits are now also said in words, not only shown in red. Dark mode and
-forced-colours mode are not supported (the page declares `color-scheme: light`).
+sits beside the category name. Over-budget limits are now also said in words, not only shown in red. A dark theme is deliberately not
+included: it is optional for WCAG AA, and a second palette would change the look of the app, which is the opposite of
+what was asked. The page declares `color-scheme: light`, so browsers do not darken it unpredictably.
 
 ### Keyboard, focus and screen readers
 | Check | Result |
@@ -89,17 +90,17 @@ forced-colours mode are not supported (the page declares `color-scheme: light`).
 - Home: the budget progress bar had an `aria-label` on a plain `div` (an axe "serious" violation). Fixed with `role="img"`.
 - Category popup: the amount lost its bold style once Edit/Delete were added. Fixed.
 
-## Not changed (older code, other pages)
+## Older screens (Home, Chat, Friends, Settings, charts)
 
-52 text styles under 12 px remain outside the parts built here (6 at 9 px, 24 at 10 px, 22 at 11 px): Settings 12,
-Details chart/legend/goal cards 11, global 10, Home 8, Friends 6, Chat 5. The worst are chat timestamps and dates
-at 9 px. A few pages also use `100vh` (sign-in, chat). These were not part of the transaction work, so they were
-reported rather than redesigned. The global fixes above (16 px fields on phones, readable muted grey, solid focus
-ring) already improve them.
+These were brought up to the same text-size and unit standard in a second pass, with the same look at the default
+text size. The few increases (9 and 10 px captions to 11 px, 11 px text to 12 px) are the only visible change. One
+older bug was fixed because it blocked keyboard users: the chat box and the monthly-budget field removed their own
+focus outline and showed nothing in its place, so you could not see where you were. The box around each one now shows
+the focus ring.
 
-One older bug was fixed because it blocked keyboard users: the chat box and the monthly-budget field removed their
-own focus outline and showed nothing in its place, so you could not see where you were. The box around each one
-now shows the focus ring.
+Still open: the sign-in and chat pages use `100vh` for their height (the address bar on phones can cut them off),
+there is no dark theme (by choice, see above), and a few labels remain truncated with "..." by older design (for
+example goal names on Home on a phone).
 
 ## Still to verify by hand (needs a real screen)
 
@@ -107,7 +108,7 @@ now shows the focus ring.
    no sideways scrolling; the header, month switcher, list and popups stay inside the screen.
 2. On a real iPhone and Android phone: tap each field (no page zoom on iPhone), check the buttons are easy to hit,
    check the menu bar and the on-screen keyboard do not hide the field you are typing in.
-3. Zoom the page to 200% and 400%: nothing is cut off.
+3. Zoom the page to 200% and 400%, and also set the browser's text size to "Very large" (Chrome: Settings, Appearance, Font size): nothing is cut off or overlapping. Text now follows that setting, but boxes with a fixed size (round buttons, avatars) do not, so this is the check that matters most.
 4. Tab through Details with only the keyboard: the focus ring is always visible, the order makes sense, Escape
    closes popups, and focus returns to the button that opened them.
 5. Turn on VoiceOver (iPhone), TalkBack (Android) or NVDA (Windows): popups are announced by name, errors are read

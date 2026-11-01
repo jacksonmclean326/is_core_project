@@ -84,7 +84,7 @@ select:focus-visible {
   gap: 10px;
   color: var(--ink);
   text-decoration: none;
-  font: 800 21px/1 var(--font-display);
+  font: 800 1.3125rem/1 var(--font-display);
   letter-spacing: 0;
 }
 .brand-mascot {
@@ -120,7 +120,7 @@ select:focus-visible {
   width: 100%;
   height: 100%;
   color: #563d2b;
-  font: 700 12px var(--font-display);
+  font: 700 0.75rem var(--font-display);
 }
 main {
   padding: 37px 0 20px;
@@ -138,7 +138,7 @@ main {
 .eyebrow {
   margin: 0 0 7px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 1.1px;
   line-height: 1.3;
@@ -158,25 +158,25 @@ h3 {
 }
 h1 {
   margin: 0;
-  font-size: clamp(25px, 3vw, 36px);
+  font-size: clamp(1.5625rem, 3vw, 2.25rem);
   font-weight: 700;
   line-height: 1.18;
 }
 h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 700;
   line-height: 1.3;
 }
 h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
 }
 .subheading {
   margin: 8px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .text-button {
   display: inline-flex;
@@ -186,7 +186,7 @@ h3 {
   border: 0;
   color: var(--green-dark);
   background: transparent;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
@@ -194,7 +194,7 @@ h3 {
 }
 .auth-sign-out {
   padding: 7px 0;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .text-button .lucide {
   width: 15px;
@@ -222,7 +222,7 @@ h3 {
   border-radius: 5px;
   color: var(--ink);
   background: var(--white);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -250,7 +250,7 @@ h3 {
 }
 .current-budget-note {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .top-categories-panel {
   align-self: stretch;
@@ -258,13 +258,13 @@ h3 {
 }
 .quiet-note {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 .form-feedback {
   min-height: 15px;
   margin: 7px 0 0;
   color: var(--green-dark);
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 .outline-button {
   display: inline-flex;
@@ -275,7 +275,7 @@ h3 {
   border-radius: 4px;
   color: var(--green-dark);
   background: transparent;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -289,7 +289,7 @@ h3 {
   border-radius: 4px;
   color: white;
   background: var(--green);
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -317,7 +317,7 @@ h3 {
   border: 0;
   color: #7e8981;
   background: transparent;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
@@ -346,7 +346,7 @@ h3 {
   color: white;
   background: var(--ink);
   box-shadow: 0 5px 22px #17201d25;
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.4;
   opacity: 0;
   pointer-events: none;
@@ -380,16 +380,16 @@ h3 {
 .category-detail-summary > p {
   margin: 0 0 5px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .category-detail-amount {
   display: block;
   margin-bottom: 3px;
-  font: 700 28px var(--font-display);
+  font: 700 1.75rem var(--font-display);
 }
 .category-detail-limit {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .category-detail-track {
   height: 7px;
@@ -409,7 +409,7 @@ h3 {
   align-items: center;
   gap: 6px;
   color: var(--green-dark);
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 .category-detail-status .lucide {
@@ -431,17 +431,17 @@ h3 {
 }
 .category-detail-stats span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.6875rem;
 }
 .category-detail-stats strong {
-  font: 700 15px var(--font-display);
+  font: 700 0.9375rem var(--font-display);
 }
 .category-detail-transactions {
   margin-top: 15px;
 }
 .category-detail-transactions h3 {
   margin: 0 0 7px;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .transaction-row span:first-child {
   display: grid;
@@ -449,7 +449,7 @@ h3 {
 }
 .transaction-row small {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 .detail-dialog::backdrop {
   background: rgba(21, 30, 26, 0.44);
@@ -474,12 +474,12 @@ h3 {
 }
 .dialog-title {
   margin: 8px 35px 4px 0;
-  font: 700 21px var(--font-display);
+  font: 700 1.3125rem var(--font-display);
 }
 .dialog-subtitle {
   margin: 0 0 19px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .transaction-row {
   display: flex;
@@ -488,7 +488,7 @@ h3 {
   gap: 12px;
   padding: 12px 0;
   border-top: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .transaction-row span:last-child {
   font-weight: 700;
@@ -514,14 +514,14 @@ h3 {
 .edit-form > p {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.5;
 }
 .edit-form h3 {
   margin: 9px 0 0;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .edit-row {
   display: grid;
@@ -539,7 +539,7 @@ h3 {
 }
 .edit-row > label {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.75rem;
 }
 .edit-row input,
 .edit-row select {
@@ -549,7 +549,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--white);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .edit-row.category-edit-row input[type="checkbox"] {
   padding: 0;
@@ -590,7 +590,7 @@ h3 {
   border: 0;
   color: var(--green-dark);
   background: transparent;
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -606,7 +606,7 @@ h3 {
 .dialog-form-feedback {
   margin: 0;
   color: #a14e3e;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .profile-edit-form {
   display: grid;
@@ -614,7 +614,7 @@ h3 {
 }
 .profile-edit-form label {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.75rem;
 }
 .profile-edit-form input {
   padding: 10px;
@@ -682,7 +682,7 @@ h3 {
     margin-bottom: 22px;
   }
   h1 {
-    font-size: 27px;
+    font-size: 1.6875rem;
   }
   .bottom-nav {
     padding-right: 15px;
@@ -698,7 +698,7 @@ h3 {
     height: 59px;
   }
   .wordmark {
-    font-size: 19px;
+    font-size: 1.1875rem;
   }
   .wordmark {
     gap: 6px;
@@ -725,7 +725,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--white);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 .transaction-row .recategorize-select:disabled {
   opacity: 0.5;
@@ -736,7 +736,7 @@ h3 {
   gap: 7px;
   margin: 0 0 8px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 .apply-merchant input {
   margin-top: 1px;
@@ -751,7 +751,7 @@ h3 {
   display: grid;
   gap: 4px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .field input,
 .field select {
@@ -762,7 +762,7 @@ h3 {
   border-radius: 4px;
   background: var(--white);
   color: var(--ink, inherit);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .row-actions {
   display: inline-flex;
@@ -775,7 +775,7 @@ h3 {
   border-radius: 4px;
   background: var(--white);
   color: var(--green-dark);
-  font-size: 10px;
+  font-size: 0.625rem;
   cursor: pointer;
 }
 
@@ -788,7 +788,7 @@ h3 {
 .limits-note {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.5;
 }
 .limits-note.is-over {
@@ -803,7 +803,7 @@ h3 {
   gap: 6px;
   margin-top: 10px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .limit-form-row {
   display: flex;
@@ -817,7 +817,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 4px;
   background: var(--white);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .limit-form-row .primary-button {
   width: auto;
@@ -841,7 +841,7 @@ html {
 /* The menu labels were 9px and 3.6:1: now readable. */
 .nav-item {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .nav-item.is-current {
   color: var(--green-dark);
@@ -881,7 +881,7 @@ html {
 .edit-row select,
 .dialog-form-feedback,
 .edit-form > p {
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 /* Hit areas of at least 24px even with a mouse (WCAG 2.5.8), roomier spacing between neighbours. */
@@ -945,7 +945,7 @@ html {
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    font-size: 16px !important;
+    font-size: max(1rem, 16px) !important; /* never under 16px (iPhones zoom below that), larger if the user asked for bigger text */
   }
   .small-action,
   .dialog-close,
