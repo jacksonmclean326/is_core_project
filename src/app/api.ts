@@ -28,6 +28,37 @@ export interface BankConnectionsResponse {
   syncWarning?: string;
 }
 
+const snapshotPrefix = "money-man-snapshot:";
+
+/** The last response for a month, kept in this tab so a page can show data before the network answers. */
+export function readSnapshot(month: string, history: number): TransactionsResponse | null {
+  try {
+    const value = sessionStorage.getItem(`${snapshotPrefix}${month}:${history}`);
+    return value ? (JSON.parse(value) as TransactionsResponse) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSnapshot(month: string, history: number, response: TransactionsResponse) {
+  try {
+    sessionStorage.setItem(`${snapshotPrefix}${month}:${history}`, JSON.stringify(response));
+  } catch {
+    /* storage full or unavailable: the page simply loads normally */
+  }
+}
+
+/** Forget every saved snapshot (on sign-in and sign-out, so one person's data never shows for another). */
+export function clearSnapshots() {
+  try {
+    for (const key of Object.keys(sessionStorage)) {
+      if (key.startsWith(snapshotPrefix)) sessionStorage.removeItem(key);
+    }
+  } catch {
+    /* nothing to clear */
+  }
+}
+
 interface AuthResult {
   user: ApiUser | null;
   authenticated: boolean;
@@ -76,6 +107,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function signIn(email: string, password: string): Promise<AuthResult> {
+  clearSnapshots();
   return request("/api/auth/signin", {
     method: "POST",
     body: JSON.stringify({ email, password })
@@ -96,6 +128,7 @@ export function signUp(
 }
 
 export function signOut(): Promise<void> {
+  clearSnapshots();
   return request("/api/auth/signout", { method: "POST" });
 }
 
@@ -169,6 +202,8 @@ export interface TransactionsResponse {
   customCategories?: CustomCategory[];
   history?: MonthSummary[];
   connected: boolean;
+  /** the bank is still being synced in the background; ask again shortly */
+  syncing?: boolean;
   transactions: LinkedTransaction[];
   warning?: string;
 }

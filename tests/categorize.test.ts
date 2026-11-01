@@ -26,7 +26,8 @@ test("keyword rules win and spending is sorted into the 7 categories", () => {
 test("falls back to Plaid hints, then Other", () => {
   assert.equal(cat("Zxqv LLC", 900, "RENT_AND_UTILITIES", "RENT_AND_UTILITIES_RENT"), "housing");
   assert.equal(cat("Zxqv LLC", 60, "RENT_AND_UTILITIES", "RENT_AND_UTILITIES_GAS_AND_ELECTRICITY"), "utilities");
-  assert.equal(cat("Zxqv LLC", 20, "TRAVEL"), "transport");
+  assert.equal(cat("Zxqv LLC", 380, "TRAVEL", "TRAVEL_FLIGHTS"), "transport");
+  assert.equal(cat("Zxqv LLC", 210, "TRAVEL", "TRAVEL_LODGING"), "personal");
   assert.equal(cat("Zxqv LLC", 20), "other");
 });
 

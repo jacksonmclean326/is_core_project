@@ -4,7 +4,7 @@ import { test } from "node:test";
 process.env.SUPABASE_URL = "https://example.supabase.co";
 process.env.SUPABASE_PUBLISHABLE_KEY = "test";
 
-const { isStillImporting, parseTransactionsQuery, summarizeMonths } = await import("../src/server/api/transactions.ts");
+const { parseTransactionsQuery, summarizeMonths } = await import("../src/server/api/transactions.ts");
 const { HttpError } = await import("../src/server/errors.ts");
 
 const query = (qs: string, today = "2026-10-31") => parseTransactionsQuery(new URLSearchParams(qs), today);
@@ -91,15 +91,6 @@ test("an empty or missing month still reports every category as zero", () => {
   assert.equal(empty?.total, 0);
   assert.equal(Object.keys(empty?.byCategory ?? {}).length, 7);
   assert.deepEqual(summarizeMonths([tx("2026-10-01", 5, "food")], []), []);
-});
-
-test("a freshly linked bank counts as still importing for ten minutes", () => {
-  const now = Date.parse("2026-10-31T12:00:00Z");
-  assert.equal(isStillImporting("2026-10-31T11:55:00Z", now), true);
-  assert.equal(isStillImporting("2026-10-31T11:50:01Z", now), true);
-  assert.equal(isStillImporting("2026-10-31T11:49:59Z", now), false);
-  assert.equal(isStillImporting("2026-09-01T00:00:00Z", now), false);
-  assert.equal(isStillImporting("not a date", now), false);
 });
 
 test("summaries include custom categories and any key seen in the data", () => {

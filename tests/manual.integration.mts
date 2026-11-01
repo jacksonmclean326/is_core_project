@@ -172,8 +172,8 @@ try {
   ok((await a.call("/api/plaid/exchange", { method: "POST", body: JSON.stringify({ publicToken, institutionId: "ins_109508", institutionName: "First Platypus Bank" }) })).status === 200, "bank linked on top of manual entries");
   let combined: any;
   for (let attempt = 0; attempt < 40; attempt += 1) {
-    combined = (await a.call(`/api/transactions?month=${lastMonth}&history=1`)).body;
-    if (combined.transactions.filter((t: any) => !t.manual).length > 10 && !combined.warning?.startsWith("Some bank")) break;
+    combined = (await a.call(`/api/transactions?month=${lastMonth}&history=1&refresh=1`)).body;
+    if (combined.transactions.filter((t: any) => !t.manual).length > 10 && combined.syncing === false && !combined.warning) break;
     await wait(3000);
   }
   const bank = combined.transactions.filter((t: any) => !t.manual);
@@ -183,7 +183,7 @@ try {
   const bankSum = bank.reduce((sum: number, t: any) => sum + cents(t.amount), 0);
   ok(cents(combined.history[1].total) === bankSum + cents(10.01), "month total = bank + manual");
   // a fresh pull from Plaid must never delete or alter manual rows
-  for (let round = 0; round < 3; round += 1) await a.call(`/api/transactions?month=${lastMonth}&history=3`);
+  for (let round = 0; round < 3; round += 1) await a.call(`/api/transactions?month=${lastMonth}&history=3&refresh=1`);
   const stillThere = await (await rest(`Transaction?select=transaction_id,name&user_id=eq.${a.id}&plaid_transaction_id=is.null`)).json();
   ok(stillThere.some((r: any) => r.transaction_id === lastDay.id), "refreshing from Plaid keeps manual rows");
   // merchant rules apply to bank transactions only

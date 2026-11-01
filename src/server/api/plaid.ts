@@ -6,7 +6,7 @@ import {
   type PlaidApi,
 } from "plaid";
 import { createServiceSupabaseClient } from "../auth/supabase.js";
-import { invalidateCache } from "../plaid/cache.js";
+import { startSyncForItem } from "../plaid/sync.js";
 import { requireSession } from "../auth/session.js";
 import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
@@ -299,7 +299,6 @@ async function removeConnection(
     .eq("item_id", item.item_id)
     .eq("user_id", item.user_id);
   if (removed.error) throw supabaseFailure(removed.error);
-  invalidateCache(item.item_id);
 }
 
 export async function handlePlaidApi(
@@ -415,6 +414,8 @@ export async function handlePlaidApi(
       );
     }
 
+    // Start pulling transactions right away, so they are usually ready by the time the user opens Details.
+    if (internalItemId) void startSyncForItem(internalItemId);
     sendJson(response, 200, { ok: true });
     return true;
   }
