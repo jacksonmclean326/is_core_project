@@ -60,3 +60,4 @@
   .settings-form .primary-button { grid-column: 1 / -1; grid-row: 3; justify-self: start; }
   .settings-form .form-feedback { grid-column: 1 / -1; }
 }
+.settings-form .form-note { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }

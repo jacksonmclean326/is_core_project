@@ -21,6 +21,7 @@ import {
   usingRealData,
 } from "../../core.js";
 import { createCategory, deleteCategory, renameCategory } from "../../api.js";
+import { parseLimit, totalLimits } from "../../../shared/limits.js";
 import {
   filterTransactions,
   renderRows,
@@ -325,7 +326,7 @@ function openSummaryEditor() {
   const categoryRows = state.categories
     .map(
       (category) =>
-        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Category name" maxlength="24" value="${escapeHTML(category.name)}">${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
+        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Category name" maxlength="24" value="${escapeHTML(category.name)}"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}">${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
     )
     .join("");
   const goalRows = state.goals
@@ -335,8 +336,9 @@ function openSummaryEditor() {
     )
     .join("");
   $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-lucide="plus" aria-hidden="true"></i> Add a category</button><h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-lucide="plus" aria-hidden="true"></i> Add a category</button><h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
   $<HTMLDialogElement>("#detail-dialog").showModal();
+  updateLimitsNote();
   refreshIcons();
 }
 
@@ -351,7 +353,7 @@ function addCategoryEditorRow() {
   }
   $("#add-category-row").insertAdjacentHTML(
     "beforebegin",
-    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Category name" maxlength="${maxCategoryName}" placeholder="Name your category"><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Category name" maxlength="${maxCategoryName}" placeholder="Name your category"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
   );
   $$<HTMLInputElement>('[data-new-category="1"] .category-name', form).at(-1)?.focus();
   refreshIcons();
@@ -406,8 +408,18 @@ async function saveSummaryEditor(event: SubmitEvent) {
       // an emptied built-in name keeps its old name, as before
       name: typed || (existing && !existing.custom ? existing.name : ""),
       visible: $<HTMLInputElement>(".category-visible", row).checked,
+      limitText: $<HTMLInputElement>(".category-limit", row).value,
     };
   });
+  const limits = new Map<(typeof entries)[number], number>();
+  for (const entry of entries) {
+    const parsed = parseLimit(entry.limitText);
+    if (!parsed.ok) {
+      feedback.textContent = `${entry.name || "New category"}: ${parsed.message}`;
+      return;
+    }
+    limits.set(entry, parsed.value);
+  }
   const seen = new Set<string>();
   for (const entry of entries) {
     if (!entry.name) {
@@ -435,11 +447,13 @@ async function saveSummaryEditor(event: SubmitEvent) {
     }
     const customList: { key: string; name: string; color: string }[] = [];
     const createdVisibility = new Map<string, boolean>();
+    const createdLimits = new Map<string, number>();
     for (const entry of entries) {
       if (entry.isNew) {
         const { category } = await createCategory(entry.name);
         customList.push(category);
         createdVisibility.set(category.key, entry.visible);
+        createdLimits.set(category.key, limits.get(entry) ?? 0);
       } else if (entry.existing?.custom) {
         if (entry.name !== entry.existing.name) await renameCategory(entry.existing.id, entry.name);
         customList.push({ key: entry.existing.id, name: entry.name, color: entry.existing.color });
@@ -451,10 +465,14 @@ async function saveSummaryEditor(event: SubmitEvent) {
       if (!category) continue;
       if (!category.custom) category.name = entry.name;
       category.visible = entry.visible;
+      category.limit = limits.get(entry) ?? category.limit;
     }
     for (const [key, visible] of createdVisibility) {
       const created = state.categories.find((category) => category.id === key);
-      if (created) created.visible = visible;
+      if (created) {
+        created.visible = visible;
+        created.limit = createdLimits.get(key) ?? 0;
+      }
     }
     state.goals = goals;
     saveState();
@@ -600,4 +618,23 @@ $("#tx-sort").addEventListener("change", (event) => {
 $("#tx-more").addEventListener("click", () => {
   listView.shown += pageSize;
   renderTransactionList();
+});
+
+/** "Limits add up to $X of your $Y budget", refreshed while the user types in the Edit summary popup. */
+function updateLimitsNote() {
+  const note = document.querySelector<HTMLElement>("#limits-note");
+  if (!note) return;
+  const typed = $$<HTMLInputElement>(".category-limit", $("#summary-edit-form")).map((input) => {
+    const parsed = parseLimit(input.value);
+    return parsed.ok ? parsed.value : 0;
+  });
+  const total = totalLimits(typed);
+  const budget = Number(state.budget) || 0;
+  note.textContent = budget
+    ? `Monthly limit per category (leave blank for none). Your limits add up to ${money(total)} of your ${money(budget)} budget.`
+    : "Monthly limit per category (leave blank for none).";
+  note.classList.toggle("is-over", budget > 0 && total > budget);
+}
+$("#detail-dialog").addEventListener("input", (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.classList.contains("category-limit")) updateLimitsNote();
 });

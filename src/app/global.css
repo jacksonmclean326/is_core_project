@@ -777,3 +777,51 @@ h3 {
   font-size: 10px;
   cursor: pointer;
 }
+
+.category-edit-row {
+  grid-template-columns: 24px minmax(0, 1fr) 104px;
+}
+.category-edit-row.has-remove {
+  grid-template-columns: 24px minmax(0, 1fr) 104px auto;
+}
+.limits-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.limits-note.is-over {
+  color: #b3451f;
+}
+.limit-edit {
+  justify-self: start;
+  margin-top: 6px;
+}
+.limit-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.limit-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.limit-form-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  font-size: 12px;
+}
+.limit-form-row .primary-button {
+  width: auto;
+  padding: 9px 16px;
+}
+.limit-form .dialog-form-feedback.is-error {
+  color: #b3451f;
+}
