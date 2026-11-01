@@ -13,10 +13,11 @@ guidance, and common iOS/Android behaviour.
 | The real page code run in a simulated page (jsdom) against a fake API | behaviour of every control, markup, labels, headings |
 | axe-core (the accessibility engine used by most audits) on 7 screens and popups | automated WCAG rules on the real rendered markup |
 | Static checks of every page's HTML | language, title, zoom, landmarks, headings, image text |
+| **A real Chrome session** (one launch, driven by Playwright, with touch emulation) against the running app and the demo account | real layout at 320, 375, 414, 768, 1024 and 1440 px; sideways scrolling; menu position and icons on every page and on every click; actual touch-target sizes; real colour contrast (axe with layout); keyboard focus; popups; text enlarged to 125% and 150%; a short landscape phone screen; third-party requests; console errors; the full add/edit/move/delete/limit flows with screenshots reviewed by eye |
 
-**What this cannot tell us:** the simulated page has no layout engine, so actual wrapping, overlap and scrolling at
-320 / 375 / 768 px were reasoned from the CSS, not seen. Screen readers and real touch behaviour were not tested.
-See "Still to verify by hand" below. The automated checks run in `npm test` (`tests/ui/`).
+**What this cannot tell us:** real phones (iOS Safari and Android Chrome behave differently from emulation), screen
+readers, and browser text zoom beyond 150%. See "Still to verify by hand" below. The simulated-page checks run in
+`npm test` (`tests/ui/`); the real-browser session was run by hand and is not part of `npm test`.
 
 ## Results
 
@@ -86,6 +87,17 @@ what was asked. The page declares `color-scheme: light`, so browsers do not dark
 | Messages that disappear after 3.4 s | Open (minor): low-vision users may miss a toast. Errors stay on screen. |
 | Icons came from a third-party CDN (unpkg): a 358 KB script, drawn after the page loaded | **Fixed.** Icons ship with the app and are drawn into each page's HTML at build time, so the menu icons are there from the first paint, even offline. A test fails if a page references a third-party script or an icon is missing. |
 
+### Found by the real-browser session (all fixed, re-run: 136 checks passed, 0 failed, 0 console errors)
+- The category popup showed "of $275 monthly limit" and "Change limit" with no space between them.
+- Edit summary on a phone showed two unlabeled stacked boxes per category; the limit box now has a `$` and the caption "Monthly limit".
+- Chat timestamps were 2.0:1 on the green bubble and 3.2:1 on the white one, and the date label was 3.0:1; all are now at least 4.5:1.
+- The chart legend and Top categories buttons were 14-16 px tall (WCAG asks for 24); now 28 px.
+- Links used the browser's default focus ring; they now use the same solid green ring as everything else.
+- At 150% text size the doughnut's centre text spilled over its ring, and the logo ran into the profile button. The centre now scales with the ring, and the logo wraps.
+- Every page asked for a missing `/favicon.ico` (a 404 in the console); pages now have a tab icon.
+- Third-party requests: none for icons or scripts. Only Google Fonts (DM Sans, Manrope) remain, a design choice not changed here.
+- One small leftover: on the narrowest phones (320 px) the doughnut's two captions are about 10 px, because the ring itself is smaller there.
+
 ### Bug found along the way
 - Home: the budget progress bar had an `aria-label` on a plain `div` (an axe "serious" violation). Fixed with `role="img"`.
 - Category popup: the amount lost its bold style once Edit/Delete were added. Fixed.
@@ -102,15 +114,11 @@ Still open: the sign-in and chat pages use `100vh` for their height (the address
 there is no dark theme (by choice, see above), and a few labels remain truncated with "..." by older design (for
 example goal names on Home on a phone).
 
-## Still to verify by hand (needs a real screen)
+## Still to verify by hand (what an emulated browser cannot confirm)
 
-1. Open Details at 320, 375, 414, 768, 1024 and 1440 px wide (browser developer tools device mode is enough):
-   no sideways scrolling; the header, month switcher, list and popups stay inside the screen.
-2. On a real iPhone and Android phone: tap each field (no page zoom on iPhone), check the buttons are easy to hit,
-   check the menu bar and the on-screen keyboard do not hide the field you are typing in.
-3. Zoom the page to 200% and 400%, and also set the browser's text size to "Very large" (Chrome: Settings, Appearance, Font size): nothing is cut off or overlapping. Text now follows that setting, but boxes with a fixed size (round buttons, avatars) do not, so this is the check that matters most.
-4. Tab through Details with only the keyboard: the focus ring is always visible, the order makes sense, Escape
-   closes popups, and focus returns to the button that opened them.
-5. Turn on VoiceOver (iPhone), TalkBack (Android) or NVDA (Windows): popups are announced by name, errors are read
-   out, each list row's category menu says which merchant it is for.
-6. Landscape orientation on a phone: popups scroll and the menu does not cover the content you need.
+1. A real iPhone and a real Android phone: tap each field (no page zoom on iPhone), check the buttons are easy to hit,
+   and check the menu bar and the on-screen keyboard do not hide the field you are typing in.
+2. Browser text size at "Very large" and page zoom at 200% and 400% (Chrome emulation above covered 125% and 150%).
+3. A screen reader: VoiceOver (iPhone), TalkBack (Android) or NVDA (Windows). Popups should be announced by name,
+   errors read out, and each list row's category menu should say which merchant it is for.
+4. High-contrast / forced-colours mode (Windows), if you care about it.

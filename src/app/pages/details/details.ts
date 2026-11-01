@@ -326,7 +326,7 @@ function openSummaryEditor() {
   const categoryRows = state.categories
     .map(
       (category) =>
-        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}">${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
+        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}"></label>${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
     )
     .join("");
   const goalRows = state.goals
@@ -353,7 +353,7 @@ function addCategoryEditorRow() {
   }
   $("#add-category-row").insertAdjacentHTML(
     "beforebegin",
-    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Name of the new category" maxlength="${maxCategoryName}" placeholder="Name your category"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Name of the new category" maxlength="${maxCategoryName}" placeholder="Name your category"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"></label><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
   );
   $$<HTMLInputElement>('[data-new-category="1"] .category-name', form).at(-1)?.focus();
   refreshIcons();

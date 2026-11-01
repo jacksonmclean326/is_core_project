@@ -137,3 +137,13 @@
 .tx-main small { white-space: normal; overflow-wrap: anywhere; font-size: 0.75rem; }
 .tx-day { font-size: 0.6875rem; }
 .tx-row .recategorize-select { font-size: 0.75rem; }
+
+/* Chart legend and Top categories: each name is a button; make them at least 28px tall (WCAG 2.5.8 asks for 24),
+   with the gap between rows taken down to match so the chart does not grow much. */
+.legend-row, .top-category-name { min-height: 28px; align-items: center; }
+.category-legend { gap: 2px; }
+
+/* The middle of the doughnut scales with the doughnut, so enlarged text cannot spill over its ring. */
+.donut-chart { container-type: inline-size; }
+.donut-center strong { font-size: min(1.25rem, 11cqw); }
+.donut-center span, .donut-center small { font-size: min(0.6875rem, 6.5cqw); }

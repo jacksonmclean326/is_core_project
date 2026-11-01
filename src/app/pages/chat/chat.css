@@ -38,3 +38,7 @@
   .chat-page { min-height: calc(100svh - 171px); }
   .chat-window { min-height: 250px; }
 }
+
+/* Timestamps and the date label were 2.0-3.2:1; now at least 4.5:1. */
+.chat-date, .message-bubble time { color: var(--muted); }
+.user-row .message-bubble time { color: #e4efe8; }
