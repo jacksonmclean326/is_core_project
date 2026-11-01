@@ -498,7 +498,17 @@ h3 {
   gap: 12px;
   max-height: 65vh;
   overflow: auto;
-  padding-right: 3px;
+  padding: 4px 6px 4px 4px;
+}
+/* The form scrolls, which clips anything drawn outside a field. Keep the focus ring inside the box. */
+.edit-form input:focus-visible,
+.edit-form select:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -2px;
+  border-color: var(--green);
+}
+.edit-form input[type="checkbox"]:focus-visible {
+  outline-offset: 2px;
 }
 .edit-form > p {
   margin: 0;
