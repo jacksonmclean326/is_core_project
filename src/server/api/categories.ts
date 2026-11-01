@@ -6,6 +6,7 @@ import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
+import { settleStores } from "./store-queue.js";
 import {
   categoryIds,
   isBuiltInCategory,
@@ -78,22 +79,23 @@ export async function loadOverrides(admin: Admin, userId: string): Promise<{
   overrides: CategoryOverrides;
   customCategories: CustomCategory[];
 }> {
-  const customCategories = await listCustomCategories(admin, userId);
+  // Three independent lookups: run them together instead of one round trip after another.
+  const [customCategories, rules, manual] = await Promise.all([
+    listCustomCategories(admin, userId),
+    admin
+      .from("Merchant Rule")
+      .select("merchant_key,category_key")
+      .eq("user_id", userId)
+      .returns<{ merchant_key: string; category_key: string }[]>(),
+    admin
+      .from("Transaction")
+      .select("plaid_transaction_id,category_key")
+      .eq("user_id", userId)
+      .eq("category_manual", true)
+      .returns<{ plaid_transaction_id: string | null; category_key: string | null }[]>(),
+  ]);
   const validKeys = new Set<CategoryId>([...categoryIds, ...customCategories.map((category) => category.key)]);
-
-  const rules = await admin
-    .from("Merchant Rule")
-    .select("merchant_key,category_key")
-    .eq("user_id", userId)
-    .returns<{ merchant_key: string; category_key: string }[]>();
   if (rules.error) throw supabaseFailure(rules.error);
-
-  const manual = await admin
-    .from("Transaction")
-    .select("plaid_transaction_id,category_key")
-    .eq("user_id", userId)
-    .eq("category_manual", true)
-    .returns<{ plaid_transaction_id: string | null; category_key: string | null }[]>();
   if (manual.error) throw supabaseFailure(manual.error);
 
   return {
@@ -123,6 +125,8 @@ async function recategorize(admin: Admin, userId: string, body: Record<string, u
   if (!transactionId || transactionId.length > 200) throw new HttpError(400, "Choose a transaction.");
   const category = await assertAssignable(admin, userId, body.category);
   const applyToMerchant = body.applyToMerchant === true;
+  // The transaction may still be on its way into the database from the page load that showed it.
+  await settleStores(userId);
 
   const found = await admin
     .from("Transaction")

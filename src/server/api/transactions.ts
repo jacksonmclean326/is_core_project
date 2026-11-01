@@ -5,6 +5,7 @@ import { requireSession } from "../auth/session.js";
 import { config } from "../config.js";
 import { HttpError, isRecord, supabaseFailure } from "../errors.js";
 import { sendJson } from "../http/response.js";
+import { createTimer, type Timer } from "../http/timing.js";
 import {
   createPlaidClient,
   decryptPlaidAccessToken,
@@ -18,6 +19,8 @@ import {
   type CategoryOverrides,
 } from "../categorize.js";
 import { loadOverrides, type CustomCategory } from "./categories.js";
+import { readCache, writeCache } from "../plaid/cache.js";
+import { enqueueStore } from "./store-queue.js";
 import { hasManualTransactions, listManualTransactions } from "./manual-transactions.js";
 import {
   addMonths,
@@ -191,9 +194,60 @@ export function toStoredTransactions(
   return result;
 }
 
+export interface StoreRow {
+  user_id: string;
+  plaid_transaction_id: string;
+  name: string;
+  amount: number;
+  date: string;
+  category_key: string;
+  account_name: string;
+  institution_name: string;
+  source_id: string | null;
+}
+
+interface ExistingRow {
+  transaction_id: string;
+  plaid_transaction_id: string;
+  name: string | null;
+  amount: number | null;
+  date: string | null;
+  category_key: string | null;
+  account_name: string | null;
+  institution_name: string | null;
+  source_id: string | null;
+}
+
+/** Compares what is saved with what Plaid just returned, so only real changes are written. */
+export function planStoreChanges(
+  existing: ExistingRow[],
+  desired: StoreRow[],
+): { upserts: StoreRow[]; staleIds: string[] } {
+  const saved = new Map(existing.map((row) => [row.plaid_transaction_id, row]));
+  const upserts = desired.filter((row) => {
+    const old = saved.get(row.plaid_transaction_id);
+    return (
+      !old ||
+      old.name !== row.name ||
+      old.amount !== row.amount ||
+      (old.date ?? "").slice(0, 10) !== row.date.slice(0, 10) ||
+      old.category_key !== row.category_key ||
+      old.account_name !== row.account_name ||
+      old.institution_name !== row.institution_name ||
+      old.source_id !== row.source_id
+    );
+  });
+  const current = new Set(desired.map((row) => row.plaid_transaction_id));
+  // Rows Plaid no longer reports (e.g. pending items that posted under a new ID).
+  const staleIds = existing.filter((row) => !current.has(row.plaid_transaction_id)).map((row) => row.transaction_id);
+  return { upserts, staleIds };
+}
+
+const readPageSize = 1000;
+
 /**
- * Saves categorized transactions so other pages can query them. Best effort:
- * the live Plaid data is still returned if storage is unavailable.
+ * Saves categorized transactions so other pages can query them. Runs after the response is sent
+ * and writes only what changed. Best effort: the live data was already returned.
  */
 async function storeTransactions(
   admin: ReturnType<typeof createServiceSupabaseClient>,
@@ -202,91 +256,123 @@ async function storeTransactions(
   transactions: StoredTransaction[],
 ): Promise<void> {
   try {
-    const sources = await admin
-      .from("Income Source")
-      .select("source_id,plaid_account_id")
-      .eq("user_id", userId)
-      .not("plaid_account_id", "is", null)
-      .returns<{ source_id: string; plaid_account_id: string }[]>();
-    if (sources.error) throw sources.error;
-    const sourceIds = new Map((sources.data ?? []).map((row) => [row.plaid_account_id, row.source_id]));
+    const loadSources = async () => {
+      const result = await admin
+        .from("Income Source")
+        .select("source_id,plaid_account_id")
+        .eq("user_id", userId)
+        .not("plaid_account_id", "is", null)
+        .returns<{ source_id: string; plaid_account_id: string }[]>();
+      if (result.error) throw result.error;
+      return new Map((result.data ?? []).map((row) => [row.plaid_account_id, row.source_id]));
+    };
+    const loadExisting = async () => {
+      const rows: ExistingRow[] = [];
+      for (let from = 0; ; from += readPageSize) {
+        const page = await admin
+          .from("Transaction")
+          .select("transaction_id,plaid_transaction_id,name,amount,date,category_key,account_name,institution_name,source_id")
+          .eq("user_id", userId)
+          .not("plaid_transaction_id", "is", null)
+          .gte("date", `${range.start}T00:00:00Z`)
+          .lte("date", `${range.end}T23:59:59Z`)
+          .order("transaction_id")
+          .range(from, from + readPageSize - 1)
+          .returns<ExistingRow[]>();
+        if (page.error) throw page.error;
+        rows.push(...(page.data ?? []));
+        if ((page.data ?? []).length < readPageSize) break;
+      }
+      return rows;
+    };
+    const [sourceIds, existing] = await Promise.all([loadSources(), loadExisting()]);
 
-    if (transactions.length) {
-      const saved = await admin.from("Transaction").upsert(
-        transactions.map((transaction) => ({
-          user_id: userId,
-          plaid_transaction_id: transaction.id,
-          name: transaction.name,
-          amount: transaction.amount,
-          date: `${transaction.date}T00:00:00Z`,
-          category_key: transaction.category,
-          account_name: transaction.account,
-          institution_name: transaction.institution,
-          source_id: sourceIds.get(transaction.accountId) ?? null,
-        })),
-        { onConflict: "user_id,plaid_transaction_id" },
+    const desired: StoreRow[] = transactions.map((transaction) => ({
+      user_id: userId,
+      plaid_transaction_id: transaction.id,
+      name: transaction.name,
+      amount: transaction.amount,
+      date: `${transaction.date}T00:00:00Z`,
+      category_key: transaction.category,
+      account_name: transaction.account,
+      institution_name: transaction.institution,
+      source_id: sourceIds.get(transaction.accountId) ?? null,
+    }));
+    const { upserts, staleIds } = planStoreChanges(existing, desired);
+
+    const writes: PromiseLike<unknown>[] = [];
+    for (let start = 0; start < upserts.length; start += 500) {
+      writes.push(
+        admin
+          .from("Transaction")
+          .upsert(upserts.slice(start, start + 500), { onConflict: "user_id,plaid_transaction_id" })
+          .then((result) => {
+            if (result.error) throw result.error;
+          }),
       );
-      if (saved.error) throw saved.error;
     }
-
-    // Drop stored rows in this range that Plaid no longer reports
-    // (e.g. pending items that posted under a new ID).
-    const current = new Set(transactions.map((transaction) => transaction.id));
-    const stored = await admin
-      .from("Transaction")
-      .select("transaction_id,plaid_transaction_id")
-      .eq("user_id", userId)
-      .gte("date", `${range.start}T00:00:00Z`)
-      .lte("date", `${range.end}T23:59:59Z`)
-      .not("plaid_transaction_id", "is", null)
-      .returns<{ transaction_id: string; plaid_transaction_id: string | null }[]>();
-    if (stored.error) throw stored.error;
-    const stale = (stored.data ?? [])
-      .filter((row) => row.plaid_transaction_id && !current.has(row.plaid_transaction_id))
-      .map((row) => row.transaction_id);
-    if (stale.length) {
-      const removed = await admin.from("Transaction").delete().in("transaction_id", stale);
-      if (removed.error) throw removed.error;
+    for (let start = 0; start < staleIds.length; start += 100) {
+      writes.push(
+        admin
+          .from("Transaction")
+          .delete()
+          .in("transaction_id", staleIds.slice(start, start + 100))
+          .then((result) => {
+            if (result.error) throw result.error;
+          }),
+      );
     }
+    await Promise.all(writes);
   } catch (error) {
     console.error("Unable to store imported transactions.", error instanceof Error ? error.message : error);
   }
 }
 
-async function readTransactions(userId: string, query: TransactionsQuery, today: string) {
+async function readTransactions(
+  userId: string,
+  query: TransactionsQuery,
+  today: string,
+  timer: Timer,
+  refresh: boolean,
+) {
   if (!config.supabaseSecretKey) {
     throw new HttpError(503, "Transaction storage is not configured. Set SUPABASE_SECRET_KEY on the server.");
   }
   const admin = createServiceSupabaseClient();
-  // Custom categories, merchant rules and manual picks. If the tables are not set up yet,
-  // fall back to the built-in categories instead of failing the whole page.
-  let overrides: CategoryOverrides | undefined;
-  let customCategories: CustomCategory[] = [];
-  try {
-    ({ overrides, customCategories } = await loadOverrides(admin, userId));
-  } catch (error) {
-    console.error("Unable to load custom categories.", error instanceof Error ? error.message : error);
-  }
-  const customKeys = customCategories.map((category) => category.key);
-  const itemResult = await admin
-    .from("Plaid Item")
-    .select("item_id,institution_name,access_token_encrypted,created_at")
-    .eq("user_id", userId)
-    .returns<PlaidItemRow[]>();
+  const months = monthRange(query.month, query.history + 1);
+
+  // These lookups do not depend on each other, so they run together: every database call is a network
+  // round trip, and waiting for them one after another was a large part of the load time.
+  const [loaded, itemResult, manualRows, hasManualRow] = await Promise.all([
+    // Custom categories, merchant rules and manual picks. If the tables are not set up yet,
+    // fall back to the built-in categories instead of failing the whole page.
+    timer.measure("overrides", () =>
+      loadOverrides(admin, userId).catch((error: unknown) => {
+        console.error("Unable to load custom categories.", error instanceof Error ? error.message : error);
+        return undefined;
+      }),
+    ),
+    timer.measure("items", async () =>
+      admin
+        .from("Plaid Item")
+        .select("item_id,institution_name,access_token_encrypted,created_at")
+        .eq("user_id", userId)
+        .returns<PlaidItemRow[]>(),
+    ),
+    // Transactions the user typed in themselves, for the same months.
+    timer.measure("manual", () => listManualTransactions(admin, userId, `${months[0]}-01`, monthEnd(query.month))),
+    timer.measure("hasManual", () => hasManualTransactions(admin, userId)),
+  ]);
   if (itemResult.error) throw supabaseFailure(itemResult.error);
   const items = itemResult.data ?? [];
-
-  const months = monthRange(query.month, query.history + 1);
-  // Transactions the user typed in themselves, for the same months.
-  const manual: PublicTransaction[] = await listManualTransactions(
-    admin,
-    userId,
-    `${months[0]}-01`,
-    monthEnd(query.month),
-    overrides?.validKeys,
-  );
+  const overrides: CategoryOverrides | undefined = loaded?.overrides;
+  const customCategories: CustomCategory[] = loaded?.customCategories ?? [];
+  const customKeys = customCategories.map((category) => category.key);
+  const manual: PublicTransaction[] = overrides
+    ? manualRows.map((entry) => (overrides.validKeys.has(entry.category) ? entry : { ...entry, category: "other" }))
+    : manualRows;
   // "connected" means the pages show real data (a bank, or the user's own entries) instead of the sample.
-  const connected = items.length > 0 || manual.length > 0 || (await hasManualTransactions(admin, userId));
+  const connected = items.length > 0 || manual.length > 0 || hasManualRow;
 
   const finish = (all: PublicTransaction[], warning?: string) => ({
     month: query.month,
@@ -307,17 +393,31 @@ async function readTransactions(userId: string, query: TransactionsQuery, today:
   // The newest month stops at today. A month that has not started in server time has no bank data yet.
   const newest = dateRangeForMonth(query.month, today);
   if (!newest) return finish(manual);
-  const range = { start: `${months[0]}-01`, end: newest.end };
+  // Pull the last six months (or further back if asked) in one go and remember them for a few minutes,
+  // so switching months or moving between pages does not go back to Plaid.
+  const pullStart = [`${months[0]}-01`, `${addMonths(monthKeyOfDate(today), -5)}-01`].sort()[0] as string;
+  const pullEnd = today;
+  // Plaid fills in older months a few minutes after linking, so do not remember a partial answer.
+  const stillImporting = items.some((item) => isStillImporting(item.created_at, Date.now()));
 
-  const plaid = createPlaidClient();
+  let plaid: PlaidApi | undefined;
   const fetchedTransactions: StoredTransaction[] = [];
   let warning: string | undefined;
+  let pulledFresh = false;
   for (const item of items) {
     try {
-      const accessToken = decryptPlaidAccessToken(item.access_token_encrypted);
-      const fetched = await fetchItemTransactions(plaid, accessToken, range.start, range.end);
+      let pull = refresh ? undefined : readCache(item.item_id, pullStart, pullEnd);
+      if (!pull) {
+        const accessToken = decryptPlaidAccessToken(item.access_token_encrypted);
+        plaid ??= createPlaidClient();
+        const client = plaid;
+        const fetched = await timer.measure("plaid", () => fetchItemTransactions(client, accessToken, pullStart, pullEnd));
+        pull = { start: pullStart, end: pullEnd, fetchedAt: Date.now(), transactions: fetched.transactions, accounts: fetched.accounts };
+        if (!stillImporting) writeCache(item.item_id, pull);
+        pulledFresh = true;
+      }
       fetchedTransactions.push(
-        ...toStoredTransactions(fetched.transactions, fetched.accounts, item.institution_name, overrides),
+        ...toStoredTransactions(pull.transactions, pull.accounts, item.institution_name, overrides),
       );
     } catch (error) {
       logPlaidFailure(error, "transactions/get");
@@ -329,9 +429,12 @@ async function readTransactions(userId: string, query: TransactionsQuery, today:
   }
 
   fetchedTransactions.sort((first, second) => second.date.localeCompare(first.date));
-  if (!warning) await storeTransactions(admin, userId, range, fetchedTransactions);
+  // Save in the background (only when Plaid was actually asked) so the page does not wait for the database.
+  if (!warning && pulledFresh) {
+    enqueueStore(userId, () => storeTransactions(admin, userId, { start: pullStart, end: pullEnd }, fetchedTransactions));
+  }
 
-  const importNote = items.some((item) => isStillImporting(item.created_at, Date.now()))
+  const importNote = stillImporting
     ? "Your bank is still importing older transactions, so earlier months may be incomplete for a few minutes."
     : undefined;
   const visible: PublicTransaction[] = fetchedTransactions.map(
@@ -350,7 +453,11 @@ export async function handleTransactionsApi(
     const url = new URL(request.url ?? pathname, "http://localhost");
     const today = utcDateString();
     const query = parseTransactionsQuery(url.searchParams, today);
-    sendJson(response, 200, await readTransactions(user.id, query, today));
+    const timer = createTimer();
+    // refresh=1 skips the short-lived copy of the bank data and asks Plaid again.
+    const refresh = url.searchParams.get("refresh") === "1";
+    const body = await timer.measure("total", () => readTransactions(user.id, query, today, timer, refresh));
+    sendJson(response, 200, body, { "Server-Timing": timer.header() });
     return true;
   }
   return false;
