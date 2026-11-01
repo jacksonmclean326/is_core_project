@@ -189,7 +189,7 @@ Each app page lives in its own folder under `src/app/pages/` and keeps its HTML,
 
 ## Tests
 
-- `npm test` runs the unit tests (the 2,000-case golden merchant list, month math, validation, summaries, sync decisions). No network or database needed.
+- `npm test` runs the unit tests (the 2,000-case golden merchant list, month math, validation, summaries, sync decisions) and the interface tests in `tests/ui/`: the Details page and its popups are run in a simulated page (jsdom, no browser) against a fake API and checked with the axe accessibility engine, and the CSS and HTML are checked against contrast, text-size, touch-target and phone-layout rules. No network or database needed. The full audit, with what still needs a real device, is in `docs/ui-audit.md`.
 - `npm run typecheck` type-checks the browser and server code.
 - Integration tests use the real Plaid Sandbox and Supabase, so they need a filled-in `.env` and the server running (`npm start`). Each creates throwaway users and deletes everything it created:
 
