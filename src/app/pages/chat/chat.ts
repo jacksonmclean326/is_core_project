@@ -1,4 +1,4 @@
-import { $, escapeHTML, eventElement, money, state, totalSpent } from "../../core.js";
+import { $, escapeHTML, eventElement, loadLinkedTransactions, money, state, totalSpent } from "../../core.js";
 import "../../page-navigation.js";
 
 const mascotUrl = new URL("../../assets/money-man-mascot.png", import.meta.url).href;
@@ -73,3 +73,6 @@ $("#chat-form").addEventListener("submit", (event) => {
   event.preventDefault();
   sendMessage($<HTMLInputElement>("#chat-input").value);
 });
+
+// Answers use the real current-month spending once a bank is linked.
+void loadLinkedTransactions();

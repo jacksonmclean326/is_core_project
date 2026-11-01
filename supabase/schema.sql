@@ -150,6 +150,35 @@ CREATE TABLE public."Chatbot History" (
 
 
 --
+-- Name: Custom Category; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."Custom Category" (
+    user_id uuid NOT NULL,
+    category_key text NOT NULL,
+    name text NOT NULL,
+    color text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT "Custom Category_category_key_check" CHECK ((category_key ~ '^c-[0-9a-f]{8}$'::text)),
+    CONSTRAINT "Custom Category_name_check" CHECK (((char_length(name) >= 1) AND (char_length(name) <= 24)))
+);
+
+
+--
+-- Name: Merchant Rule; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public."Merchant Rule" (
+    user_id uuid NOT NULL,
+    merchant_key text NOT NULL,
+    category_key text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT "Merchant Rule_category_key_check" CHECK ((category_key ~ '^[a-z0-9-]{1,40}$'::text)),
+    CONSTRAINT "Merchant Rule_merchant_key_check" CHECK (((char_length(merchant_key) >= 1) AND (char_length(merchant_key) <= 200)))
+);
+
+
+--
 -- Name: Friend; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -232,7 +261,15 @@ CREATE TABLE public."Transaction" (
     date timestamp with time zone,
     transaction_id uuid DEFAULT gen_random_uuid() NOT NULL,
     category_id uuid,
-    source_id uuid
+    source_id uuid,
+    user_id uuid,
+    plaid_transaction_id text,
+    name text,
+    category_key text,
+    account_name text,
+    institution_name text,
+    category_manual boolean DEFAULT false NOT NULL,
+    CONSTRAINT "Transaction_category_key_check" CHECK (((category_key IS NULL) OR (category_key ~ '^[a-z0-9-]{1,40}$'::text)))
 );
 
 
@@ -328,6 +365,30 @@ ALTER TABLE ONLY public."Transaction"
 
 
 --
+-- Name: Custom Category Custom Category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Custom Category"
+    ADD CONSTRAINT "Custom Category_pkey" PRIMARY KEY (user_id, category_key);
+
+
+--
+-- Name: Merchant Rule Merchant Rule_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Merchant Rule"
+    ADD CONSTRAINT "Merchant Rule_pkey" PRIMARY KEY (user_id, merchant_key);
+
+
+--
+-- Name: Transaction Transaction_plaid_transaction_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Transaction"
+    ADD CONSTRAINT "Transaction_plaid_transaction_unique" UNIQUE (user_id, plaid_transaction_id);
+
+
+--
 -- Name: User User_auth_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -352,7 +413,21 @@ ALTER TABLE ONLY public."User"
 
 
 --
--- Name: User_friend_code_key; Type: INDEX; Schema: public; Owner: -
+-- Name: Custom Category_user_name_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX "Custom Category_user_name_key" ON public."Custom Category" USING btree (user_id, lower(name));
+
+
+--
+-- Name: Transaction_user_date_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Transaction_user_date_idx" ON public."Transaction" USING btree (user_id, date DESC);
+
+
+--
+-- Name: User User_friend_code_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX "User_friend_code_key" ON public."User" USING btree (friend_code);
@@ -435,6 +510,30 @@ ALTER TABLE ONLY public."Income Source"
 
 ALTER TABLE ONLY public."Plaid Item"
     ADD CONSTRAINT "Plaid Item_user_id_fkey" FOREIGN KEY (user_id) REFERENCES public."User"(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Transaction Transaction_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+--
+-- Name: Custom Category Custom Category_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Custom Category"
+    ADD CONSTRAINT "Custom Category_user_id_fkey" FOREIGN KEY (user_id) REFERENCES public."User"(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: Merchant Rule Merchant Rule_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public."Merchant Rule"
+    ADD CONSTRAINT "Merchant Rule_user_id_fkey" FOREIGN KEY (user_id) REFERENCES public."User"(user_id) ON DELETE CASCADE;
+
+
+ALTER TABLE ONLY public."Transaction"
+    ADD CONSTRAINT "Transaction_user_id_fkey" FOREIGN KEY (user_id) REFERENCES public."User"(user_id) ON DELETE CASCADE;
 
 
 --
@@ -609,6 +708,32 @@ ALTER TABLE public."Income Source" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."Plaid Item" ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: Custom Category; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public."Custom Category" ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: Merchant Rule; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public."Merchant Rule" ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: Custom Category Users can view their own custom categories; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view their own custom categories" ON public."Custom Category" FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
+-- Name: Merchant Rule Users can view their own merchant rules; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view their own merchant rules" ON public."Merchant Rule" FOR SELECT TO authenticated USING ((( SELECT auth.uid() AS uid) = user_id));
+
+
+--
 -- Name: Transaction; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -753,6 +878,13 @@ CREATE POLICY "Users can view categories in their budgets" ON public."Category" 
 --
 
 CREATE POLICY "Users can view their own friend links" ON public."Friend" FOR SELECT TO authenticated USING (((( SELECT auth.uid() AS uid) = user1_id) OR (( SELECT auth.uid() AS uid) = user2_id)));
+
+
+--
+-- Name: Transaction Users can view their own transactions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can view their own imported transactions" ON public."Transaction" FOR SELECT TO authenticated USING (((user_id IS NOT NULL) AND (( SELECT auth.uid() AS uid) = user_id)));
 
 
 --

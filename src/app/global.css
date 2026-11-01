@@ -702,3 +702,63 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+.transaction-row .recategorize-select {
+  max-width: 118px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  font-size: 10px;
+}
+.transaction-row .recategorize-select:disabled {
+  opacity: 0.5;
+}
+.apply-merchant {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.apply-merchant input {
+  margin-top: 1px;
+  accent-color: var(--green);
+}
+
+.category-edit-row.has-remove {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.field input,
+.field select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--ink, inherit);
+  font-size: 12px;
+}
+.row-actions {
+  display: inline-flex;
+  gap: 4px;
+  font-weight: 400;
+}
+.row-action {
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+  color: var(--green-dark);
+  font-size: 10px;
+  cursor: pointer;
+}

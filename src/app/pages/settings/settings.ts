@@ -8,6 +8,7 @@ import {
   showToast,
   state,
   checkCategoryWarnings,
+  loadLinkedTransactions,
   updateCategoryBudgets,
 } from "../../core.js";
 import {
@@ -395,7 +396,7 @@ preferenceControls.forEach(([selector, key]) => {
 
 $("#privacy-link").addEventListener("click", () => {
   $("#dialog-content").innerHTML =
-    `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Privacy & data</h2><p class="dialog-subtitle">Plaid connects your financial institution. Money Man stores linked account details and balances in Supabase; it does not import or store transactions. Plaid's Transactions product is enabled for Link eligibility, may process transaction data under Plaid's terms, and may have separate fees. Disconnecting removes the saved account connection while leaving any existing transactions without an account link.</p>`;
+    `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Privacy & data</h2><p class="dialog-subtitle">Plaid connects your financial institution. Money Man stores your linked account details and balances, the transactions it imports from your bank (merchant, amount, date, and category), anything you add by hand, and the categories and merchant rules you create. This data is kept in Supabase and is only visible to your account. Plaid may process your transaction data under Plaid's own terms, and may have separate fees. Disconnecting a bank removes the saved account connection, but transactions already saved stay in your history without an account link, and entries you added yourself are never removed.</p>`;
   $<HTMLDialogElement>("#detail-dialog").showModal();
 });
 $("#help-link").addEventListener("click", () => {
@@ -415,3 +416,5 @@ void loadBankConnections(true).catch((error: unknown) => {
   feedback.classList.add("is-error");
 });
 refreshIcons();
+// Budget reminders compare real current-month spending once a bank is linked.
+void loadLinkedTransactions();

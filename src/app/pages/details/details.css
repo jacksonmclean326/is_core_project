@@ -72,3 +72,26 @@
   .donut-chart { flex-basis: 48vw; width: 48vw; }
   .legend-row { font-size: 9px; }
 }
+
+.month-switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.month-switcher .eyebrow {
+  margin: 0;
+  min-width: 120px;
+  text-align: center;
+}
+
+.month-switcher button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.heading-actions {
+  display: flex;
+  gap: 8px;
+}
