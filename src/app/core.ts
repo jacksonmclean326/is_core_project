@@ -3,11 +3,14 @@ import {
   createManualTransaction,
   deleteManualTransaction,
   getTransactions,
+  readSnapshot,
   recategorizeTransaction,
+  saveSnapshot,
   updateManualTransaction,
   type CustomCategory,
   type LinkedTransaction,
-  type MonthSummary
+  type MonthSummary,
+  type TransactionsResponse
 } from "./api.js";
 import {
   addDays,
@@ -27,6 +30,7 @@ let latestTransactionRequest = 0;
 let lastHistory = 0;
 let refreshPage: (result: LoadResult) => void = () => {};
 let hasRealData = false;
+let pageWantsUpdates = false;
 let openCategoryId: string | undefined;
 /** Transactions the user typed in, keyed by id (cleared on every load). */
 const manualEntries = new Map<string, LinkedTransaction>();
@@ -175,10 +179,64 @@ export const transactions: Record<string, [string, string, string?, string?][]> 
 
 export type LoadResult = "linked" | "sample" | "stale" | "error";
 
+/** Puts one server response into the shared page state. Returns whether real data is being shown. */
+function applyResult(month: MonthKey, result: TransactionsResponse): "linked" | "sample" {
+  viewingMonth = month;
+  syncCustomCategories(result.customCategories ?? []);
+  hasRealData = result.connected;
+  manualEntries.clear();
+  if (!result.connected) return "sample";
+  const totals = new Map<string, number>();
+  for (const category of state.categories) {
+    transactions[category.id] = [];
+    totals.set(category.id, 0);
+  }
+  for (const item of result.transactions) {
+    if (item.manual) manualEntries.set(item.id, item);
+    const id = totals.has(item.category) ? item.category : "other";
+    totals.set(id, (totals.get(id) ?? 0) + item.amount);
+    transactions[id]?.push([item.name, money(item.amount), `${shortDateLabel(item.date)} \u00b7 ${item.account}`, item.id]);
+  }
+  for (const category of state.categories) category.amount = Math.round(totals.get(category.id) ?? 0);
+  if (result.history) {
+    monthlyHistory = result.history;
+    months.splice(0, months.length, ...result.history.map((entry) => shortMonthName(entry.month)));
+  }
+  return "linked";
+}
+
 /**
- * Replaces the sample spending with real, auto-categorized Plaid transactions for one
- * calendar month (default: the current month). `history` also loads that many earlier
- * months for the trend chart. Sample data stays when no bank is linked.
+ * Shows the last answer saved in this tab for a month, so the page can draw real numbers right away
+ * while the fresh answer is still on its way. Returns "linked" if there was something to show.
+ */
+export function primeFromSnapshot(month: MonthKey, history = 0): "linked" | "none" {
+  const snapshot = readSnapshot(month, history);
+  if (!snapshot || !snapshot.connected) return "none";
+  lastHistory = history;
+  return applyResult(month, snapshot) === "linked" ? "linked" : "none";
+}
+
+let syncPolls = 0;
+let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let lastWarning = "";
+const maxSyncPolls = 40;
+const syncPollMs = 2500;
+
+/** While the bank is still being imported, ask again every few seconds until it is done. */
+function scheduleSyncPoll() {
+  clearTimeout(pollTimer);
+  if (!pageWantsUpdates || syncPolls >= maxSyncPolls) return;
+  syncPolls += 1;
+  pollTimer = setTimeout(() => {
+    if (document.visibilityState === "hidden") return scheduleSyncPoll();
+    void reloadViewedMonth();
+  }, syncPollMs);
+}
+
+/**
+ * Replaces the sample spending with real, auto-categorized transactions for one calendar month
+ * (default: the current month). `history` also loads that many earlier months for the trend chart.
+ * Sample data stays when no bank is linked and nothing was added by hand.
  */
 export async function loadLinkedTransactions(
   month: MonthKey = currentMonthKey(),
@@ -189,32 +247,32 @@ export async function loadLinkedTransactions(
   try {
     const result = await getTransactions(month, history);
     if (requestId !== latestTransactionRequest) return "stale";
-    viewingMonth = month;
-    syncCustomCategories(result.customCategories ?? []);
-    hasRealData = result.connected;
-    manualEntries.clear();
-    if (!result.connected) return "sample";
-    const totals = new Map<string, number>();
-    for (const category of state.categories) {
-      transactions[category.id] = [];
-      totals.set(category.id, 0);
+    const outcome = applyResult(month, result);
+    if (outcome === "linked") saveSnapshot(month, history, result);
+    if (result.warning && result.warning !== lastWarning) showToast(result.warning);
+    lastWarning = result.warning ?? "";
+    if (result.syncing) scheduleSyncPoll();
+    else {
+      syncPolls = 0;
+      clearTimeout(pollTimer);
     }
-    for (const item of result.transactions) {
-      if (item.manual) manualEntries.set(item.id, item);
-      const id = totals.has(item.category) ? item.category : "other";
-      totals.set(id, (totals.get(id) ?? 0) + item.amount);
-      transactions[id]?.push([item.name, money(item.amount), `${shortDateLabel(item.date)} · ${item.account}`, item.id]);
-    }
-    for (const category of state.categories) category.amount = Math.round(totals.get(category.id) ?? 0);
-    if (result.history) {
-      monthlyHistory = result.history;
-      months.splice(0, months.length, ...result.history.map((entry) => shortMonthName(entry.month)));
-    }
-    if (result.warning) showToast(result.warning);
-    return "linked";
+    return outcome;
   } catch {
     return requestId === latestTransactionRequest ? "error" : "stale";
   }
+}
+
+const prefetched = new Set<string>();
+
+/** Quietly fetches a month into this tab's snapshots so moving to it later is instant. */
+export function prefetchMonth(month: MonthKey) {
+  if (prefetched.has(month)) return;
+  prefetched.add(month);
+  getTransactions(month, 0)
+    .then((result) => {
+      if (result.connected) saveSnapshot(month, 0, result);
+    })
+    .catch(() => prefetched.delete(month));
 }
 
 /** Mirrors the user's custom categories (from the server) into the category list. */
@@ -236,6 +294,7 @@ export function syncCustomCategories(list: CustomCategory[]) {
 /** Pages register how to redraw themselves after their data changes. */
 export function onDataChanged(handler: (result: LoadResult) => void) {
   refreshPage = handler;
+  pageWantsUpdates = true;
 }
 
 /** Reloads the month being viewed (e.g. after categories change) and redraws the page. */

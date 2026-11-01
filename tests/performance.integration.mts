@@ -1,6 +1,5 @@
-// Checks that the fast path (remembered bank data, background saves) returns exactly the same data
-// as asking Plaid every time, and is much quicker. Read-only: it signs in to an account that already
-// has a bank linked for more than 10 minutes (banks linked more recently are deliberately not remembered).
+// Checks that loading transactions is fast and that what loads quickly is exactly what a sync with the
+// bank produces. Read-only for the account's data: it signs in to an account that already has a bank linked.
 //   $env:DEMO_EMAIL="..."; $env:DEMO_PASSWORD="..."
 //   node --env-file=.env --import tsx tests/performance.integration.mts
 import assert from "node:assert/strict";
@@ -9,7 +8,7 @@ import { addMonths, monthKeyOfDate, utcDateString } from "../src/shared/months.t
 const email = process.env.DEMO_EMAIL;
 const password = process.env.DEMO_PASSWORD;
 if (!email || !password) {
-  console.log("SKIPPED: set DEMO_EMAIL and DEMO_PASSWORD to an account with a bank linked more than 10 minutes ago.");
+  console.log("SKIPPED: set DEMO_EMAIL and DEMO_PASSWORD to an account with a bank linked.");
   process.exit(0);
 }
 
@@ -22,7 +21,6 @@ const ok = (condition: unknown, message: string) => {
   assert.ok(condition, message);
   checks += 1;
 };
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function call(path: string, init: RequestInit = {}) {
   const start = performance.now();
@@ -33,8 +31,7 @@ async function call(path: string, init: RequestInit = {}) {
   const set = response.headers.getSetCookie?.() ?? [];
   if (set.length) cookie = set.map((value) => value.split(";")[0]).join("; ");
   const body = await response.json().catch(() => null);
-  const timing = response.headers.get("server-timing") ?? "";
-  return { ms: performance.now() - start, status: response.status, body, askedPlaid: /(^|, )plaid;/.test(timing), timing };
+  return { ms: performance.now() - start, status: response.status, body, timing: response.headers.get("server-timing") ?? "" };
 }
 
 const signin = await call("/api/auth/signin", { method: "POST", body: JSON.stringify({ email, password }) });
@@ -52,39 +49,39 @@ const queries = [
   `month=${addMonths(thisMonth, -1)}&history=3`,
 ];
 
-// 1. a deliberate fresh pull from Plaid is the reference answer
+// 1. sync with the bank now and keep the answers as the reference
 const reference = new Map<string, any>();
-const coldTimes: number[] = [];
+const syncTimes: number[] = [];
 for (const query of queries) {
   const result = await call(`/api/transactions?${query}&refresh=1`);
-  ok(result.status === 200, `${query}: fresh pull ok`);
-  ok(result.askedPlaid, `${query}: refresh=1 really asked Plaid`);
+  ok(result.status === 200, `${query}: sync ok`);
+  ok(result.body.syncing === false, `${query}: nothing left to sync after a refresh`);
   reference.set(query, result.body);
-  coldTimes.push(result.ms);
+  syncTimes.push(result.ms);
 }
-await wait(2500); // let the background save finish
-const rowsAfterFresh = await rowCount();
-ok(rowsAfterFresh > 0, `transactions are saved in the database (${rowsAfterFresh} rows)`);
+const rowsAfterSync = await rowCount();
+ok(rowsAfterSync > 0, `transactions are saved in the database (${rowsAfterSync} rows)`);
 
-// 2. the fast path must return exactly the same data and not ask Plaid
-const warmTimes: number[] = [];
+// 2. ordinary loads read the database and must return exactly the same data
+const loadTimes: number[] = [];
 for (let round = 0; round < 3; round += 1) {
   for (const query of queries) {
     const result = await call(`/api/transactions?${query}`);
     ok(result.status === 200, `${query}: ok`);
-    ok(!result.askedPlaid, `${query}: served without asking Plaid`);
-    assert.deepEqual(result.body, reference.get(query), `${query}: same data as a fresh pull`);
+    assert.deepEqual(result.body, reference.get(query), `${query}: same data as after a sync`);
     checks += 1;
-    warmTimes.push(result.ms);
+    ok(!/(^|, )sync;/.test(result.timing), `${query}: did not wait for the bank`);
+    loadTimes.push(result.ms);
   }
 }
 
-// 3. repeating reads and fresh pulls never changes what is saved (only differences are written)
-await call(`/api/transactions?month=${thisMonth}&history=5&refresh=1`);
-await wait(2500);
-ok((await rowCount()) === rowsAfterFresh, "a repeat pull leaves the saved rows exactly as they were");
+// 3. syncing again changes nothing that is saved
+const before = JSON.stringify(reference.get(queries[3]!));
+await call(`/api/transactions?${queries[3]}&refresh=1`);
+ok((await rowCount()) === rowsAfterSync, "a repeat sync leaves the saved rows exactly as they were");
+ok(JSON.stringify((await call(`/api/transactions?${queries[3]}`)).body) === before, "and the answer does not change");
 
-// 4. the remembered copy does not serve data to a signed-out visitor
+// 4. not signed in: no data
 const savedCookie = cookie;
 cookie = "";
 ok((await call(`/api/transactions?month=${thisMonth}`)).status === 401, "signed-out requests are still rejected");
@@ -92,8 +89,7 @@ cookie = savedCookie;
 
 const avg = (list: number[]) => Math.round(list.reduce((sum, value) => sum + value, 0) / list.length);
 const max = (list: number[]) => Math.round(Math.max(...list));
-console.log(`fresh pulls from Plaid: average ${avg(coldTimes)} ms, slowest ${max(coldTimes)} ms`);
-console.log(`remembered (fast path): average ${avg(warmTimes)} ms, slowest ${max(warmTimes)} ms`);
-ok(avg(warmTimes) < 400, `the fast path averages under 400 ms (was ${avg(warmTimes)})`);
-ok(avg(warmTimes) < avg(coldTimes) / 2, "the fast path is at least twice as quick as asking Plaid");
+console.log(`syncing with the bank:  average ${avg(syncTimes)} ms, slowest ${max(syncTimes)} ms`);
+console.log(`ordinary page loads:    average ${avg(loadTimes)} ms, slowest ${max(loadTimes)} ms`);
+ok(avg(loadTimes) < 300, `page loads average under 300 ms (was ${avg(loadTimes)})`);
 console.log(`\nPERFORMANCE: ALL PASSED (${checks} checks)`);

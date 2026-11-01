@@ -5,6 +5,8 @@ import {
   eventElement,
   loadLinkedTransactions,
   onDataChanged,
+  prefetchMonth,
+  primeFromSnapshot,
   openTransactionForm,
   money,
   openCategoryDetails,
@@ -57,6 +59,11 @@ async function showMonth(month: MonthKey) {
   if (month === currentMonthKey()) url.searchParams.delete("month");
   else url.searchParams.set("month", month);
   window.history.replaceState(null, "", url);
+  // Show what this tab already knows about the month straight away, then refresh it.
+  if (primeFromSnapshot(month) === "linked") {
+    isLinked = true;
+    renderSummary();
+  }
   renderPeriod();
   const result = await loadLinkedTransactions(month);
   if (result === "stale") return;
@@ -64,6 +71,11 @@ async function showMonth(month: MonthKey) {
   if (result === "error") showToast(`Could not load ${monthLabel(month)}.`);
   renderPeriod();
   renderSummary();
+  // Get the neighbouring months ready so the arrows feel instant.
+  if (isLinked) {
+    prefetchMonth(addMonths(month, -1));
+    if (compareMonths(month, currentMonthKey()) < 0) prefetchMonth(addMonths(month, 1));
+  }
 }
 
 function periodWord(): string {
@@ -465,6 +477,8 @@ $(".app-shell").addEventListener("focusout", (event) => {
 $("#month-prev").addEventListener("click", () => void showMonth(addMonths(selectedMonth, -1)));
 $("#month-next").addEventListener("click", () => void showMonth(addMonths(selectedMonth, 1)));
 
+// Draw this tab's last known numbers immediately (if any), then refresh them.
+if (primeFromSnapshot(selectedMonth) === "linked") isLinked = true;
 renderPeriod();
 renderSummary();
 void showMonth(selectedMonth);

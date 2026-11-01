@@ -248,7 +248,11 @@ CREATE TABLE public."Plaid Item" (
     institution_id text,
     institution_name text NOT NULL,
     access_token_encrypted text NOT NULL,
-    last_synced_at timestamp with time zone
+    last_synced_at timestamp with time zone,
+    transactions_cursor text,
+    transactions_synced_at timestamp with time zone,
+    history_complete boolean DEFAULT false NOT NULL,
+    categorizer_version integer DEFAULT 0 NOT NULL
 );
 
 

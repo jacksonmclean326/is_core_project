@@ -27,6 +27,7 @@ Notes on the spending tables:
 - `Transaction.category_key` holds either a built-in category id (`housing`, `food`, `transport`, `utilities`, `education`, `personal`, `other`) or a key from `Custom Category`. It is deliberately not a foreign key, so built-in categories need no rows.
 - A `Transaction` with no `plaid_transaction_id` is a manual entry the user typed in. Bank refreshes never touch those rows.
 - The older `Category` and `Budget` tables are not used by the app yet. Budgets, goals, and category limits still live in browser storage.
+- `Plaid Item` also remembers how far each bank has been synced (a cursor, the time of the last sync, whether Plaid has finished importing history, and the version of the sorting rules used), so only changes are pulled from Plaid.
 - Every table is protected by Row Level Security. The server writes to the new tables with the Supabase secret key, and signed-in users can only read their own rows.
 
 ## Tech Stack:
@@ -127,7 +128,7 @@ Plaid requires at least one product for new Link sessions, and this integration 
 
 ### Spending data
 
-**Transactions.** `GET /api/transactions` reads a bank's transactions from Plaid on request, categorizes them, and saves them to the `Transaction` table. Income, refunds, transfers, and credit-card payments are skipped, so the numbers show spending only.
+**Transactions.** Transactions live in our own database (the `Transaction` table) and pages read them from there, which is why loading is fast. In the background the server keeps them in sync with the bank using Plaid's incremental sync: it remembers a cursor for each bank and asks Plaid only for what changed (new, edited, and removed transactions). Income, refunds, transfers, and credit-card payments are skipped, so the numbers show spending only.
 
 **Months.** Everything is organized by calendar month. `?month=YYYY-MM` selects the month (default: the current one, up to 24 months back), and `&history=N` adds per-month totals for the N months before it, which Home uses for its six-month trend. The month math (month lengths, leap years, year rollover, weekdays) is in `src/shared/months.ts` and works on `YYYY-MM-DD` text, so results never depend on the computer's time zone. The current month stops at today.
 
@@ -135,15 +136,19 @@ Plaid requires at least one product for new Link sessions, and this integration 
 
 1. A category the user picked for that transaction.
 2. A remembered merchant rule (from moving a transaction with "move all from the same merchant" checked).
-3. Merchant keyword rules in `src/server/categorize.ts` (for example, "Uber" is Transport and "Uber Eats" is Food).
-4. Plaid's own category hints.
-5. Other.
+3. Plaid's own category for the transaction (its detailed category, then its broad one). Plaid knows the merchant, so this beats anything guessed from the name.
+4. Bank fees, loans, taxes, and donations stay in Other, whatever the name says. (A mortgage payment counts as Housing and a car payment as Transport.)
+5. Well-known brands in `src/server/categorize.ts`, matched as whole words ("Uber Eats" is Food, "Uber" is Transport).
+6. Careful keyword phrases (for example "water bill", never just "water"), only when Plaid gave nothing useful.
+7. Other. A merchant we are unsure about stays here rather than landing in the wrong category.
+
+`tests/categorize.golden.test.ts` is the golden list: more than 2,000 merchant cases, including every category Plaid can return, every brand and keyword, and look-alike traps such as "Water Park", "Delta Dental", and "Rent the Runway". Add a row whenever you find a merchant that was sorted wrongly. When you change the rules, raise `categorizerVersion` in `categorize.ts`: every bank then re-sorts its saved transactions from scratch the next time it syncs (your own picks and merchant rules are kept).
 
 Users can add their own categories (up to 12, names up to 24 characters), rename and hide any category, and delete their own. Deleting a custom category moves its transactions to Other. Built-in categories can be renamed and hidden but not deleted.
 
 **Manual transactions.** On the Details page, **Add** records a transaction by hand, and a category's transaction list has **Edit** and **Delete** for those entries. They are stored in the same table with no Plaid ID, count toward totals, charts, and trends, and work without a linked bank (the first entry replaces the sample data). Amounts must be positive, and dates can be at most tomorrow and 24 months back. A bank refresh never changes or deletes them, and merchant rules apply to bank transactions only.
 
-**Speed.** Asking Plaid is the slowest step (about a second), so the server keeps what Plaid returned for each bank in memory for 5 minutes, covering the last six months. Loading a page or switching months inside that window answers in roughly 100 ms, and saving to the database happens after the response is sent and only writes rows that changed. Banks linked in the last 10 minutes are not remembered, because Plaid is still filling in older months. Add `&refresh=1` to `GET /api/transactions` to force a fresh pull. Every response includes a `Server-Timing` header showing how long each step took (visible in the browser's network tab). The first load after a server restart, or after 5 minutes of inactivity, still takes about a second.
+**Speed.** Pages read the database, which takes about 90 ms whether the server just started or has been running for days. Syncing with Plaid happens in the background: a bank is checked when its saved data is more than 5 minutes old (every 15 seconds while Plaid is still importing its history), and a first sync starts the moment a bank is linked. Plaid itself needs several seconds to prepare a newly linked bank, so right after linking the page shows a notice and fills in as data arrives (it checks again every few seconds); the first month usually appears within about 10 seconds of linking. Each browser tab also keeps the last answer it saw and draws it instantly on the next visit while the fresh answer loads (cleared on sign-in and sign-out), and Details quietly prefetches the neighbouring months. Add `&refresh=1` to `GET /api/transactions` to sync with the bank right now and wait for the result. Every response includes a `Server-Timing` header showing how long each step took (visible in the browser's network tab).
 
 ### API
 
@@ -180,7 +185,7 @@ Each app page lives in its own folder under `src/app/pages/` and keeps its HTML,
 
 ## Tests
 
-- `npm test` runs the unit tests (categorizer, month math, validation, summaries). No network or database needed.
+- `npm test` runs the unit tests (the 2,000-case golden merchant list, month math, validation, summaries, sync decisions). No network or database needed.
 - `npm run typecheck` type-checks the browser and server code.
 - Integration tests use the real Plaid Sandbox and Supabase, so they need a filled-in `.env` and the server running (`npm start`). Each creates throwaway users and deletes everything it created:
 
@@ -188,6 +193,8 @@ Each app page lives in its own folder under `src/app/pages/` and keeps its HTML,
   node --env-file=.env --import tsx tests/e2e.integration.mts          # months, summaries, storage
   node --env-file=.env --import tsx tests/categories.integration.mts   # custom categories, re-categorizing
   node --env-file=.env --import tsx tests/manual.integration.mts       # manual transactions
+  $env:DEMO_EMAIL="..."; $env:DEMO_PASSWORD="..."                     # an account that already has a bank linked
+  node --env-file=.env --import tsx tests/performance.integration.mts  # speed, and fast loads match a sync exactly
   ```
 
 ## Verifying the Vertical Slice:
@@ -209,3 +216,4 @@ To check spending data:
 - The Home trend and Details totals compare spending against one monthly budget; there are no per-month budgets.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
+- Plaid takes several seconds to prepare a newly linked bank (about 7 seconds in the Sandbox), so the very first load after linking cannot be instant. Every load after that is.

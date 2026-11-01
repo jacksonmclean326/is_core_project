@@ -84,10 +84,12 @@ try {
   ok(truthMonths.size >= 2, "sandbox history spans at least two calendar months (needed to test month logic)");
 
   // ---- history=5 summaries match ground truth, month by month ----------------------------------------
-  const history = await api(`/api/transactions?month=${thisMonth}&history=5`);
+  // refresh=1 syncs with the bank now and waits, so the saved data reflects Plaid's finished import
+  const history = await api(`/api/transactions?month=${thisMonth}&history=5&refresh=1`);
   ok(history.status === 200, `history status ${history.status}`);
   ok(history.body.connected === true, "connected");
-  ok(history.body.warning === undefined || /still importing/.test(history.body.warning), `only the importing note may appear: ${history.body.warning}`);
+  ok(history.body.warning === undefined, `no warning once Plaid has finished importing: ${history.body.warning}`);
+  ok(history.body.syncing === false, "nothing left to sync");
   const expectedMonths = monthRange(thisMonth, 6);
   ok(JSON.stringify(history.body.history.map((h: any) => h.month)) === JSON.stringify(expectedMonths), "history lists the 6 consecutive months, oldest first");
   for (const month of expectedMonths) {

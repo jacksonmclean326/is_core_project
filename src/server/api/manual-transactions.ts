@@ -16,7 +16,7 @@ import {
   utcDateString,
 } from "../../shared/months.js";
 import { listCustomCategories } from "./categories.js";
-import type { PublicTransaction } from "./transactions.js";
+import type { PublicTransaction } from "../plaid/convert.js";
 
 export const maxManualTransactions = 2000;
 export const maxNameLength = 60;
@@ -98,38 +98,6 @@ export function toPublicManual(row: ManualRow, validKeys?: Set<string>): PublicT
     institution: "Manual",
     manual: true,
   };
-}
-
-/** Manual entries dated within [start, end] (inclusive). */
-export async function listManualTransactions(
-  admin: Admin,
-  userId: string,
-  start: string,
-  end: string,
-  validKeys?: Set<string>,
-): Promise<(PublicTransaction & { manual: true })[]> {
-  const result = await admin
-    .from("Transaction")
-    .select("transaction_id,name,amount,date,category_key")
-    .eq("user_id", userId)
-    .is("plaid_transaction_id", null)
-    .gte("date", `${start}T00:00:00Z`)
-    .lte("date", `${end}T23:59:59Z`)
-    .returns<ManualRow[]>();
-  if (result.error) throw supabaseFailure(result.error);
-  return (result.data ?? []).map((row) => toPublicManual(row, validKeys));
-}
-
-export async function hasManualTransactions(admin: Admin, userId: string): Promise<boolean> {
-  const result = await admin
-    .from("Transaction")
-    .select("transaction_id")
-    .eq("user_id", userId)
-    .is("plaid_transaction_id", null)
-    .limit(1)
-    .returns<{ transaction_id: string }[]>();
-  if (result.error) throw supabaseFailure(result.error);
-  return (result.data ?? []).length > 0;
 }
 
 export async function handleManualTransactionsApi(

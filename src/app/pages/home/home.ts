@@ -4,6 +4,7 @@ import {
   eventElement,
   loadLinkedTransactions,
   onDataChanged,
+  primeFromSnapshot,
   months,
   money,
   openCategoryDetails,
@@ -205,6 +206,7 @@ $("#watch-categories").addEventListener("click", (event) => {
   const categoryButton = eventElement(event)?.closest<HTMLButtonElement>("[data-category-id]");
   if (categoryButton) openCategoryDetails(categoryButton.dataset.categoryId);
 });
+primeFromSnapshot(currentMonthKey(), months.length - 1);
 renderDashboard();
 void loadLinkedTransactions(currentMonthKey(), months.length - 1).then((result) => {
   if (result === "linked") {

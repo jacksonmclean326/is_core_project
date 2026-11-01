@@ -85,8 +85,8 @@ try {
   const testMonth = addMonths(monthKeyOfDate(utcDateString()), -1); // last month: the sandbox has plenty of data there
   let loaded: any;
   for (let attempt = 0; attempt < 40; attempt += 1) {
-    loaded = (await a.call(`/api/transactions?month=${testMonth}&history=2`)).body;
-    if (loaded?.transactions?.length && !loaded.warning?.startsWith("Some bank")) break;
+    loaded = (await a.call(`/api/transactions?month=${testMonth}&history=2&refresh=1`)).body;
+    if (loaded?.transactions?.length && loaded.syncing === false && !loaded.warning) break; // wait for Plaid's full import
     await wait(3000);
   }
   ok(loaded.transactions.length > 10, "sandbox month loaded");
@@ -164,8 +164,25 @@ try {
   after = (await a.call(`/api/transactions?month=${testMonth}`)).body;
   ok(secondList.every((s: any) => after.transactions.find((t: any) => t.id === s.id).category === second.key), "every transaction from that merchant moved");
   ok(monthTotal(after) === baselineTotal, "total still unchanged");
-  const refetched = (await a.call(`/api/transactions?month=${testMonth}`)).body; // fresh pull from Plaid
-  ok(secondList.every((s: any) => refetched.transactions.find((t: any) => t.id === s.id).category === second.key), "the choice survives a fresh pull from Plaid");
+  const refetched = (await a.call(`/api/transactions?month=${testMonth}&refresh=1`)).body; // sync with Plaid now
+  ok(secondList.every((s: any) => refetched.transactions.find((t: any) => t.id === s.id).category === second.key), "the choice survives a sync with Plaid");
+  // the strongest test: throw away what is saved and re-sort everything from Plaid from scratch
+  const itemRow = (await (await rest(`Plaid%20Item?select=item_id&user_id=eq.${a.id}`)).json())[0];
+  await rest(`Plaid%20Item?item_id=eq.${itemRow.item_id}`, { method: "PATCH", body: JSON.stringify({ transactions_cursor: null, categorizer_version: 0 }) });
+  const resorted = (await a.call(`/api/transactions?month=${testMonth}&refresh=1`)).body;
+  ok(resorted.transactions.length === refetched.transactions.length, "a from-scratch re-sort finds the same transactions");
+  ok(secondList.every((s: any) => resorted.transactions.find((t: any) => t.id === s.id).category === second.key), "merchant rules survive a from-scratch re-sort");
+  ok(resorted.transactions.find((t: any) => t.id === one.id).category === eating.key, "single manual picks survive a from-scratch re-sort");
+  if (monthTotal(resorted) !== monthTotal(refetched)) {
+    const before = new Map(refetched.transactions.map((t: any) => [t.id, t]));
+    const differences = resorted.transactions
+      .filter((t: any) => before.get(t.id)?.amount !== t.amount || before.get(t.id)?.date !== t.date)
+      .map((t: any) => `${t.name} ${before.get(t.id)?.amount}@${before.get(t.id)?.date} -> ${t.amount}@${t.date}`);
+    console.log("transactions that changed between the two syncs:", differences.slice(0, 10));
+  }
+  ok(monthTotal(resorted) === monthTotal(refetched), "totals are unchanged by a from-scratch re-sort");
+  const itemAfter = (await (await rest(`Plaid%20Item?select=categorizer_version,transactions_cursor&item_id=eq.${itemRow.item_id}`)).json())[0];
+  ok(itemAfter.categorizer_version > 0 && itemAfter.transactions_cursor, "the sync remembers where it got to");
   const ruleRows = await (await rest(`Merchant%20Rule?select=merchant_key,category_key&user_id=eq.${a.id}`)).json();
   ok(ruleRows.some((r: any) => r.merchant_key === secondMerchant && r.category_key === second.key), "a rule was remembered for the merchant");
 
@@ -219,7 +236,8 @@ try {
   ok((await a.call(`/api/categories/${second.key}`, { method: "DELETE" })).status === 200, "delete works");
   const afterDelete = (await a.call(`/api/transactions?month=${testMonth}&history=2`)).body;
   ok(inSecond.every((id: string) => afterDelete.transactions.find((t: any) => t.id === id).category === "other"), "its transactions landed in Other");
-  ok(monthTotal(afterDelete) === baselineTotal, "total unchanged after delete");
+  // compare with a reading taken just before (the sandbox's dynamic test user keeps changing over time)
+  ok(monthTotal(afterDelete) === monthTotal(beforeDelete), "total unchanged after delete");
   ok(!afterDelete.customCategories.some((c: any) => c.key === second.key), "category is gone from the list");
   ok(!(await (await rest(`Merchant%20Rule?select=category_key&user_id=eq.${a.id}`)).json()).some((r: any) => r.category_key === second.key), "its merchant rules are gone");
   ok(afterDelete.history.every((h: any) => !(second.key in h.byCategory) || h.byCategory[second.key] === 0), "no money is left in the deleted category");
