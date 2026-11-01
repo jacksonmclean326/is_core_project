@@ -1,3 +1,4 @@
+import { loadGoals } from "../../goals.js";
 import {
   $,
   escapeHTML,
@@ -221,4 +222,12 @@ refreshIcons();
 onDataChanged(() => {
   renderDashboard();
   renderTrend();
+});
+
+void loadGoals().then((goals) => {
+  state.goals = goals;
+  renderDashboard();
+}).catch(() => {
+  $("#dashboard-goal-name").textContent = "Unable to load your goals";
+  $("#dashboard-goal-progress").textContent = "Refresh to try again";
 });

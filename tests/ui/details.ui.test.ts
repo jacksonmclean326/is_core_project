@@ -199,3 +199,40 @@ test("accessibility engine: no violations on the page or in any popup", async ()
     assert.deepEqual(describeViolations(results), [], `${label} has accessibility violations`);
   }
 });
+
+test("goals save through the API independently of category edits and preserve progress", async () => {
+  const goal = { goal_id: "12345678-1234-1234-1234-123456789abc", goal_type: "Savings", goal_name: "Emergency fund", desired_savings: 1000, amount_savings: 250 };
+  const page = await openPage("details", { routes: {
+    "/api/goals": (_path, init, body) => [200, { goals: init.method === "PUT" ? [{ ...goal, goal_name: body.items[0].name }] : [goal] }],
+  } });
+  assert.match(text(page.$("#goal-card-list")), /Emergency fund/);
+  await page.click("#edit-summary");
+  assert.equal(page.$(".goal-edit-row"), null);
+  assert.ok(page.$("#add-category-row"));
+  page.closeDialog();
+  await page.click("#edit-goals-link");
+  await page.type(".goal-name-input", "Rainy day fund");
+  await page.submit("#goals-edit-form");
+  const save = page.calls.find((call) => call.path === "/api/goals" && call.method === "PUT");
+  assert.deepEqual(save.body.items, [{ id: goal.goal_id, kind: "Savings", name: "Rainy day fund", target: 1000 }]);
+  assert.match(text(page.$("#goal-card-list")), /Rainy day fund/);
+  assert.match(text(page.$("#goal-card-list")), /\$250 toward goal/);
+  assert.equal(page.$("#detail-dialog").open, false);
+  page.dom.window.close();
+});
+
+test("failed goal saves keep the editor and input available for retry", async () => {
+  const page = await openPage("details", { routes: {
+    "/api/goals": (_path, init) => init.method === "PUT" ? [500, { error: "Save unavailable" }] : [200, { goals: [] }],
+  } });
+  await page.click("#edit-goals-link");
+  await page.click("#add-goal-row");
+  await page.type(".goal-name-input", "Vacation");
+  await page.type(".goal-target-input", "500");
+  await page.submit("#goals-edit-form");
+  assert.equal(page.$("#detail-dialog").open, true);
+  assert.equal(page.$(".goal-name-input").value, "Vacation");
+  assert.match(text(page.$("#edit-feedback")), /Goals were not saved/);
+  assert.equal(page.$('#goals-edit-form button[type="submit"]').disabled, false);
+  page.dom.window.close();
+});
