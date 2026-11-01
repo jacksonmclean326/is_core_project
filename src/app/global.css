@@ -642,16 +642,21 @@ h3 {
   main {
     padding-top: 46px;
   }
+  /* Stay on screen like the phone layout does, as a floating bar. (It used to sit at the very end of the
+     page, so on a tall page it was below the fold and seemed to vanish after every click.) */
   .bottom-nav {
-    position: static;
-    width: min(100%, 520px);
-    margin: 23px auto 0;
+    right: auto;
+    bottom: 16px;
+    left: 50%;
+    width: min(calc(100% - 32px), 520px);
     padding: 9px 18px;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(23, 32, 29, 0.16);
+    transform: translateX(-50%);
   }
   .toast {
-    bottom: 24px;
+    bottom: 96px;
   }
 }
 @media (max-width: 720px) {
