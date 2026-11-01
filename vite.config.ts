@@ -1,8 +1,14 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
+import { inlineIcons } from "./src/build/inline-icons";
 
 export default defineConfig({
   plugins: [
+    {
+      // Icons are drawn into the HTML here, so they are on screen from the first paint (no script, no CDN).
+      name: "inline-icons",
+      transformIndexHtml: (html: string) => inlineIcons(html)
+    },
     {
       name: "clean-page-routes",
       configureServer(server) {

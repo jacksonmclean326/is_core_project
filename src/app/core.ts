@@ -26,6 +26,8 @@ import {
   type MonthKey,
 } from "../shared/months.js";
 import { limitStatus, parseLimit, scaleLimits } from "../shared/limits.js";
+import { createIcons } from "lucide";
+import { appIcons } from "./icons.js";
 
 let latestTransactionRequest = 0;
 let lastHistory = 0;
@@ -353,7 +355,8 @@ export const eventElement = (event: Event): Element | null =>
 export const totalSpent = () => state.categories.reduce((total, category) => total + Number(category.amount || 0), 0);
 export const money = (amount: number) => currency.format(Math.abs(Number(amount) || 0));
 export const escapeHTML = (value: unknown) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-export const refreshIcons = () => window.lucide?.createIcons();
+/** Draws any `<i data-lucide="...">` placeholder added by code (icons already in the page HTML are drawn at build time). */
+export const refreshIcons = () => createIcons({ icons: appIcons });
 
 document.querySelectorAll(".profile-button .profile-initials").forEach((element) => {
   element.textContent = state.profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "?";
