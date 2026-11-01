@@ -30,6 +30,7 @@ let latestTransactionRequest = 0;
 let lastHistory = 0;
 let refreshPage: (result: LoadResult) => void = () => {};
 let hasRealData = false;
+let monthTransactions: LinkedTransaction[] = [];
 let pageWantsUpdates = false;
 let openCategoryId: string | undefined;
 /** Transactions the user typed in, keyed by id (cleared on every load). */
@@ -184,6 +185,7 @@ function applyResult(month: MonthKey, result: TransactionsResponse): "linked" | 
   viewingMonth = month;
   syncCustomCategories(result.customCategories ?? []);
   hasRealData = result.connected;
+  monthTransactions = result.connected ? result.transactions : [];
   manualEntries.clear();
   if (!result.connected) return "sample";
   const totals = new Map<string, number>();
@@ -273,6 +275,21 @@ export function prefetchMonth(month: MonthKey) {
       if (result.connected) saveSnapshot(month, 0, result);
     })
     .catch(() => prefetched.delete(month));
+}
+
+/** Every transaction (bank and manual) in the month being viewed, newest first as the server sent them. */
+export function getMonthTransactions(): LinkedTransaction[] {
+  return monthTransactions;
+}
+
+/** True when the pages show the user's own data (a bank or manual entries) instead of the sample. */
+export function usingRealData(): boolean {
+  return hasRealData;
+}
+
+/** Whether moving a transaction should also move everything else from the same merchant. */
+export function movesWholeMerchant(): boolean {
+  return applyToMerchant;
 }
 
 /** Mirrors the user's custom categories (from the server) into the category list. */
@@ -409,8 +426,12 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("change", (event) => {
   const target = event.target;
-  if (target instanceof HTMLInputElement && target.id === "apply-merchant") {
+  if (target instanceof HTMLInputElement && (target.id === "apply-merchant" || target.classList.contains("apply-merchant-toggle"))) {
     applyToMerchant = target.checked;
+    // the dialog and the page list each have this box: keep them the same
+    document.querySelectorAll<HTMLInputElement>("#apply-merchant, .apply-merchant-toggle").forEach((box) => {
+      box.checked = applyToMerchant;
+    });
     return;
   }
   if (!(target instanceof HTMLSelectElement) || !target.classList.contains("recategorize-select")) return;
