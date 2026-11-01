@@ -129,13 +129,11 @@ function renderTransactionList() {
     controls.hidden = true;
     $("#tx-merchant-option").hidden = true;
     summary.textContent = "";
-    $("#tx-eyebrow").textContent = "EVERY TRANSACTION";
     list.innerHTML = `<p class="tx-empty">Link a bank in Settings, or use Add above, and every transaction will be listed here.</p>`;
     return;
   }
   controls.hidden = false;
   $("#tx-merchant-option").hidden = false;
-  $("#tx-eyebrow").textContent = `${monthText.toUpperCase()} · EVERY TRANSACTION`;
 
   if (!all.length) {
     controls.hidden = true;
