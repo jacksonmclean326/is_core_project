@@ -1,3 +1,4 @@
+import { loadGoals } from "../../goals.js";
 import {
   $,
   escapeHTML,
@@ -195,3 +196,11 @@ $("#watch-categories").addEventListener("click", (event) => {
 renderDashboard();
 void loadBankAccountCount();
 refreshIcons();
+
+void loadGoals().then((goals) => {
+  state.goals = goals;
+  renderDashboard();
+}).catch(() => {
+  $("#dashboard-goal-name").textContent = "Unable to load your goals";
+  $("#dashboard-goal-progress").textContent = "Refresh to try again";
+});

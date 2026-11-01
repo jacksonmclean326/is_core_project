@@ -1,3 +1,4 @@
+import { loadGoals, saveGoals } from "../../goals.js";
 import {
   $,
   $$,
@@ -164,6 +165,13 @@ function openSummaryEditor() {
         `<div class="edit-row category-edit-row"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Category name" maxlength="24" value="${escapeHTML(category.name)}"></div>`,
     )
     .join("");
+  $("#dialog-content").innerHTML =
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear in your summary.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3>${categoryRows}<button class="primary-button" type="submit">Save changes</button></form>`;
+  $<HTMLDialogElement>("#detail-dialog").showModal();
+  refreshIcons();
+}
+
+function openGoalsEditor() {
   const goalRows = state.goals
     .map(
       (goal) =>
@@ -171,13 +179,13 @@ function openSummaryEditor() {
     )
     .join("");
   $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3>${categoryRows}<h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Add, update, or remove your goals.</p><form id="goals-edit-form" class="edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
   $<HTMLDialogElement>("#detail-dialog").showModal();
   refreshIcons();
 }
 
 function addGoalEditorRow() {
-  const id = `goal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const id = crypto.randomUUID();
   $("#goal-editor-rows").insertAdjacentHTML(
     "beforeend",
     `<div class="edit-row goal-edit-row" data-goal-row="${id}"><select class="goal-kind-input" aria-label="Goal type"><option>Savings</option><option>Spending</option><option>Earnings</option><option>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" placeholder="400"><button type="button" class="remove-goal" data-remove-goal="${id}" aria-label="Remove new goal"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
@@ -185,21 +193,18 @@ function addGoalEditorRow() {
   refreshIcons();
 }
 
-function saveSummaryEditor(event: SubmitEvent) {
+async function saveGoalsEditor(event: SubmitEvent, form: HTMLFormElement) {
   event.preventDefault();
   const feedback = $("#edit-feedback");
-  const form = event.currentTarget as HTMLFormElement;
   const goalRows = $$(".goal-edit-row", form);
   const goals = [];
   for (const row of goalRows) {
     const name = $<HTMLInputElement>(".goal-name-input", row).value.trim();
     const target = Number($<HTMLInputElement>(".goal-target-input", row).value);
     const kind = $<HTMLSelectElement>(".goal-kind-input", row).value;
-    if (!name || !target || target > state.income) {
+    if (!name || !Number.isFinite(target) || target <= 0) {
       feedback.textContent =
-        target > state.income
-          ? "Set each goal below your monthly income."
-          : "Add a name and amount to every goal, or remove the empty row.";
+        "Add a name and a positive amount to every goal, or remove the empty row.";
       return;
     }
     const oldGoal = state.goals.find((goal) => goal.id === row.dataset.goalRow);
@@ -213,6 +218,28 @@ function saveSummaryEditor(event: SubmitEvent) {
       progress: oldGoal?.progress || 0,
     });
   }
+  const submit = $<HTMLButtonElement>('button[type="submit"]', form);
+  if (submit.disabled) return;
+  submit.disabled = true;
+  submit.textContent = "Saving…";
+  feedback.textContent = "";
+  try {
+    const saved = await saveGoals(goals);
+    if (!form.isConnected) return;
+    state.goals = saved;
+    $<HTMLDialogElement>("#detail-dialog").close();
+    renderSummary();
+    showToast("Your goals are updated.");
+  } catch (error) {
+    feedback.textContent = `Goals were not saved. ${error instanceof Error ? error.message : "Check your connection and database setup, then try again."}`;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Save changes";
+  }
+}
+
+function saveSummaryEditor(event: SubmitEvent, form: HTMLFormElement) {
+  event.preventDefault();
   state.categories.forEach((category) => {
     const nameInput = $<HTMLInputElement>(
       `.category-name[data-category-id="${category.id}"]`,
@@ -225,17 +252,19 @@ function saveSummaryEditor(event: SubmitEvent) {
     category.name = nameInput.value.trim() || category.name;
     category.visible = visibleInput.checked;
   });
-  state.goals = goals;
   saveState();
   $<HTMLDialogElement>("#detail-dialog").close();
   renderSummary();
-  showToast("Your summary and goals are updated.");
+  showToast("Your summary is updated.");
 }
 
 $("#edit-summary").addEventListener("click", openSummaryEditor);
-$("#edit-goals-link").addEventListener("click", openSummaryEditor);
+$("#edit-goals-link").addEventListener("click", openGoalsEditor);
 $("#detail-dialog").addEventListener("submit", (event) => {
-  if (event.target instanceof Element && event.target.id === "summary-edit-form") saveSummaryEditor(event);
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  if (form.id === "summary-edit-form") saveSummaryEditor(event, form);
+  if (form.id === "goals-edit-form") saveGoalsEditor(event, form);
 });
 $("#detail-dialog").addEventListener("click", (event) => {
   const target = eventElement(event);
@@ -321,5 +350,18 @@ $(".app-shell").addEventListener("focusout", (event) => {
   if (row && !(event.relatedTarget instanceof Node && row.contains(event.relatedTarget))) resetDonutPreview();
 });
 
+const goalsContainer = $("#goal-card-list");
+const editGoalsButton = $<HTMLButtonElement>("#edit-goals-link");
+editGoalsButton.disabled = true;
 renderSummary();
+goalsContainer.textContent = "Loading your goals…";
+void loadGoals().then((goals) => {
+  if (!goalsContainer.isConnected) return;
+  state.goals = goals;
+  renderSummary();
+  editGoalsButton.disabled = false;
+}).catch(() => {
+  if (!goalsContainer.isConnected) return;
+  goalsContainer.textContent = "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again.";
+});
 refreshIcons();

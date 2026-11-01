@@ -72,3 +72,15 @@
   .donut-chart { flex-basis: 48vw; width: 48vw; }
   .legend-row { font-size: 9px; }
 }
+
+/* Keep scrolling in the dialog, without a second scrollbar in its form. */
+html:has(#detail-dialog[open]) { overflow: hidden; }
+#detail-dialog { overflow-y: auto; overscroll-behavior: contain; }
+#detail-dialog .edit-form { max-height: none; overflow: visible; padding-right: 0; }
+#goal-editor-rows { display: grid; gap: 12px; }
+@media (max-width: 480px) {
+  #detail-dialog .goal-edit-row { grid-template-columns: minmax(0, 1fr) 29px; }
+  #detail-dialog .goal-name-input { grid-column: 1; grid-row: 1; }
+  #detail-dialog .remove-goal { grid-column: 2; grid-row: 1; }
+  #detail-dialog .goal-kind-input, #detail-dialog .goal-target-input { grid-column: 1 / -1; }
+}

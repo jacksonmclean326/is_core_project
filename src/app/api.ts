@@ -139,3 +139,11 @@ export function disconnectPlaidItem(itemId: string): Promise<{ ok: boolean }> {
     method: "DELETE",
   });
 }
+
+export function getGoals(): Promise<{ goals: import("./goals.js").GoalRow[] }> {
+  return request("/api/goals");
+}
+
+export function putGoals(items: { id: string; kind: string; name: string; target: number }[]): Promise<{ goals: import("./goals.js").GoalRow[] }> {
+  return request("/api/goals", { method: "PUT", body: JSON.stringify({ items }) });
+}

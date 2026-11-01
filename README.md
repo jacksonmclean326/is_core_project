@@ -94,10 +94,29 @@ npm start
 
 `src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/`; authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
-Most budgeting data still lives in browser storage and is not yet stored per user in Supabase. Bank connection data is stored per user in Supabase as described above. Client-side route guards are for navigation only and are not data security.
+Most budgeting data still lives in browser storage. Goals and bank connection data are stored per user in Supabase. The authenticated server API uses the user's Supabase session and Row Level Security for goals.
 
 Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`; browser-persisted prototype state is in `src/app/core.ts`.
 
 ## Verifying the Vertical Slice:
 
 Run `npm start`, create an account from the sign-in screen, and confirm the email if email confirmations are enabled in Supabase. Then sign in, refresh to verify the session persists, and use **Sign out** to return to the sign-in screen.
+
+## Supabase goals setup
+
+Goals now use Supabase instead of the sample goals or browser storage. Run this setup before opening Home, Details, or Ask:
+
+1. Open your Supabase project → **SQL Editor** → **New query**.
+2. Copy all of `supabase/migrations/202611010001_goals.sql` into the editor and click **Run** once. This migration adapts the existing case-sensitive `public."Goal"` table and adds `goal_name` for the editor’s goal title. It preserves existing rows and foreign keys. It assumes `Goal.user_id` stores the Supabase Auth UUID, as `User.user_id` does in the app’s profile lookup. If that foreign key points to `User`, a matching profile row must exist before saving.
+3. Start the app with `npm start` and sign in.
+4. Open **Details → Edit goals → Add a goal**, enter the type, name, and target amount, then **Save changes**.
+5. In Supabase **Table Editor → Goal**, confirm a row exists with your Auth user ID in `user_id`. Refresh the app to confirm it loads from the database.
+6. Change a goal and save; verify the row updates. Remove a goal and save; verify its row disappears. Sign in with a second account and confirm its goals start empty and it cannot see the first account's goals.
+
+`src/app/goals.ts` calls the authenticated `/api/goals` endpoint. `src/server/api/goals.ts` reads rows through `supabase.from("Goal").select(...)` and saves the editor through `supabase.rpc("save_user_goals", { items })`. The database function inserts new goals, updates existing goals, and removes omitted goals in one transaction. If saving fails, the editor stays open with an error and preserves your input. Concurrent saves use the last submitted form.
+
+Each row belongs to a Supabase Auth user. Row Level Security checks `auth.uid() = user_id`, so signed-in users can only read and change their own rows. The function uses invoker security and the same policies. Use the existing publishable key in `.env`; no service-role key is needed.
+
+New goals start with `progress = 0`. Existing progress is read from Supabase and preserved when editing goals. Automatic progress from banking transactions is not implemented. To verify the progress display, update your test goal's `amount_savings` in the Supabase Table Editor and refresh the app. Target amounts are independent of the prototype income value. Old sample/local goals are not imported.
+
+The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.
