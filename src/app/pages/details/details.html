@@ -34,11 +34,23 @@
               </div>
               <div class="category-legend" id="category-legend"></div>
             </div>
-            <div class="top-categories-panel"><div class="section-heading compact-heading"><div><p class="eyebrow">WHERE IT GOES</p><h2>Top categories</h2></div><span class="quiet-note">% of spending</span></div><div class="top-category-list" id="top-category-list"></div></div>
+            <div class="top-categories-panel"><div class="section-heading compact-heading"><div><p class="eyebrow">WHERE IT GOES</p><h2>Top categories</h2></div><span class="quiet-note">% of spending</span></div><div class="top-category-list" id="top-category-list"></div><a class="text-button view-all-link" href="#all-transactions">See every transaction <i data-lucide="arrow-down" aria-hidden="true"></i></a></div>
           </section>
           <section class="goals-section" aria-labelledby="goals-title">
             <div class="section-heading compact-heading"><div><p class="eyebrow">SMALL STEPS ADD UP</p><h2 id="goals-title">Your goals</h2></div><button class="text-button" type="button" id="edit-goals-link">Edit goals <i data-lucide="arrow-up-right" aria-hidden="true"></i></button></div>
             <div class="goal-card-list" id="goal-card-list"></div>
+          </section>
+          <section class="transactions-section" id="all-transactions" aria-labelledby="all-transactions-title">
+            <div class="section-heading compact-heading"><div><p class="eyebrow" id="tx-eyebrow">EVERY TRANSACTION</p><h2 id="all-transactions-title">All transactions</h2></div></div>
+            <div class="tx-controls" id="tx-controls">
+              <input type="search" id="tx-search" placeholder="Search merchant, amount, account..." aria-label="Search transactions" autocomplete="off">
+              <select id="tx-category-filter" aria-label="Show one category"></select>
+              <select id="tx-sort" aria-label="Sort transactions"></select>
+            </div>
+            <label class="apply-merchant" id="tx-merchant-option"><input type="checkbox" class="apply-merchant-toggle"> When I move a transaction, move everything from the same merchant too</label>
+            <p class="tx-summary" id="tx-summary" aria-live="polite"></p>
+            <div class="tx-list" id="tx-list"></div>
+            <button class="outline-button tx-more" type="button" id="tx-more" hidden>Show more</button>
           </section>
         </section>
       </main>

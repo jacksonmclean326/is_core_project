@@ -3,7 +3,9 @@ import {
   $$,
   escapeHTML,
   eventElement,
+  getMonthTransactions,
   loadLinkedTransactions,
+  movesWholeMerchant,
   onDataChanged,
   prefetchMonth,
   primeFromSnapshot,
@@ -16,8 +18,17 @@ import {
   state,
   syncCustomCategories,
   totalSpent,
+  usingRealData,
 } from "../../core.js";
 import { createCategory, deleteCategory, renameCategory } from "../../api.js";
+import {
+  filterTransactions,
+  renderRows,
+  sortLabels,
+  sortTransactions,
+  summarizeList,
+  type ListSort,
+} from "../../../shared/transaction-list.js";
 import {
   addMonths,
   compareMonths,
@@ -78,11 +89,95 @@ async function showMonth(month: MonthKey) {
   }
 }
 
+const listView = { query: "", category: "", sort: "newest" as ListSort, shown: 100 };
+const pageSize = 100;
+
+function categoryLabel(key: string): string {
+  return state.categories.find((category) => category.id === key)?.name ?? "Other";
+}
+
+/** The flat list of every transaction in the viewed month, with search, filter, sort and inline editing. */
+function renderTransactionList() {
+  const all = getMonthTransactions();
+  const real = usingRealData();
+  const controls = $("#tx-controls");
+  const monthText = monthName(selectedMonth);
+
+  // category filter: rebuilt from the current categories, keeping the user's choice if it still exists
+  const filter = $<HTMLSelectElement>("#tx-category-filter");
+  const keep = state.categories.some((category) => category.id === listView.category) ? listView.category : "";
+  listView.category = keep;
+  filter.innerHTML =
+    `<option value="">All categories</option>` +
+    state.categories.map((category) => `<option value="${escapeHTML(category.id)}">${escapeHTML(category.name)}</option>`).join("");
+  filter.value = keep;
+  const sort = $<HTMLSelectElement>("#tx-sort");
+  if (!sort.options.length) {
+    sort.innerHTML = (Object.keys(sortLabels) as ListSort[])
+      .map((key) => `<option value="${key}">${sortLabels[key]}</option>`)
+      .join("");
+  }
+  sort.value = listView.sort;
+  $<HTMLInputElement>("#tx-merchant-option input").checked = movesWholeMerchant();
+
+  const summary = $("#tx-summary");
+  const list = $("#tx-list");
+  const more = $<HTMLButtonElement>("#tx-more");
+  more.hidden = true;
+
+  if (!real) {
+    controls.hidden = true;
+    $("#tx-merchant-option").hidden = true;
+    summary.textContent = "";
+    $("#tx-eyebrow").textContent = "EVERY TRANSACTION";
+    list.innerHTML = `<p class="tx-empty">Link a bank in Settings, or use Add above, and every transaction will be listed here.</p>`;
+    return;
+  }
+  controls.hidden = false;
+  $("#tx-merchant-option").hidden = false;
+  $("#tx-eyebrow").textContent = `${monthText.toUpperCase()} · EVERY TRANSACTION`;
+
+  if (!all.length) {
+    controls.hidden = true;
+    $("#tx-merchant-option").hidden = true;
+    summary.textContent = "";
+    list.innerHTML = `<p class="tx-empty">No transactions in ${escapeHTML(monthText)}.</p>`;
+    return;
+  }
+
+  const shownRows = sortTransactions(
+    filterTransactions(all, { query: listView.query, category: listView.category }, categoryLabel),
+    listView.sort,
+  );
+  const totals = summarizeList(shownRows);
+  const filtered = shownRows.length !== all.length;
+  summary.textContent = filtered
+    ? `${totals.count} of ${all.length} transactions \u00b7 ${money(totals.total)}`
+    : `${totals.count} transaction${totals.count === 1 ? "" : "s"} \u00b7 ${money(totals.total)}`;
+
+  if (!shownRows.length) {
+    list.innerHTML = `<p class="tx-empty">Nothing matches that search.</p>`;
+    return;
+  }
+
+  const page = shownRows.slice(0, listView.shown);
+  list.innerHTML = renderRows(page, listView.sort, {
+    categories: state.categories.map((category) => ({ id: category.id, name: category.name, color: category.color })),
+    money,
+    escape: escapeHTML,
+  });
+  if (shownRows.length > page.length) {
+    more.hidden = false;
+    more.textContent = `Show ${Math.min(pageSize, shownRows.length - page.length)} more (${shownRows.length - page.length} left)`;
+  }
+}
+
 function periodWord(): string {
   return selectedMonth === currentMonthKey() ? "THIS MONTH" : monthName(selectedMonth).toUpperCase();
 }
 
 function renderSummary() {
+  renderTransactionList();
   $("#summary-spent-label").textContent =
     selectedMonth === currentMonthKey() ? "Current monthly spending" : `${monthName(selectedMonth)} spending`;
   const spent = totalSpent();
@@ -487,4 +582,24 @@ onDataChanged((result) => {
   isLinked = result === "linked";
   renderPeriod();
   renderSummary();
+});
+
+$("#tx-search").addEventListener("input", (event) => {
+  listView.query = (event.target as HTMLInputElement).value;
+  listView.shown = pageSize;
+  renderTransactionList();
+});
+$("#tx-category-filter").addEventListener("change", (event) => {
+  listView.category = (event.target as HTMLSelectElement).value;
+  listView.shown = pageSize;
+  renderTransactionList();
+});
+$("#tx-sort").addEventListener("change", (event) => {
+  listView.sort = (event.target as HTMLSelectElement).value as ListSort;
+  listView.shown = pageSize;
+  renderTransactionList();
+});
+$("#tx-more").addEventListener("click", () => {
+  listView.shown += pageSize;
+  renderTransactionList();
 });
