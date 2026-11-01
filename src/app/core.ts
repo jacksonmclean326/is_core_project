@@ -25,11 +25,13 @@ import {
   transactionHistoryMonths,
   type MonthKey,
 } from "../shared/months.js";
+import { limitStatus, parseLimit, scaleLimits } from "../shared/limits.js";
 
 let latestTransactionRequest = 0;
 let lastHistory = 0;
 let refreshPage: (result: LoadResult) => void = () => {};
 let hasRealData = false;
+let editingLimit: string | undefined;
 let monthTransactions: LinkedTransaction[] = [];
 let pageWantsUpdates = false;
 let openCategoryId: string | undefined;
@@ -374,17 +376,18 @@ export function saveState() {
   localStorage.setItem(storageKey, JSON.stringify({ ...savedState, categories }));
 }
 
+/**
+ * Called when the monthly budget is saved. If the budget really changed, every limit that is set moves with it
+ * (in proportion). Saving the same budget again leaves limits exactly as the user set them.
+ */
 export function updateCategoryBudgets(totalBudget: number) {
-  const categories = state.categories.filter((category) => Number(category.limit) > 0);
-  const currentTotal = categories.reduce((total, category) => total + Number(category.limit), 0);
-  if (!currentTotal || !categories.length) return;
-  let allocated = 0;
-  categories.forEach((category, index) => {
-    const limit = index === categories.length - 1
-      ? totalBudget - allocated
-      : Math.round(totalBudget * Number(category.limit) / currentTotal);
-    category.limit = Math.max(0, limit);
-    allocated += category.limit;
+  const scaled = scaleLimits(
+    state.categories.map((category) => Number(category.limit) || 0),
+    Number(state.budget) || 0,
+    totalBudget
+  );
+  state.categories.forEach((category, index) => {
+    category.limit = scaled[index] ?? category.limit;
   });
 }
 
@@ -410,18 +413,27 @@ export function openCategoryDetails(categoryId: string | undefined) {
   const share = chartTotal ? category.amount / chartTotal * 100 : 0;
   const limit = Number(category.limit) || 0;
   const used = limit ? Math.min(100, category.amount / limit * 100) : 0;
-  const isClose = limit > 0 && used >= 90;
-  const status = limit ? (used >= 100 ? "Category limit reached" : isClose ? "Close to category limit" : "Within category budget") : "No category limit set";
+  const standing = limitStatus(category.amount, limit);
+  const isClose = standing === "close" || standing === "reached";
+  const status = { none: "No category limit set", within: "Within category budget", close: "Close to category limit", reached: "Category limit reached" }[standing];
   const average = rows.length ? category.amount / rows.length : category.amount;
-  $("#dialog-content").innerHTML = `<p class="eyebrow">${monthName(viewingMonth).toUpperCase()} SPENDING</p><h2 class="dialog-title">${escapeHTML(category.name)}</h2><p class="dialog-subtitle">Category spending details</p><section class="category-detail-summary" aria-label="${escapeHTML(category.name)} spending summary"><p>Spent in ${monthName(viewingMonth)}</p><strong class="category-detail-amount">${money(category.amount)}</strong><span class="category-detail-limit">${limit ? `of ${money(limit)} monthly limit` : "No monthly limit"}</span><div class="category-detail-track"><span style="width:${used}%;background:${category.color}"></span></div><div class="category-detail-status${isClose ? " is-close" : ""}"><i data-lucide="${isClose ? "triangle-alert" : "circle-check"}" aria-hidden="true"></i><span>${status}</span></div><div class="category-detail-stats"><div><span>Share</span><strong>${share.toFixed(1)}%</strong></div><div><span>Purchases</span><strong>${rows.length}</strong></div><div><span>Average</span><strong>${money(average)}</strong></div></div></section><section class="category-detail-transactions"><h3>Transactions</h3>${applyRow}${detailRows || `<p class="watch-empty">No transactions in ${monthName(viewingMonth)}.</p>`}</section>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
+  const limitEditor =
+    editingLimit === categoryId
+      ? `<form class="limit-form" data-limit-form="${escapeHTML(category.id)}"><label for="limit-input">Monthly limit for ${escapeHTML(category.name)}</label><div class="limit-form-row"><input id="limit-input" inputmode="decimal" autocomplete="off" placeholder="No limit" value="${limit || ""}"><button class="primary-button" type="submit">Save</button><button class="text-button" type="button" data-cancel-limit>Cancel</button></div><p class="dialog-form-feedback" id="limit-feedback" aria-live="polite">Leave it blank to remove the limit.</p></form>`
+      : `<button type="button" class="text-button limit-edit" data-edit-limit="${escapeHTML(category.id)}">${limit ? "Change limit" : "Set a limit"}</button>`;
+  $("#dialog-content").innerHTML = `<p class="eyebrow">${monthName(viewingMonth).toUpperCase()} SPENDING</p><h2 class="dialog-title">${escapeHTML(category.name)}</h2><p class="dialog-subtitle">Category spending details</p><section class="category-detail-summary" aria-label="${escapeHTML(category.name)} spending summary"><p>Spent in ${monthName(viewingMonth)}</p><strong class="category-detail-amount">${money(category.amount)}</strong><span class="category-detail-limit">${limit ? `of ${money(limit)} monthly limit` : "No monthly limit"}</span>${limitEditor}<div class="category-detail-track"><span style="width:${used}%;background:${category.color}"></span></div><div class="category-detail-status${isClose ? " is-close" : ""}"><i data-lucide="${isClose ? "triangle-alert" : "circle-check"}" aria-hidden="true"></i><span>${status}</span></div><div class="category-detail-stats"><div><span>Share</span><strong>${share.toFixed(1)}%</strong></div><div><span>Purchases</span><strong>${rows.length}</strong></div><div><span>Average</span><strong>${money(average)}</strong></div></div></section><section class="category-detail-transactions"><h3>Transactions</h3>${applyRow}${detailRows || `<p class="watch-empty">No transactions in ${monthName(viewingMonth)}.</p>`}</section>`;
+  const detailDialog = $<HTMLDialogElement>("#detail-dialog");
+  if (!detailDialog.open) detailDialog.showModal();
   refreshIcons();
 }
 
 document.addEventListener("click", (event) => {
   const dialog = document.querySelector<HTMLDialogElement>("#detail-dialog");
   const target = event.target;
-  if (dialog && (target === dialog || target instanceof Element && target.closest(".dialog-close"))) dialog.close();
+  if (dialog && (target === dialog || target instanceof Element && target.closest(".dialog-close"))) {
+    editingLimit = undefined;
+    dialog.close();
+  }
 });
 
 document.addEventListener("change", (event) => {
@@ -555,4 +567,47 @@ document.addEventListener("click", (event) => {
       showToast("Transaction deleted.");
     })
     .catch((error: unknown) => showToast(error instanceof Error ? error.message : "Could not delete that transaction."));
+});
+
+/** Saves a new limit for one category (0 removes it) and redraws whatever page is open. */
+export function setCategoryLimit(categoryId: string, limit: number) {
+  const category = state.categories.find((item) => item.id === categoryId);
+  if (!category) return;
+  category.limit = limit;
+  saveState();
+  refreshPage(hasRealData ? "linked" : "sample");
+}
+
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const edit = target?.closest<HTMLElement>("[data-edit-limit]");
+  if (edit?.dataset.editLimit) {
+    editingLimit = edit.dataset.editLimit;
+    openCategoryDetails(editingLimit);
+    $<HTMLInputElement>("#limit-input").focus();
+    return;
+  }
+  if (target?.closest("[data-cancel-limit]") && editingLimit) {
+    const id = editingLimit;
+    editingLimit = undefined;
+    openCategoryDetails(id);
+  }
+});
+
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.dataset.limitForm) return;
+  event.preventDefault();
+  const id = form.dataset.limitForm;
+  const result = parseLimit($<HTMLInputElement>("#limit-input", form).value);
+  if (!result.ok) {
+    const feedback = $("#limit-feedback", form);
+    feedback.textContent = result.message;
+    feedback.classList.add("is-error");
+    return;
+  }
+  setCategoryLimit(id, result.value);
+  editingLimit = undefined;
+  openCategoryDetails(id);
+  showToast(result.value ? "Limit updated." : "Limit removed.");
 });
