@@ -326,7 +326,7 @@ function openSummaryEditor() {
   const categoryRows = state.categories
     .map(
       (category) =>
-        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Category name" maxlength="24" value="${escapeHTML(category.name)}"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}">${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
+        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}">${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
     )
     .join("");
   const goalRows = state.goals
@@ -353,7 +353,7 @@ function addCategoryEditorRow() {
   }
   $("#add-category-row").insertAdjacentHTML(
     "beforebegin",
-    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Category name" maxlength="${maxCategoryName}" placeholder="Name your category"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Name of the new category" maxlength="${maxCategoryName}" placeholder="Name your category"><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
   );
   $$<HTMLInputElement>('[data-new-category="1"] .category-name', form).at(-1)?.focus();
   refreshIcons();
@@ -634,6 +634,8 @@ function updateLimitsNote() {
     ? `Monthly limit per category (leave blank for none). Your limits add up to ${money(total)} of your ${money(budget)} budget.`
     : "Monthly limit per category (leave blank for none).";
   note.classList.toggle("is-over", budget > 0 && total > budget);
+  // say it in words too, not only in red
+  if (budget > 0 && total > budget) note.textContent += " That is over your budget.";
 }
 $("#detail-dialog").addEventListener("input", (event) => {
   if (event.target instanceof HTMLInputElement && event.target.classList.contains("category-limit")) updateLimitsNote();

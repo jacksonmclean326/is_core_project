@@ -120,3 +120,20 @@
   .tx-row { grid-template-columns: 10px minmax(0, 1fr) auto; }
   .tx-row .recategorize-select { grid-column: 2 / -1; max-width: none; justify-self: start; }
 }
+
+/* Header: month switcher, title and the Add/Edit buttons wrap instead of squeezing past the screen edge. */
+.summary-heading { flex-wrap: wrap; row-gap: 12px; }
+.summary-heading > div:first-child { flex: 1 1 260px; min-width: 0; }
+.month-switcher button { flex: 0 0 auto; }
+@media (max-width: 720px) {
+  .heading-actions { width: 100%; }
+  .heading-actions .edit-summary-button { flex: 1 1 0; justify-content: center; }
+}
+
+/* The list: names wrap (up to two lines) instead of being cut off, fields share rows on narrow screens. */
+.tx-controls input, .tx-controls select { border-color: var(--field-border); font-size: 13px; }
+.tx-controls select { flex: 1 1 140px; }
+.tx-main strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+.tx-main small { white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+.tx-day { font-size: 11px; }
+.tx-row .recategorize-select { font-size: 12px; }

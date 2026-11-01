@@ -137,7 +137,7 @@ export function renderRows(transactions: ListTransaction[], sort: ListSort, cont
     return groupByDate(transactions)
       .map(
         (group) =>
-          `<div class="tx-day">${context.escape(`${weekdayOf(group.date).slice(0, 3)}, ${shortDateLabel(group.date)}`)}</div>${group.items.map((item) => rowHtml(item, context)).join("")}`,
+          `<h3 class="tx-day">${context.escape(`${weekdayOf(group.date).slice(0, 3)}, ${shortDateLabel(group.date)}`)}</h3>${group.items.map((item) => rowHtml(item, context)).join("")}`,
       )
       .join("");
   }

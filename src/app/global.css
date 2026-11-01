@@ -3,7 +3,8 @@
   --paper: #f5f5ef;
   --white: #fffefa;
   --ink: #17201d;
-  --muted: #6d7771;
+  --muted: #626c66; /* 4.5:1 or better on every background it is used on */
+  --field-border: #848e87; /* 3:1 on white, so a field's edge can be seen (WCAG 1.4.11) */
   --line: #dfe3da;
   --green: #2f6854;
   --green-dark: #214c3d;
@@ -47,8 +48,8 @@ button {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(47, 104, 84, 0.38);
-  outline-offset: 3px;
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
 }
 [hidden] {
   display: none !important;
@@ -779,10 +780,10 @@ h3 {
 }
 
 .category-edit-row {
-  grid-template-columns: 24px minmax(0, 1fr) 104px;
+  grid-template-columns: 28px minmax(0, 1fr) 104px;
 }
 .category-edit-row.has-remove {
-  grid-template-columns: 24px minmax(0, 1fr) 104px auto;
+  grid-template-columns: 28px minmax(0, 1fr) 104px auto;
 }
 .limits-note {
   margin: 0;
@@ -824,4 +825,163 @@ h3 {
 }
 .limit-form .dialog-form-feedback.is-error {
   color: #b3451f;
+}
+
+/* =====================================================================================
+   Accessibility and mobile fixes (WCAG 2.2 AA, iOS/Android touch guidance)
+   ===================================================================================== */
+
+/* Keep keyboard focus clear of the fixed menu bar (WCAG 2.4.11), and stop iOS inflating text in landscape. */
+html {
+  scroll-padding-bottom: 104px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* The menu labels were 9px and 3.6:1: now readable. */
+.nav-item {
+  color: var(--muted);
+  font-size: 11px;
+}
+.nav-item.is-current {
+  color: var(--green-dark);
+}
+
+/* Viewport heights follow the visible area on phones (address bar, on-screen keyboard). */
+.app-shell {
+  min-height: 100dvh;
+}
+.detail-dialog {
+  max-height: min(80dvh, 640px);
+}
+.edit-form {
+  max-height: 65dvh;
+}
+
+/* A field's edge needs 3:1 contrast to be identifiable. */
+.edit-row input,
+.edit-row select,
+.field input,
+.field select,
+.limit-form-row input,
+.transaction-row .recategorize-select,
+.tx-row .recategorize-select {
+  border-color: var(--field-border);
+}
+
+/* Nothing in the parts built here is smaller than 12px. */
+.transaction-row small,
+.transaction-row .recategorize-select,
+.row-action,
+.apply-merchant,
+.field,
+.limits-note,
+.limit-form,
+.edit-row input,
+.edit-row select,
+.dialog-form-feedback,
+.edit-form > p {
+  font-size: 12px;
+}
+
+/* Hit areas of at least 24px even with a mouse (WCAG 2.5.8), roomier spacing between neighbours. */
+.row-action {
+  min-height: 28px;
+  padding: 4px 10px;
+}
+.row-actions {
+  gap: 8px;
+}
+.category-edit-row input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+}
+
+/* Rows in the category popup: let long names, the menu and Edit/Delete wrap instead of overflowing. */
+.transaction-row {
+  flex-wrap: wrap;
+}
+.transaction-row .recategorize-select {
+  flex: 0 1 118px;
+  min-width: 0;
+}
+.transaction-row .row-amount {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.transaction-row .row-actions {
+  flex-basis: 100%;
+  justify-content: flex-end;
+}
+
+/* Edit summary on a narrow phone: stack the limit under the name so the name keeps a usable width. */
+@media (max-width: 560px) {
+  .category-edit-row,
+  .category-edit-row.has-remove {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+  .category-edit-row .category-visible {
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+  .category-edit-row .category-name {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .category-edit-row .category-limit {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .category-edit-row .remove-goal {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+}
+
+/* Touch screens: 44px targets, and 16px fields (below that, iPhones zoom the page when a field is tapped). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  .small-action,
+  .dialog-close,
+  .remove-goal,
+  .profile-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .edit-summary-button,
+  .outline-button,
+  .primary-button,
+  .text-button,
+  .add-goal-button,
+  .row-action {
+    min-height: 44px;
+  }
+  .row-action {
+    padding-inline: 14px;
+  }
+  input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
+  }
+  .tx-controls input,
+  .tx-controls select,
+  .field input,
+  .field select,
+  .limit-form-row input,
+  .recategorize-select {
+    min-height: 44px;
+  }
+}
+
+/* The chat box and the budget field hide the field's own outline; show the focus on the box around them. */
+.chat-compose:focus-within,
+.input-with-prefix:focus-within {
+  outline: 3px solid var(--green);
+  outline-offset: 2px;
 }
