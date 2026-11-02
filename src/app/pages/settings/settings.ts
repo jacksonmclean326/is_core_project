@@ -4,8 +4,10 @@ import {
   eventElement,
   money,
   openDialog,
+  profileInitials,
   refreshIcons,
   saveState,
+  setProfileInitials,
   showToast,
   state,
   checkCategoryWarnings,
@@ -219,12 +221,8 @@ async function renderAuthenticatedProfile() {
 
     nameElement.textContent = name || "Name not provided";
     emailElement.textContent = email || "Email unavailable";
-    initialsElement.textContent = (name || email || "?")
-      .split(/\s+/)
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+    initialsElement.textContent = profileInitials(name, email);
+    setProfileInitials(name, email);
     if (!name) {
       feedback.textContent = "Add your name to your account profile to see it here.";
     }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { test } from "node:test";
 import { JSDOM } from "jsdom";
-import { iconMarkup, iconNames, inlineIcons, renderIcons } from "../src/app/icons.ts";
+import { iconMarkup, iconNames, inlineIcons, renderIcons } from "../src/app/ui/icons.ts";
 
 const appDirectory = new URL("../src/app/", import.meta.url);
 const pages = readdirSync(new URL("pages/", appDirectory));

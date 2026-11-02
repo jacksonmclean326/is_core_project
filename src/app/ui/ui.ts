@@ -37,6 +37,22 @@ export function showToast(message: string): void {
   toastTimer = setTimeout(() => toast.classList.remove("is-visible"), 3400);
 }
 
+export function profileInitials(name: string, email = ""): string {
+  return (name || email || "?")
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+export function setProfileInitials(name: string, email = ""): void {
+  const initials = profileInitials(name, email);
+  document.querySelectorAll(".profile-button .profile-initials").forEach((element) => {
+    element.textContent = initials;
+  });
+}
+
 export function openDialog(markup: string): void {
   const dialog = $<HTMLDialogElement>("#detail-dialog");
   const content = $("#dialog-content");
