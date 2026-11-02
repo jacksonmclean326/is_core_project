@@ -1,13 +1,13 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
-import { inlineIcons } from "./src/app/icons";
+import { inlineIcons } from "./src/app/ui/icons";
 
 export default defineConfig({
   plugins: [
     {
       // Icons are drawn into the HTML here, so they are on screen from the first paint (no script, no CDN).
       name: "inline-icons",
-      transformIndexHtml: (html: string) => inlineIcons(html)
+      transformIndexHtml: (html: string) => inlineIcons(html),
     },
     {
       name: "clean-page-routes",
@@ -18,7 +18,7 @@ export default defineConfig({
           "details",
           "chat",
           "leaderboard",
-          "settings"
+          "settings",
         ]);
 
         server.middlewares.use((request, response, next) => {
@@ -47,26 +47,28 @@ export default defineConfig({
           request.url = `/src/app/pages/${route}/${route}.html${query}`;
           next();
         });
-      }
-    }
+      },
+    },
   ],
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:3000"
-      }
+        target: "http://localhost:3000",
+      },
     },
   },
   build: {
     rollupOptions: {
       input: {
         ...Object.fromEntries(
-          ["auth", "home", "details", "chat", "leaderboard", "settings"].map((page) => [
-            page,
-            resolve(process.cwd(), `src/app/pages/${page}/${page}.html`)
-          ])
-        )
-      }
-    }
-  }
+          ["auth", "home", "details", "chat", "leaderboard", "settings"].map(
+            (page) => [
+              page,
+              resolve(process.cwd(), `src/app/pages/${page}/${page}.html`),
+            ],
+          ),
+        ),
+      },
+    },
+  },
 });

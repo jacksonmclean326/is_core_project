@@ -10,6 +10,7 @@ import {
   prefetchMonth,
   primeFromSnapshot,
   openTransactionForm,
+  openDialog,
   money,
   openCategoryDetails,
   refreshIcons,
@@ -335,11 +336,10 @@ function openSummaryEditor() {
         `<div class="edit-row goal-edit-row" data-goal-row="${escapeHTML(goal.id)}"><select class="goal-kind-input" aria-label="Goal type"><option ${goal.kind === "Savings" ? "selected" : ""}>Savings</option><option ${goal.kind === "Spending" ? "selected" : ""}>Spending</option><option ${goal.kind === "Earnings" ? "selected" : ""}>Earnings</option><option ${goal.kind === "Investing" ? "selected" : ""}>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" value="${escapeHTML(goal.name)}"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" value="${Number(goal.target)}"><button type="button" class="remove-goal" data-remove-goal="${escapeHTML(goal.id)}" aria-label="Remove ${escapeHTML(goal.name)}"><i data-icon="x" aria-hidden="true"></i></button></div>`,
     )
     .join("");
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-icon="plus" aria-hidden="true"></i> Add a category</button><h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
+  openDialog(
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-icon="plus" aria-hidden="true"></i> Add a category</button><h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
+  );
   updateLimitsNote();
-  refreshIcons();
 }
 
 const maxCustomCategories = 12;
