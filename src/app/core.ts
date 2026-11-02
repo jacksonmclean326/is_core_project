@@ -26,8 +26,7 @@ import {
   type MonthKey,
 } from "../shared/months.js";
 import { limitStatus, parseLimit, scaleLimits } from "../shared/limits.js";
-import { createIcons } from "lucide";
-import { appIcons } from "./icons.js";
+import { renderIcons } from "./icons.js";
 
 let latestTransactionRequest = 0;
 let lastHistory = 0;
@@ -355,8 +354,8 @@ export const eventElement = (event: Event): Element | null =>
 export const totalSpent = () => state.categories.reduce((total, category) => total + Number(category.amount || 0), 0);
 export const money = (amount: number) => currency.format(Math.abs(Number(amount) || 0));
 export const escapeHTML = (value: unknown) => String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character] ?? character);
-/** Draws any `<i data-lucide="...">` placeholder added by code (icons already in the page HTML are drawn at build time). */
-export const refreshIcons = () => createIcons({ icons: appIcons });
+/** Draws any icon placeholders added after the page was built. */
+export const refreshIcons = () => renderIcons();
 
 document.querySelectorAll(".profile-button .profile-initials").forEach((element) => {
   element.textContent = state.profile.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "?";
@@ -424,7 +423,7 @@ export function openCategoryDetails(categoryId: string | undefined) {
     editingLimit === categoryId
       ? `<form class="limit-form" data-limit-form="${escapeHTML(category.id)}"><label for="limit-input">Monthly limit for ${escapeHTML(category.name)}</label><div class="limit-form-row"><input id="limit-input" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="No limit" aria-describedby="limit-hint limit-feedback" value="${limit || ""}"><button class="primary-button" type="submit">Save</button><button class="text-button" type="button" data-cancel-limit>Cancel</button></div><p class="dialog-form-feedback" id="limit-hint">Leave it blank to remove the limit.</p><p class="dialog-form-feedback" id="limit-feedback" role="alert"></p></form>`
       : `<button type="button" class="text-button limit-edit" data-edit-limit="${escapeHTML(category.id)}">${limit ? "Change limit" : "Set a limit"}</button>`;
-  $("#dialog-content").innerHTML = `<p class="eyebrow">${monthName(viewingMonth).toUpperCase()} SPENDING</p><h2 class="dialog-title">${escapeHTML(category.name)}</h2><p class="dialog-subtitle">Category spending details</p><section class="category-detail-summary" aria-label="${escapeHTML(category.name)} spending summary"><p>Spent in ${monthName(viewingMonth)}</p><strong class="category-detail-amount">${money(category.amount)}</strong><span class="category-detail-limit">${limit ? `of ${money(limit)} monthly limit` : "No monthly limit"}</span>${limitEditor}<div class="category-detail-track"><span style="width:${used}%;background:${category.color}"></span></div><div class="category-detail-status${isClose ? " is-close" : ""}"><i data-lucide="${isClose ? "triangle-alert" : "circle-check"}" aria-hidden="true"></i><span>${status}</span></div><div class="category-detail-stats"><div><span>Share</span><strong>${share.toFixed(1)}%</strong></div><div><span>Purchases</span><strong>${rows.length}</strong></div><div><span>Average</span><strong>${money(average)}</strong></div></div></section><section class="category-detail-transactions"><h3>Transactions</h3>${applyRow}${detailRows || `<p class="watch-empty">No transactions in ${monthName(viewingMonth)}.</p>`}</section>`;
+  $("#dialog-content").innerHTML = `<p class="eyebrow">${monthName(viewingMonth).toUpperCase()} SPENDING</p><h2 class="dialog-title">${escapeHTML(category.name)}</h2><p class="dialog-subtitle">Category spending details</p><section class="category-detail-summary" aria-label="${escapeHTML(category.name)} spending summary"><p>Spent in ${monthName(viewingMonth)}</p><strong class="category-detail-amount">${money(category.amount)}</strong><span class="category-detail-limit">${limit ? `of ${money(limit)} monthly limit` : "No monthly limit"}</span>${limitEditor}<div class="category-detail-track"><span style="width:${used}%;background:${category.color}"></span></div><div class="category-detail-status${isClose ? " is-close" : ""}"><i data-icon="${isClose ? "triangle-alert" : "circle-check"}" aria-hidden="true"></i><span>${status}</span></div><div class="category-detail-stats"><div><span>Share</span><strong>${share.toFixed(1)}%</strong></div><div><span>Purchases</span><strong>${rows.length}</strong></div><div><span>Average</span><strong>${money(average)}</strong></div></div></section><section class="category-detail-transactions"><h3>Transactions</h3>${applyRow}${detailRows || `<p class="watch-empty">No transactions in ${monthName(viewingMonth)}.</p>`}</section>`;
   const detailDialog = $<HTMLDialogElement>("#detail-dialog");
   if (!detailDialog.open) detailDialog.showModal();
   refreshIcons();

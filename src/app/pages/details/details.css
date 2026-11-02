@@ -1,6 +1,6 @@
 .summary-heading { align-items: center; }
 .edit-summary-button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 5px; color: var(--green-dark); background: var(--white); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-.edit-summary-button .lucide { width: 16px; height: 16px; }
+.edit-summary-button .icon { width: 16px; height: 16px; }
 .current-spending { display: flex; align-items: baseline; gap: 10px; padding: 17px 0 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .summary-balance-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 20px; }
 .summary-balance-row .current-spending { align-content: center; }

@@ -32,7 +32,7 @@ Notes on the spending tables:
 
 ## Tech Stack:
 
-For our front end, we use HTML, CSS, and TypeScript with Vite. TypeScript adds static checking while keeping the app framework-free and easy to work on as a team.
+For our front end, we use HTML, CSS, and TypeScript with Vite. TypeScript adds static checking while keeping the app framework-free and easy to work on as a team. Icons are a small local inline-SVG set, and text uses system fonts; pages do not download an icon library or web fonts.
 
 On the back end, we’re using Supabase. It gives us a solid place that will handle a lot of the backend work that is usually complex, allowing us to do solid backend work. It allows us to build the system fast and focus on the actual features of our product without getting slowed down by excessive configuration.
 
@@ -93,8 +93,8 @@ If either command is not found, install Node.js LTS as described above, then reo
 
 4. Set up the database.
 
-   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it).
-   - **Existing project:** open the Supabase **SQL Editor** and run each file in `supabase/migrations/`, in date order. Every file is safe to run twice.
+   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql`; it contains the complete current schema.
+   - **Existing project:** do not run the full schema dump against an existing database. Compare it with the live schema and apply a reviewed upgrade separately; this repository no longer keeps incremental migration scripts.
 
 5. Install the exact dependency versions from the lockfile:
 

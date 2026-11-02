@@ -14,8 +14,8 @@
   --gold: #d5a33e;
   --lilac: #9b8cb4;
   --radius: 7px;
-  --font-body: "DM Sans", sans-serif;
-  --font-display: "Manrope", sans-serif;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-body);
   font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -199,7 +199,7 @@ h3 {
   padding: 7px 0;
   font-size: 0.75rem;
 }
-.text-button .lucide {
+.text-button .icon {
   width: 15px;
   height: 15px;
 }
@@ -229,7 +229,7 @@ h3 {
   font-weight: 600;
   cursor: pointer;
 }
-.select-wrap .lucide {
+.select-wrap .icon {
   position: absolute;
   right: 10px;
   width: 14px;
@@ -244,7 +244,7 @@ h3 {
   color: var(--green-dark);
   background: var(--white);
 }
-.small-action .lucide {
+.small-action .icon {
   width: 16px;
   height: 16px;
 }
@@ -282,7 +282,7 @@ h3 {
   font-weight: 700;
   cursor: pointer;
 }
-.outline-button .lucide {
+.outline-button .icon {
   width: 15px;
   height: 15px;
 }
@@ -325,7 +325,7 @@ h3 {
   text-decoration: none;
   cursor: pointer;
 }
-.nav-item .lucide {
+.nav-item .icon {
   width: 19px;
   height: 19px;
   stroke-width: 1.8;
@@ -333,7 +333,7 @@ h3 {
 .nav-item.is-current {
   color: var(--green-dark);
 }
-.nav-item.is-current .lucide {
+.nav-item.is-current .icon {
   stroke-width: 2.4;
 }
 .toast {
@@ -415,7 +415,7 @@ h3 {
   font-size: 0.75rem;
   font-weight: 600;
 }
-.category-detail-status .lucide {
+.category-detail-status .icon {
   width: 15px;
   height: 15px;
 }
@@ -471,7 +471,7 @@ h3 {
   background: var(--white);
   cursor: pointer;
 }
-.dialog-close .lucide {
+.dialog-close .icon {
   width: 15px;
   height: 15px;
 }
@@ -580,7 +580,7 @@ h3 {
   background: var(--white);
   cursor: pointer;
 }
-.remove-goal .lucide {
+.remove-goal .icon {
   width: 14px;
   height: 14px;
 }
@@ -597,7 +597,7 @@ h3 {
   font-weight: 700;
   cursor: pointer;
 }
-.add-goal-button .lucide {
+.add-goal-button .icon {
   width: 14px;
   height: 14px;
 }

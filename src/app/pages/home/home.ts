@@ -53,7 +53,7 @@ function renderTrend(mode: keyof typeof trends = selectedTrendMode()) {
       ? "set a budget to see this trend"
       : trend.caption;
   $("#trend-change").innerHTML =
-    `<i data-lucide="${trendIcon}" aria-hidden="true"></i> ${mode === "under" ? `${Math.abs(difference)} pts` : `${relative}%`} from last month`;
+    `<i data-icon="${trendIcon}" aria-hidden="true"></i> ${mode === "under" ? `${Math.abs(difference)} pts` : `${relative}%`} from last month`;
 
   const width = 850;
   const height = 220;

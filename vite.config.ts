@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
-import { inlineIcons } from "./src/build/inline-icons";
+import { inlineIcons } from "./src/app/icons";
 
 export default defineConfig({
   plugins: [

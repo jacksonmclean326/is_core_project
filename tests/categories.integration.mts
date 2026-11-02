@@ -1,5 +1,5 @@
 // End-to-end check of custom categories and recategorizing, against the running server (npm start),
-// the real Plaid sandbox and Supabase. Needs supabase/migrations/20261102_custom_categories.sql applied.
+// the real Plaid sandbox and Supabase. Requires the current schema from supabase/schema.sql.
 // Creates two throwaway users, then deletes everything it created.
 //   node --env-file=.env --import tsx tests/categories.integration.mts
 import assert from "node:assert/strict";
@@ -62,9 +62,9 @@ try {
 
   const probe = await a.call("/api/categories");
   if (probe.status !== 200) {
-    console.log(`SKIPPED: /api/categories returned ${probe.status} (${probe.body?.error}). Apply supabase/migrations/20261102_custom_categories.sql first.`);
+    console.log(`SKIPPED: /api/categories returned ${probe.status} (${probe.body?.error}). Ensure the test database has the schema from supabase/schema.sql.`);
     process.exitCode = 2;
-    throw new Error("migration not applied");
+    throw new Error("database schema unavailable");
   }
   ok(Array.isArray(probe.body.categories) && probe.body.categories.length === 0, "a new user has no custom categories");
 
@@ -250,7 +250,7 @@ try {
 
   console.log(`\nCATEGORIES: ALL PASSED (${checks} checks)`);
 } catch (error) {
-  if ((error as Error).message !== "migration not applied") {
+  if ((error as Error).message !== "database schema unavailable") {
     console.log(`\nCATEGORIES FAILURE after ${checks} checks:`, (error as Error).message);
     process.exitCode = 1;
   }

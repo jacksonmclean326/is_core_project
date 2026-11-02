@@ -121,7 +121,7 @@ function renderBankConnections() {
                       .map(
                         (account) => `
                           <div class="bank-row">
-                            <span class="bank-icon"><i data-lucide="landmark" aria-hidden="true"></i></span>
+                            <span class="bank-icon"><i data-icon="landmark" aria-hidden="true"></i></span>
                             <span class="bank-info">
                               <strong>${escapeHTML(account.name)}</strong>
                               <span>${escapeHTML(

@@ -24,20 +24,20 @@
 .friend-streak { color: var(--muted); font-size: 0.6875rem; white-space: nowrap; }
 .friend-score { font: 700 0.8125rem var(--font-display); }
 .remove-friend { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: transparent; cursor: pointer; }
-.remove-friend .lucide { width: 12px; height: 12px; }
+.remove-friend .icon { width: 12px; height: 12px; }
 .invite-section { max-width: 690px; margin: 0 auto; padding: 20px 0 0; border-top: 1px solid var(--line); }
-.invite-section > .section-heading > .lucide { width: 20px; height: 20px; color: var(--green); }
+.invite-section > .section-heading > .icon { width: 20px; height: 20px; color: var(--green); }
 .invite-code-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0 11px; padding: 13px 14px; border: 1px dashed #b9c8ba; border-radius: 5px; background: rgba(255, 254, 250, .6); }
 .invite-code-row > div { display: grid; gap: 3px; }
 .invite-code-row span { color: var(--muted); font-size: 0.6875rem; }
 .invite-code-row strong { font: 700 1rem var(--font-display); letter-spacing: 1px; }
 .invite-section .form-feedback.is-error { color: #a33f30; }
 .copy-code { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-.copy-code .lucide { width: 14px; height: 14px; }
+.copy-code .icon { width: 14px; height: 14px; }
 .add-friend-form { display: flex; gap: 8px; }
 .add-friend-form input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); font-size: 0.75rem; }
 .add-friend-form button { display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 0; border-radius: 4px; color: white; background: var(--green); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-.add-friend-form button .lucide { width: 15px; height: 15px; }
+.add-friend-form button .icon { width: 15px; height: 15px; }
 @media (max-width: 720px) {
   .leaderboard-intro { padding: 17px 15px; }
   .leaderboard-intro h2 { font-size: 0.9375rem; }
