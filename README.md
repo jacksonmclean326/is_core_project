@@ -93,8 +93,8 @@ If either command is not found, install Node.js LTS as described above, then reo
 
 4. Set up the database.
 
-   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql`; it contains the complete current schema.
-   - **Existing project:** do not run the full schema dump against an existing database. Compare it with the live schema and apply a reviewed upgrade separately; this repository no longer keeps incremental migration scripts.
+   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it). Then apply the goals migration described under **Supabase goals setup**.
+   - **Existing project:** open the Supabase **SQL Editor** and run each file in `supabase/migrations/`, in date order. Every file is safe to run twice.
 
 5. Install the exact dependency versions from the lockfile:
 
@@ -183,9 +183,9 @@ npm start
 
 `src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/` (`auth`, `account`, `plaid`, `transactions`, `manual-transactions`, `categories`); authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. `src/server/categorize.ts` holds the automatic categorization rules, and `src/shared/months.ts` holds the calendar math used by both the server and the browser. Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
-Budgets, goals, category limits, and preferences are still stored in the browser and are not yet saved per user in Supabase. Bank connections, transactions, custom categories, and merchant rules are stored per user in Supabase as described above. Client-side route guards are for navigation only and are not data security.
+Budgets, category limits, and preferences are stored in the browser. Goals, bank connections, transactions, custom categories, and merchant rules are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
 
-Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`; shared browser state and the transaction/category dialogs are in `src/app/core.ts`.
+Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`. Shared browser state lives in `src/app/state/state.ts`, transaction loading in `src/app/transactions/transactions.ts`, and UI helpers and dialogs in `src/app/ui/`. `src/app/core.ts` re-exports these modules.
 
 ## Tests
 
@@ -215,9 +215,28 @@ To check spending data:
 
 ## Known limitations
 
-- Budgets, goals, and category limits are not saved per user yet, so they do not follow someone to another browser.
+- Budgets and category limits are not saved per user yet, so they do not follow someone to another browser.
 - Friends and leaderboard points are sample data, and the chat does not use an AI model yet.
 - The Home trend and Details totals compare spending against one monthly budget; there are no per-month budgets.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
 - Plaid takes several seconds to prepare a newly linked bank (about 7 seconds in the Sandbox), so the very first load after linking cannot be instant. Every load after that is.
+
+## Supabase goals setup
+
+Goals now use Supabase instead of the sample goals or browser storage. Run this setup before opening Home, Details, or Ask:
+
+1. Open your Supabase project → **SQL Editor** → **New query**.
+2. Copy all of `supabase/migrations/202611010001_goals.sql` into the editor and click **Run** once. This migration adapts the existing case-sensitive `public."Goal"` table and adds `goal_name` for the editor’s goal title. It preserves existing rows and foreign keys. It assumes `Goal.user_id` stores the Supabase Auth UUID, as `User.user_id` does in the app’s profile lookup. If that foreign key points to `User`, a matching profile row must exist before saving.
+3. Start the app with `npm start` and sign in.
+4. Open **Details → Edit goals → Add a goal**, enter the type, name, and target amount, then **Save changes**.
+5. In Supabase **Table Editor → Goal**, confirm a row exists with your Auth user ID in `user_id`. Refresh the app to confirm it loads from the database.
+6. Change a goal and save; verify the row updates. Remove a goal and save; verify its row disappears. Sign in with a second account and confirm its goals start empty and it cannot see the first account's goals.
+
+`src/app/goals.ts` calls the authenticated `/api/goals` endpoint. `src/server/api/goals.ts` reads rows through `supabase.from("Goal").select(...)` and saves the editor through `supabase.rpc("save_user_goals", { items })`. The database function inserts new goals, updates existing goals, and removes omitted goals in one transaction. If saving fails, the editor stays open with an error and preserves your input. Concurrent saves use the last submitted form.
+
+Each row belongs to a Supabase Auth user. Row Level Security checks `auth.uid() = user_id`, so signed-in users can only read and change their own rows. The function uses invoker security and the same policies. Use the existing publishable key in `.env`; no service-role key is needed.
+
+New goals start with `progress = 0`. Existing progress is read from Supabase and preserved when editing goals. Automatic progress from banking transactions is not implemented. To verify the progress display, update your test goal's `amount_savings` in the Supabase Table Editor and refresh the app. Target amounts are independent of the prototype income value. Old sample/local goals are not imported.
+
+The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.

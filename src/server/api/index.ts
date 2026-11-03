@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpError } from "../errors.js";
 import { sendJson } from "../http/response.js";
+import { handleGoalsApi } from "./goals.js";
 import { handleAccountApi } from "./account.js";
 import { handleAuthApi } from "./auth.js";
 import { handleCategoriesApi } from "./categories.js";
@@ -20,6 +21,7 @@ export async function handleApi(
 
   if (await handleAuthApi(request, response, pathname)) return;
   if (await handlePlaidApi(request, response, pathname)) return;
+  if (await handleGoalsApi(request, response, pathname)) return;
   if (await handleAccountApi(request, response, pathname)) return;
   if (await handleCategoriesApi(request, response, pathname)) return;
   if (await handleManualTransactionsApi(request, response, pathname)) return;

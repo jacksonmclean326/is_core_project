@@ -61,11 +61,7 @@ const initialState: AppState = {
     { id: "personal", name: "Personal", amount: 184, limit: 250, color: palette[5], visible: true },
     { id: "other", name: "Other", amount: 270, limit: 350, color: palette[6], visible: true }
   ],
-  goals: [
-    { id: "savings", kind: "Savings", name: "A little breathing room", target: 400, progress: 315 },
-    { id: "spending", kind: "Spending", name: "Keep eating out in check", target: 120, progress: 84 },
-    { id: "earnings", kind: "Earnings", name: "Weekend shift fund", target: 250, progress: 175 }
-  ],
+  goals: [],
   friends: [
     { id: "alex", name: "Alex Lee", initials: "AL", points: 820, streak: 12, color: "sage" },
     { id: "casey", name: "Casey Nguyen", initials: "CN", points: 760, streak: 10, color: "coral" },
@@ -109,7 +105,7 @@ function loadState(): AppState {
         ...savedCategories.find((item) => item.id === category.id),
         amount: category.amount
       })),
-      goals: Array.isArray(savedState.goals) ? savedState.goals : structuredClone(initialState.goals),
+      goals: [],
       friends,
       accounts: [],
       preferences: { ...initialState.preferences, ...savedState.preferences },
@@ -148,7 +144,7 @@ export function money(amount: number): string {
 }
 
 export function saveState(): void {
-  const { accounts: _accounts, ...savedState } = state;
+  const { accounts: _accounts, goals: _goals, ...savedState } = state;
   const categories = savedState.categories.map(({ amount: _amount, ...category }) => category);
   localStorage.setItem(storageKey, JSON.stringify({ ...savedState, categories }));
 }

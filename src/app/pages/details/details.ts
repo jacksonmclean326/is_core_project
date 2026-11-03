@@ -1,3 +1,4 @@
+import { loadGoals, saveGoals } from "../../goals.js";
 import {
   $,
   $$,
@@ -54,6 +55,7 @@ function initialMonth(): MonthKey {
 
 let selectedMonth: MonthKey = initialMonth();
 let isLinked = false;
+let goalsStatus: "loading" | "ready" | "error" = "loading";
 
 function renderPeriod() {
   const thisMonth = currentMonthKey();
@@ -232,7 +234,9 @@ function renderSummary() {
       })
       .join("") ||
     `<p class="watch-empty">Choose a category in Edit to show it here.</p>`;
-  $("#goal-card-list").innerHTML = state.goals.length
+  $("#goal-card-list").innerHTML = goalsStatus !== "ready"
+    ? `<p class="watch-empty">${goalsStatus === "loading" ? "Loading your goals…" : "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again."}</p>`
+    : state.goals.length
     ? state.goals
         .map((goal) => {
           const progress = goal.target
@@ -330,6 +334,14 @@ function openSummaryEditor() {
         `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}"></label>${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-icon="x" aria-hidden="true"></i></button>` : ""}</div>`,
     )
     .join("");
+  openDialog(
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear in your summary.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-icon="plus" aria-hidden="true"></i> Add a category</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
+  );
+  updateLimitsNote();
+  refreshIcons();
+}
+
+function openGoalsEditor() {
   const goalRows = state.goals
     .map(
       (goal) =>
@@ -337,10 +349,11 @@ function openSummaryEditor() {
     )
     .join("");
   openDialog(
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear and keep your goals up to date.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-icon="plus" aria-hidden="true"></i> Add a category</button><h3>GOALS</h3><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Add, update, or remove your goals.</p><form id="goals-edit-form" class="edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
   );
-  updateLimitsNote();
+  refreshIcons();
 }
+
 
 const maxCustomCategories = 12;
 const maxCategoryName = 24;
@@ -360,7 +373,7 @@ function addCategoryEditorRow() {
 }
 
 function addGoalEditorRow() {
-  const id = `goal-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const id = crypto.randomUUID();
   $("#goal-editor-rows").insertAdjacentHTML(
     "beforeend",
     `<div class="edit-row goal-edit-row" data-goal-row="${id}"><select class="goal-kind-input" aria-label="Goal type"><option>Savings</option><option>Spending</option><option>Earnings</option><option>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" placeholder="400"><button type="button" class="remove-goal" data-remove-goal="${id}" aria-label="Remove new goal"><i data-icon="x" aria-hidden="true"></i></button></div>`,
@@ -368,21 +381,18 @@ function addGoalEditorRow() {
   refreshIcons();
 }
 
-async function saveSummaryEditor(event: SubmitEvent) {
+async function saveGoalsEditor(event: SubmitEvent, form: HTMLFormElement) {
   event.preventDefault();
   const feedback = $("#edit-feedback");
-  const form = event.currentTarget as HTMLFormElement;
   const goalRows = $$(".goal-edit-row", form);
   const goals = [];
   for (const row of goalRows) {
     const name = $<HTMLInputElement>(".goal-name-input", row).value.trim();
     const target = Number($<HTMLInputElement>(".goal-target-input", row).value);
     const kind = $<HTMLSelectElement>(".goal-kind-input", row).value;
-    if (!name || !target || target > state.income) {
+    if (!name || !Number.isFinite(target) || target <= 0) {
       feedback.textContent =
-        target > state.income
-          ? "Set each goal below your monthly income."
-          : "Add a name and amount to every goal, or remove the empty row.";
+        "Add a name and a positive amount to every goal, or remove the empty row.";
       return;
     }
     const oldGoal = state.goals.find((goal) => goal.id === row.dataset.goalRow);
@@ -396,7 +406,30 @@ async function saveSummaryEditor(event: SubmitEvent) {
       progress: oldGoal?.progress || 0,
     });
   }
+  const submit = $<HTMLButtonElement>('button[type="submit"]', form);
+  if (submit.disabled) return;
+  submit.disabled = true;
+  submit.textContent = "Saving…";
+  feedback.textContent = "";
+  try {
+    const saved = await saveGoals(goals);
+    if (!form.isConnected) return;
+    state.goals = saved;
+    $<HTMLDialogElement>("#detail-dialog").close();
+    renderSummary();
+    showToast("Your goals are updated.");
+  } catch (error) {
+    feedback.textContent = `Goals were not saved. ${error instanceof Error ? error.message : "Check your connection and database setup, then try again."}`;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = "Save changes";
+  }
+}
 
+async function saveSummaryEditor(event: SubmitEvent) {
+  event.preventDefault();
+  const feedback = $("#edit-feedback");
+  const form = event.target as HTMLFormElement;
   const entries = $$(".category-edit-row", form).map((row) => {
     const id = row.dataset.categoryRow;
     const existing = state.categories.find((category) => category.id === id);
@@ -474,12 +507,11 @@ async function saveSummaryEditor(event: SubmitEvent) {
         created.limit = createdLimits.get(key) ?? 0;
       }
     }
-    state.goals = goals;
     saveState();
     await loadLinkedTransactions(selectedMonth); // deleted categories move their spending to Other
     $<HTMLDialogElement>("#detail-dialog").close();
     renderSummary();
-    showToast("Your summary and goals are updated.");
+    showToast("Your summary is updated.");
   } catch (error) {
     feedback.textContent = error instanceof Error ? error.message : "Could not save your changes.";
     submit.disabled = false;
@@ -489,9 +521,12 @@ async function saveSummaryEditor(event: SubmitEvent) {
 
 $("#edit-summary").addEventListener("click", openSummaryEditor);
 $("#add-transaction").addEventListener("click", () => openTransactionForm());
-$("#edit-goals-link").addEventListener("click", openSummaryEditor);
+$("#edit-goals-link").addEventListener("click", openGoalsEditor);
 $("#detail-dialog").addEventListener("submit", (event) => {
-  if (event.target instanceof Element && event.target.id === "summary-edit-form") void saveSummaryEditor(event);
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  if (form.id === "summary-edit-form") void saveSummaryEditor(event);
+  if (form.id === "goals-edit-form") void saveGoalsEditor(event, form);
 });
 $("#detail-dialog").addEventListener("click", (event) => {
   const target = eventElement(event);
@@ -593,6 +628,23 @@ if (primeFromSnapshot(selectedMonth) === "linked") isLinked = true;
 renderPeriod();
 renderSummary();
 void showMonth(selectedMonth);
+const goalsContainer = $("#goal-card-list");
+const editGoalsButton = $<HTMLButtonElement>("#edit-goals-link");
+editGoalsButton.disabled = true;
+renderSummary();
+goalsContainer.textContent = "Loading your goals…";
+void loadGoals().then((goals) => {
+  if (!goalsContainer.isConnected) return;
+  state.goals = goals;
+  goalsStatus = "ready";
+  renderSummary();
+  editGoalsButton.disabled = false;
+}).catch(() => {
+  if (!goalsContainer.isConnected) return;
+  goalsStatus = "error";
+  goalsContainer.textContent = "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again.";
+});
+
 refreshIcons();
 onDataChanged((result) => {
   isLinked = result === "linked";
