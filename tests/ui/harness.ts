@@ -50,6 +50,28 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
       if (path.startsWith(prefix)) return send(...handler(path, init, body));
     }
     if (path.startsWith("/api/auth/session")) return send(200, { user: { id: "u1", email: "demo@example.com" } });
+    if (path === "/api/account") return send(200, {
+      id: "u1",
+      email: "demo@example.com",
+      email_address: "demo@example.com",
+      first_name: "Demo",
+      last_name: "User",
+      user_metadata: { first_name: "Demo", last_name: "User" },
+      daily_sync: true,
+      budget_reminders: true,
+      leaderboard_visibility: true,
+    });
+    if (path.startsWith("/api/friend-code")) return send(200, { friendCode: "ABC234" });
+    if (path.startsWith("/api/account/preferences")) return send(200, {
+      daily_sync: body?.preference === "daily_sync" ? body.enabled : true,
+      budget_reminders: body?.preference === "budget_reminders" ? body.enabled : true,
+      leaderboard_visibility: body?.preference === "leaderboard_visibility" ? body.enabled : true,
+    });
+    if (path.startsWith("/api/budget")) return send(200, {
+      budget: init.method === "POST"
+        ? { budgetId: "budget-1", month: "2026-11-01", ...body }
+        : null,
+    });
     if (path.startsWith("/api/transactions?")) {
       const history = Number(new URLSearchParams(path.split("?")[1]).get("history") ?? 0);
       return send(200, monthResponse(transactions, history));

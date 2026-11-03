@@ -337,6 +337,13 @@ export async function handlePlaidApi(
     const institution = linkInstitution(body);
     const plaid = createPlaidClient();
     const admin = createServiceSupabaseClient();
+    const preferences = await admin
+      .from("User")
+      .select("daily_sync")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (preferences.error) throw supabaseFailure(preferences.error);
+    const dailySync = preferences.data?.daily_sync !== false;
 
     let exchanged: Awaited<ReturnType<typeof plaid.itemPublicTokenExchange>>;
     try {
@@ -415,7 +422,7 @@ export async function handlePlaidApi(
     }
 
     // Start pulling transactions right away, so they are usually ready by the time the user opens Details.
-    if (internalItemId) void startSyncForItem(internalItemId);
+    if (internalItemId && dailySync) void startSyncForItem(internalItemId);
     sendJson(response, 200, { ok: true });
     return true;
   }

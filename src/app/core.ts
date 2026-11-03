@@ -2,6 +2,7 @@ const palette = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f
 import {
   createManualTransaction,
   deleteManualTransaction,
+  getAccount,
   getTransactions,
   readSnapshot,
   recategorizeTransaction,
@@ -154,7 +155,7 @@ function loadState() {
       goals: Array.isArray(savedState.goals) ? savedState.goals : structuredClone(initialState.goals),
       friends,
       accounts: [],
-      preferences: { ...initialState.preferences, ...savedState.preferences },
+      preferences: structuredClone(initialState.preferences),
       profile: structuredClone(initialState.profile)
     };
   } catch {
@@ -163,6 +164,26 @@ function loadState() {
 }
 
 export const state: AppState = loadState();
+let accountPreferencesPromise: Promise<void> | null = null;
+
+export function loadAccountPreferences(): Promise<void> {
+  if (!accountPreferencesPromise) {
+    accountPreferencesPromise = getAccount()
+      .then((user) => {
+        state.preferences = {
+          sync: user.daily_sync !== false,
+          reminders: user.budget_reminders !== false,
+          leaderboard: user.leaderboard_visibility !== false,
+        };
+      })
+      .catch((error: unknown) => {
+        accountPreferencesPromise = null;
+        throw error;
+      });
+  }
+  return accountPreferencesPromise;
+}
+
 export const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 /** Short names of the six months shown on the trend chart, ending with the viewed month. */
 export const months: string[] = monthRange(currentMonthKey(), 6).map(shortMonthName);
@@ -251,9 +272,11 @@ export async function loadLinkedTransactions(
   const requestId = ++latestTransactionRequest;
   lastHistory = history;
   try {
+    await loadAccountPreferences().catch(() => undefined);
     const result = await getTransactions(month, history);
     if (requestId !== latestTransactionRequest) return "stale";
     const outcome = applyResult(month, result);
+    checkCategoryWarnings();
     if (outcome === "linked") saveSnapshot(month, history, result);
     if (result.warning && result.warning !== lastWarning) showToast(result.warning);
     lastWarning = result.warning ?? "";
@@ -274,7 +297,9 @@ const prefetched = new Set<string>();
 export function prefetchMonth(month: MonthKey) {
   if (prefetched.has(month)) return;
   prefetched.add(month);
-  getTransactions(month, 0)
+  loadAccountPreferences()
+    .catch(() => undefined)
+    .then(() => getTransactions(month, 0))
     .then((result) => {
       if (result.connected) saveSnapshot(month, 0, result);
     })
@@ -374,7 +399,7 @@ export function showToast(message: string) {
 }
 
 export function saveState() {
-  const { accounts: _accounts, ...savedState } = state;
+  const { accounts: _accounts, preferences: _preferences, ...savedState } = state;
   const categories = savedState.categories.map(({ amount: _amount, ...category }) => category);
   localStorage.setItem(storageKey, JSON.stringify({ ...savedState, categories }));
 }
@@ -394,10 +419,21 @@ export function updateCategoryBudgets(totalBudget: number) {
   });
 }
 
+let lastBudgetReminder: string | null = null;
+
 export function checkCategoryWarnings() {
-  if (!state.preferences.reminders) return;
+  if (!state.preferences.reminders) {
+    lastBudgetReminder = null;
+    return;
+  }
   const nearLimit = state.categories.find((category) => category.limit && category.amount / category.limit >= 0.9);
-  if (nearLimit) showToast(`${nearLimit.name} is at ${Math.round(nearLimit.amount / nearLimit.limit * 100)}% of its category budget.`);
+  if (!nearLimit) {
+    lastBudgetReminder = null;
+    return;
+  }
+  if (lastBudgetReminder === nearLimit.id) return;
+  lastBudgetReminder = nearLimit.id;
+  showToast(`${nearLimit.name} is at ${Math.round(nearLimit.amount / nearLimit.limit * 100)}% of its category budget.`);
 }
 
 export function openCategoryDetails(categoryId: string | undefined) {

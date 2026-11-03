@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5ef" />
+    <meta name="description" content="Money Man privacy notice and information about your data." />
+    <title>Money Man - Privacy &amp; Data</title>
+    <base href="/app/pages/privacy/">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../../global.css" />
+    <link rel="stylesheet" href="privacy.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/home" aria-label="Money Man home">
+          <img class="brand-mascot" src="../../assets/money-man-mascot.png" alt="" />
+          <span>Money Man</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings">
+            <span class="profile-initials">?</span>
+          </a>
+        </div>
+      </header>
+      <main id="main-content">
+        <section class="page privacy-page" aria-labelledby="privacy-title">
+          <div class="page-heading privacy-heading">
+            <div>
+              <p class="eyebrow">YOUR ACCOUNT</p>
+              <h1 id="privacy-title">Privacy &amp; data</h1>
+              <p class="subheading">How Money Man handles your information.</p>
+            </div>
+            <a class="primary-button page-return-button privacy-back" href="/settings">Back to Settings</a>
+          </div>
+
+          <p class="privacy-updated">Privacy notice · Last updated November 3, 2026</p>
+
+          <div class="privacy-document-layout">
+            <nav class="privacy-toc" aria-label="Privacy notice contents">
+              <strong>On this page</strong>
+              <ol>
+                <li><a href="#operator">Operator and contact</a></li>
+                <li><a href="#information">Information we handle</a></li>
+                <li><a href="#purposes">How we use information</a></li>
+                <li><a href="#financial">Connected financial accounts</a></li>
+                <li><a href="#sharing">When information is shared</a></li>
+                <li><a href="#storage">Storage and retention</a></li>
+                <li><a href="#browser-storage">Cookies and browser storage</a></li>
+                <li><a href="#security">Security</a></li>
+                <li><a href="#rights">Your choices and rights</a></li>
+                <li><a href="#children">Children's privacy</a></li>
+                <li><a href="#changes">Changes to this notice</a></li>
+                <li><a href="#contact">Contact and requests</a></li>
+              </ol>
+            </nav>
+
+            <article class="privacy-document">
+              <section id="operator" aria-labelledby="operator-title">
+                <h2 id="operator-title">1. Operator and contact</h2>
+                <p>
+                  Money Man is a budgeting application operated by Team Money Man ("Money Man," "we," or
+                  "us"). Our mailing address is 7150 TNRB, Brigham Young University, Provo, UT
+                  84602-3113. You can contact us at
+                  <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a>. Where
+                  privacy law uses the term, Team Money Man is the controller of the information
+                  described in this notice.
+                </p>
+              </section>
+
+              <section id="information" aria-labelledby="information-title">
+                <h2 id="information-title">2. Information we handle</h2>
+                <h3>Account information</h3>
+                <p>
+                  We use your email address and the first and last name on your account. The account
+                  record also includes an internal user identifier, friend code, account preferences,
+                  and account timestamps. Authentication is provided by Supabase Auth.
+                </p>
+                <h3>Financial account and transaction information</h3>
+                <p>
+                  For a bank or other financial institution you connect, the app stores the institution
+                  name, Plaid account identifier, account name and type, account mask when available,
+                  cached balance, currency, and balance update time. Imported transactions can include
+                  merchant description, amount, date, category, account, and institution. Transactions
+                  you enter manually are stored with the same basic transaction details. Plaid access
+                  tokens are stored by the server in encrypted form; Money Man does not receive your
+                  bank's login password through Plaid Link.
+                </p>
+                <h3>Budget and app information</h3>
+                <p>
+                  Custom categories, merchant categorization rules, and manual transaction changes are
+                  stored with your account. Monthly budget and income values, category limits, goals,
+                  friends, and other app settings are stored in this browser rather than synced to your
+                  Supabase account. The three Settings preferences are saved to your account.
+                </p>
+                <h3>Chat and technical information</h3>
+                <p>
+                  Chat messages and your current spending data are processed in the browser to create a
+                  response. Messages are not sent to an external AI service or saved by Money Man as chat
+                  history. The app also uses an essential
+                  session cookie and receives ordinary connection information needed to deliver and
+                  secure the service. Google Fonts requests are made by your browser when the app loads;
+                  Google may receive connection information such as your IP address and browser details.
+                </p>
+              </section>
+
+              <section id="purposes" aria-labelledby="purposes-title">
+                <h2 id="purposes-title">3. How we use information</h2>
+                <ul>
+                  <li>To create and secure your account, authenticate you, and provide the app.</li>
+                  <li>To connect accounts through Plaid, retrieve balances and transactions, and keep imported transactions in sync.</li>
+                  <li>To organize transactions, apply your category choices and merchant rules, and show spending summaries.</li>
+                  <li>To save your account preferences and apply sync, reminder, and leaderboard settings.</li>
+                  <li>To diagnose service errors, protect the service, respond to requests, and meet legal obligations.</li>
+                </ul>
+                <p>
+                  If a privacy law requires a legal basis, the appropriate basis depends on your location
+                  and the specific processing. It may include providing a service you request, your
+                  consent where required (including for a bank connection), our legitimate interests in
+                  operating and securing the service, or compliance with law. You may withdraw consent
+                  for future processing where consent is the applicable basis.
+                </p>
+              </section>
+
+              <section id="financial" aria-labelledby="financial-title">
+                <h2 id="financial-title">4. Connected financial accounts</h2>
+                <p>
+                  If you choose to connect an institution, Plaid provides the connection flow and
+                  transmits supported account and transaction information to Money Man. Plaid and your
+                  financial institution process information under their own terms and privacy notices.
+                  Plaid may have separate product availability or fees. Review
+                  <a href="https://plaid.com/legal/#privacy-policy" rel="noreferrer">Plaid's privacy information</a>
+                  before connecting an account.
+                </p>
+                <p>
+                  Disconnecting an institution removes its saved connection and account records from the
+                  app. Transactions already imported remain in your transaction history, and manual
+                  transactions are not removed by disconnecting a bank. Cached balances may be delayed
+                  and are not guaranteed to be real-time.
+                </p>
+              </section>
+
+              <section id="sharing" aria-labelledby="sharing-title">
+                <h2 id="sharing-title">5. When information is shared</h2>
+                <p>We use service providers to operate Money Man:</p>
+                <ul>
+                  <li><strong>Supabase</strong> provides authentication and cloud database services.</li>
+                  <li><strong>Plaid</strong> provides bank linking and financial data services when you connect an account.</li>
+                  <li><strong>Google</strong> serves the web fonts used by the app when your browser requests them.</li>
+                </ul>
+                <p>
+                  These providers process information under their own terms and the agreements with the
+                  service. Information may also be disclosed when required by law or when reasonably
+                  necessary to protect users, the service, or the public. We do not use advertising or
+                  analytics SDKs.
+                </p>
+                <p>
+                  Provider locations and your location may mean information is processed in countries
+                  other than where you live. Where required by law, we use appropriate safeguards for
+                  international transfers of personal information.
+                </p>
+              </section>
+
+              <section id="storage" aria-labelledby="storage-title">
+                <h2 id="storage-title">6. Storage and retention</h2>
+                <p>
+                  Account, linked-account, category, and transaction records are stored in the operator's
+                  Supabase project. Some app settings and budget data are stored locally in the browser.
+                  A short-lived transaction snapshot may be kept in the current browser tab to make
+                  recently viewed data load faster.
+                </p>
+                <p>
+                  We retain information while your account is active and for as long as reasonably
+                  necessary to provide the service, meet legal obligations, resolve disputes, and enforce
+                  our agreements. You may request account closure and deletion by contacting us. We
+                  delete or de-identify information that we no longer need, unless law requires us to
+                  retain it. Residual copies may remain in secure backups for a limited period. Imported
+                  transactions remain in your history when you disconnect a bank; disconnecting removes
+                  its saved connection and account records, not previously imported transactions.
+                </p>
+              </section>
+
+              <section id="browser-storage" aria-labelledby="browser-storage-title">
+                <h2 id="browser-storage-title">7. Cookies and browser storage</h2>
+                <p>
+                  Money Man uses an essential, HttpOnly session cookie to keep you signed in. It is
+                  configured as SameSite=Lax and is set as Secure in production; its lifetime is seven
+                  days. The app also uses browser local storage for budget and app settings, and
+                  session storage for temporary transaction snapshots. These technologies are used for
+                  the service rather than advertising. You can clear browser storage through your
+                  browser, though doing so may remove locally saved app information or end your session.
+                </p>
+              </section>
+
+              <section id="security" aria-labelledby="security-title">
+                <h2 id="security-title">8. Security</h2>
+                <p>
+                  The server keeps Supabase credentials out of browser code. Plaid access tokens are
+                  encrypted by the server, and database access is restricted using user-scoped queries
+                  and Supabase Row Level Security. Authentication sessions use an HttpOnly cookie.
+                  No method of storage or transmission is completely secure; the operator should
+                  maintain and periodically review appropriate technical and organizational safeguards.
+                </p>
+              </section>
+
+              <section id="rights" aria-labelledby="rights-title">
+                <h2 id="rights-title">9. Your choices and rights</h2>
+                <p>
+                  Depending on where you live, privacy laws may give you rights to request access to,
+                  correction of, deletion of, or a copy of personal information; to object to or restrict
+                  certain processing; to withdraw consent; or to appeal a decision. Some laws also
+                  provide rights related to targeted advertising, sale or sharing, or sensitive personal
+                  information. These rights are subject to legal limits and may not apply in every case.
+                </p>
+                <p>
+                  You can update your name, email, password, and account preferences in Settings. You
+                  can disconnect a bank and delete manual transactions in the app. To exercise other
+                  rights, email <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a>.
+                  We may ask for information to verify your identity and will respond within the time
+                  required by applicable law. You may also contact your local data protection authority
+                  or privacy regulator.
+                </p>
+              </section>
+
+              <section id="children" aria-labelledby="children-title">
+                <h2 id="children-title">10. Children's privacy</h2>
+                <p>
+                  Money Man is designed for college-age users and is not intended for children under 13.
+                  We do not knowingly collect personal information from children under 13. If you believe
+                  a child has provided personal information, contact us at
+                  <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a> so we can
+                  review and address the request.
+                </p>
+              </section>
+
+              <section id="changes" aria-labelledby="changes-title">
+                <h2 id="changes-title">11. Changes to this notice</h2>
+                <p>
+                  We may update this notice as the service or applicable requirements change. The date
+                  at the top indicates when it was last revised. If a change requires notice or consent,
+                  the operator will provide it as required by law.
+                </p>
+              </section>
+
+              <section id="contact" aria-labelledby="contact-title">
+                <h2 id="contact-title">12. Contact and requests</h2>
+                <p>
+                  For privacy questions or requests, email
+                  <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a> or write to
+                  Team Money Man, 7150 TNRB, Brigham Young University, Provo, UT 84602-3113. You may
+                  also contact the privacy regulator in your region.
+                </p>
+              </section>
+            </article>
+          </div>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="/home" class="nav-item"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/details" class="nav-item"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/chat" class="nav-item"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="/leaderboard" class="nav-item"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+    </div>
+    <script type="module" src="privacy.ts"></script>
+  </body>
+</html>

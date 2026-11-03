@@ -13,6 +13,10 @@ const sessions = new Map<string, SessionClient>();
 const verifiedUsers = new Map<string, { user: User; until: number }>();
 const verifiedTtlMs = 30_000;
 
+export function rememberVerifiedUser(sessionId: string, user: User): void {
+  verifiedUsers.set(sessionId, { user, until: Date.now() + verifiedTtlMs });
+}
+
 function getSessionId(request: IncomingMessage): string | null {
   const cookie = request.headers.cookie;
   if (!cookie) return null;
@@ -92,7 +96,7 @@ export async function requireSession(
 
   try {
     const user = await authenticatedUser(client);
-    verifiedUsers.set(sessionId, { user, until: Date.now() + verifiedTtlMs });
+    rememberVerifiedUser(sessionId, user);
     return { client, user, sessionId };
   } catch (error) {
     verifiedUsers.delete(sessionId);

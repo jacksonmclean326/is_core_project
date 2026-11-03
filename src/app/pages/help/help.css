@@ -1,0 +1,40 @@
+.help-page { max-width: 1080px; margin: 0 auto; }
+.help-heading { align-items: end; margin-bottom: 27px; }
+.help-back { flex: 0 0 auto; }
+.help-document-layout { display: grid; grid-template-columns: minmax(170px, 220px) minmax(0, 1fr); align-items: start; gap: 44px; }
+.help-toc { position: sticky; top: 24px; align-self: start; }
+.help-toc > strong { display: block; margin-bottom: 11px; font-size: 0.75rem; }
+.help-toc ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.help-toc a { color: var(--muted); font-size: 0.75rem; line-height: 1.45; text-decoration: none; }
+.help-toc a:hover, .help-toc a:focus-visible, .help-document a { color: var(--green-dark); }
+.help-document { max-width: 760px; min-width: 0; }
+.help-document section { padding: 21px 0; border-top: 1px solid var(--line); scroll-margin-top: 20px; }
+.help-document section:first-child { padding-top: 0; border-top: 0; }
+.help-document h2 { margin: 0 0 10px; font-size: 1rem; }
+.help-faq { border-bottom: 1px solid var(--line); }
+.help-faq summary { position: relative; padding: 14px 28px 14px 0; color: var(--ink); font-size: 0.8125rem; font-weight: 700; line-height: 1.5; cursor: pointer; list-style: none; }
+.help-faq summary::-webkit-details-marker { display: none; }
+.help-faq summary::after { position: absolute; top: 50%; right: 3px; color: var(--green-dark); content: "+"; font-size: 1rem; font-weight: 500; transform: translateY(-50%); }
+.help-faq[open] summary::after { content: "-"; }
+.help-faq summary:focus-visible { outline: 2px solid var(--green-dark); outline-offset: 3px; }
+.help-faq p, .help-contact p, .help-contact address { max-width: 700px; margin: 0 0 15px; color: var(--muted); font-size: 0.8125rem; line-height: 1.7; }
+.help-faq a, .help-contact a { text-underline-offset: 2px; }
+.help-contact address { font-style: normal; }
+@media (max-width: 760px) {
+  .help-heading { align-items: start; flex-direction: column; }
+  .help-document-layout { grid-template-columns: 1fr; gap: 21px; }
+  .help-toc { position: static; padding: 0 0 16px; border-bottom: 1px solid var(--line); }
+  .help-toc ol { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 16px; }
+}
+@media (max-width: 420px) {
+  .help-toc ol { grid-template-columns: 1fr; }
+}
+@media print {
+  .topbar, .bottom-nav, .help-toc, .help-back { display: none; }
+  main { padding: 0; }
+  .help-page { max-width: none; }
+  .help-document-layout { display: block; }
+  .help-document { max-width: none; }
+  .help-faq:not([open]) > :not(summary) { display: block; }
+  .help-document section { break-inside: avoid; }
+}

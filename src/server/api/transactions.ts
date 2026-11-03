@@ -156,9 +156,18 @@ async function loadItems(admin: Admin, userId: string): Promise<SyncItem[]> {
   return result.data ?? [];
 }
 
+export function syncCandidates(
+  items: SyncItem[],
+  refresh: boolean,
+  dailySync: boolean,
+  now: number,
+): SyncItem[] {
+  return items.filter((item) => refresh || dailySync && needsSync(item, now));
+}
+
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-async function readTransactions(userId: string, query: TransactionsQuery, refresh: boolean, timer: Timer) {
+async function readTransactions(userId: string, query: TransactionsQuery, refresh: boolean, dailySync: boolean, timer: Timer) {
   if (!config.supabaseSecretKey) {
     throw new HttpError(503, "Transaction storage is not configured. Set SUPABASE_SECRET_KEY on the server.");
   }
@@ -180,7 +189,7 @@ async function readTransactions(userId: string, query: TransactionsQuery, refres
   // Start a background sync for any bank whose saved data is out of date. The page does not wait for it,
   // except on the very first load (nothing saved yet) or when a refresh is requested.
   const now = Date.now();
-  const due = items.filter((item) => refresh || needsSync(item, now));
+  const due = syncCandidates(items, refresh, dailySync, now);
   const syncs = due.map((item) => startSync(item, { force: refresh }));
   if (syncs.length && (refresh || !anyRow)) {
     await timer.measure("sync", () =>
@@ -195,10 +204,11 @@ async function readTransactions(userId: string, query: TransactionsQuery, refres
 
   const checkedAt = Date.now();
   const syncing = items.some(
-    (item) => isSyncing(item.item_id) || (!lastSyncFailed(item.item_id) && (needsSync(item, checkedAt) || !item.history_complete)),
+    (item) => isSyncing(item.item_id) || (dailySync || refresh) && !lastSyncFailed(item.item_id) && (needsSync(item, checkedAt) || !item.history_complete),
   );
-  const importing = items.some((item) => !item.history_complete && !lastSyncFailed(item.item_id));
-  const failed = items.some((item) => lastSyncFailed(item.item_id));
+  const importing = items.some((item) => !item.history_complete && !lastSyncFailed(item.item_id) && (dailySync || refresh || isSyncing(item.item_id)));
+  const failed = (dailySync || refresh || items.some((item) => isSyncing(item.item_id))) &&
+    items.some((item) => lastSyncFailed(item.item_id));
   const warning = failed
     ? "Some bank connections could not be refreshed. Showing what was saved earlier."
     : importing
@@ -223,13 +233,20 @@ export async function handleTransactionsApi(
   pathname: string,
 ): Promise<boolean> {
   if (pathname === "/api/transactions" && request.method === "GET") {
-    const { user } = await requireSession(request, response);
+    const { client, user } = await requireSession(request, response);
+    const preferences = await client
+      .from("User")
+      .select("daily_sync")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (preferences.error) throw supabaseFailure(preferences.error);
+    const dailySync = preferences.data?.daily_sync !== false;
     const url = new URL(request.url ?? pathname, "http://localhost");
     const query = parseTransactionsQuery(url.searchParams, utcDateString());
     // refresh=1 syncs with the bank now and waits for it (used by tests and a manual "refresh").
     const refresh = url.searchParams.get("refresh") === "1";
     const timer = createTimer();
-    const body = await timer.measure("total", () => readTransactions(user.id, query, refresh, timer));
+    const body = await timer.measure("total", () => readTransactions(user.id, query, refresh, dailySync, timer));
     sendJson(response, 200, body, { "Server-Timing": timer.header() });
     return true;
   }
