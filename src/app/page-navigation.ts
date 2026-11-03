@@ -1,4 +1,5 @@
 import { getSession, signOut } from "./api.js";
+import { setProfileInitials } from "./ui/ui.js";
 
 const publicRoute = "/auth";
 
@@ -14,6 +15,17 @@ async function initializeNavigation() {
     if (!isPublicPage && !user) {
       window.location.replace(publicRoute);
       return;
+    }
+    if (user) {
+      const metadata = user.user_metadata || {};
+      const metadataName = [metadata.first_name, metadata.last_name]
+        .filter((part) => typeof part === "string" && part.trim())
+        .join(" ");
+      const name =
+        metadataName ||
+        (typeof metadata.full_name === "string" ? metadata.full_name.trim() : "") ||
+        (typeof metadata.name === "string" ? metadata.name.trim() : "");
+      setProfileInitials(name, user.email || "");
     }
   } catch (error) {
     console.error("Unable to verify the current session.", error);

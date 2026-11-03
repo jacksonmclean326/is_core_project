@@ -19,7 +19,7 @@
 .bank-disconnect:disabled { opacity: .6; cursor: wait; }
 .bank-row { display: flex; align-items: center; gap: 11px; padding: 10px 0; border-bottom: 1px solid rgba(223, 227, 218, .75); }
 .bank-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 5px; color: var(--green-dark); background: #e3ece5; }
-.bank-icon .lucide { width: 17px; height: 17px; }
+.bank-icon .icon { width: 17px; height: 17px; }
 .bank-info { display: grid; flex: 1; gap: 3px; }
 .bank-info strong { font-size: 0.75rem; }
 .bank-info span { color: var(--muted); font-size: 0.75rem; }
@@ -54,7 +54,7 @@
 .profile-row .form-feedback.is-error { color: #a33f30; }
 .settings-links { display: flex; gap: 20px; margin-top: 16px; }
 .settings-links button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; color: var(--green-dark); background: none; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-.settings-links .lucide { width: 13px; height: 13px; }
+.settings-links .icon { width: 13px; height: 13px; }
 @media (max-width: 720px) {
   .settings-form { grid-template-columns: 1fr 1fr; }
   .settings-form .primary-button { grid-column: 1 / -1; grid-row: 3; justify-self: start; }

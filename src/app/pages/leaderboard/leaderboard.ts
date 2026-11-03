@@ -34,7 +34,7 @@ function renderLeaderboard() {
   $("#friend-list").innerHTML = friends
     .map(
       (friend) =>
-        `<div class="friend-row"><span class="friend-avatar avatar-${friend.color}">${escapeHTML(friend.initials)}</span><span class="friend-name">${escapeHTML(friend.name)}${friend.isYou ? " (you)" : ""}</span><span class="friend-streak">${friend.streak}-day streak</span><span class="friend-score">${friend.points}</span>${friend.isYou ? "" : `<button type="button" class="remove-friend" data-remove-friend="${escapeHTML(friend.id)}" aria-label="Remove ${escapeHTML(friend.name)}" title="Remove friend"><i data-lucide="x" aria-hidden="true"></i></button>`}</div>`,
+        `<div class="friend-row"><span class="friend-avatar avatar-${friend.color}">${escapeHTML(friend.initials)}</span><span class="friend-name">${escapeHTML(friend.name)}${friend.isYou ? " (you)" : ""}</span><span class="friend-streak">${friend.streak}-day streak</span><span class="friend-score">${friend.points}</span>${friend.isYou ? "" : `<button type="button" class="remove-friend" data-remove-friend="${escapeHTML(friend.id)}" aria-label="Remove ${escapeHTML(friend.name)}" title="Remove friend"><i data-icon="x" aria-hidden="true"></i></button>`}</div>`,
     )
     .join("");
   const podium: [string, Friend | undefined][] = [

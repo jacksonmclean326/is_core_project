@@ -11,6 +11,7 @@ import {
   prefetchMonth,
   primeFromSnapshot,
   openTransactionForm,
+  openDialog,
   money,
   openCategoryDetails,
   refreshIcons,
@@ -241,7 +242,7 @@ function renderSummary() {
           const progress = goal.target
             ? Math.min(100, (goal.progress / goal.target) * 100)
             : 0;
-          return `<article class="goal-card"><div class="goal-card-top"><span class="goal-kind">${escapeHTML(goal.kind)} goal</span><i data-lucide="target" aria-hidden="true"></i></div><strong>${escapeHTML(goal.name)}</strong><div class="mini-track"><span style="width:${progress}%"></span></div><div class="goal-amounts"><span>${money(goal.progress)} toward goal</span><span>${money(goal.target)} goal</span></div></article>`;
+          return `<article class="goal-card"><div class="goal-card-top"><span class="goal-kind">${escapeHTML(goal.kind)} goal</span><i data-icon="target" aria-hidden="true"></i></div><strong>${escapeHTML(goal.name)}</strong><div class="mini-track"><span style="width:${progress}%"></span></div><div class="goal-amounts"><span>${money(goal.progress)} toward goal</span><span>${money(goal.target)} goal</span></div></article>`;
         })
         .join("")
     : `<p class="watch-empty">Add a goal to see your progress here.</p>`;
@@ -330,12 +331,12 @@ function openSummaryEditor() {
   const categoryRows = state.categories
     .map(
       (category) =>
-        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}"></label>${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-lucide="x" aria-hidden="true"></i></button>` : ""}</div>`,
+        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}"></label>${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-icon="x" aria-hidden="true"></i></button>` : ""}</div>`,
     )
     .join("");
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear in your summary.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-lucide="plus" aria-hidden="true"></i> Add a category</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
+  openDialog(
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear in your summary.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-icon="plus" aria-hidden="true"></i> Add a category</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
+  );
   updateLimitsNote();
   refreshIcons();
 }
@@ -344,12 +345,12 @@ function openGoalsEditor() {
   const goalRows = state.goals
     .map(
       (goal) =>
-        `<div class="edit-row goal-edit-row" data-goal-row="${escapeHTML(goal.id)}"><select class="goal-kind-input" aria-label="Goal type"><option ${goal.kind === "Savings" ? "selected" : ""}>Savings</option><option ${goal.kind === "Spending" ? "selected" : ""}>Spending</option><option ${goal.kind === "Earnings" ? "selected" : ""}>Earnings</option><option ${goal.kind === "Investing" ? "selected" : ""}>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" value="${escapeHTML(goal.name)}"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" value="${Number(goal.target)}"><button type="button" class="remove-goal" data-remove-goal="${escapeHTML(goal.id)}" aria-label="Remove ${escapeHTML(goal.name)}"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+        `<div class="edit-row goal-edit-row" data-goal-row="${escapeHTML(goal.id)}"><select class="goal-kind-input" aria-label="Goal type"><option ${goal.kind === "Savings" ? "selected" : ""}>Savings</option><option ${goal.kind === "Spending" ? "selected" : ""}>Spending</option><option ${goal.kind === "Earnings" ? "selected" : ""}>Earnings</option><option ${goal.kind === "Investing" ? "selected" : ""}>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" value="${escapeHTML(goal.name)}"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" value="${Number(goal.target)}"><button type="button" class="remove-goal" data-remove-goal="${escapeHTML(goal.id)}" aria-label="Remove ${escapeHTML(goal.name)}"><i data-icon="x" aria-hidden="true"></i></button></div>`,
     )
     .join("");
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Add, update, or remove your goals.</p><form id="goals-edit-form" class="edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-lucide="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
+  openDialog(
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Add, update, or remove your goals.</p><form id="goals-edit-form" class="edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
+  );
   refreshIcons();
 }
 
@@ -365,7 +366,7 @@ function addCategoryEditorRow() {
   }
   $("#add-category-row").insertAdjacentHTML(
     "beforebegin",
-    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Name of the new category" maxlength="${maxCategoryName}" placeholder="Name your category"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"></label><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Name of the new category" maxlength="${maxCategoryName}" placeholder="Name your category"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"></label><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-icon="x" aria-hidden="true"></i></button></div>`,
   );
   $$<HTMLInputElement>('[data-new-category="1"] .category-name', form).at(-1)?.focus();
   refreshIcons();
@@ -375,7 +376,7 @@ function addGoalEditorRow() {
   const id = crypto.randomUUID();
   $("#goal-editor-rows").insertAdjacentHTML(
     "beforeend",
-    `<div class="edit-row goal-edit-row" data-goal-row="${id}"><select class="goal-kind-input" aria-label="Goal type"><option>Savings</option><option>Spending</option><option>Earnings</option><option>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" placeholder="400"><button type="button" class="remove-goal" data-remove-goal="${id}" aria-label="Remove new goal"><i data-lucide="x" aria-hidden="true"></i></button></div>`,
+    `<div class="edit-row goal-edit-row" data-goal-row="${id}"><select class="goal-kind-input" aria-label="Goal type"><option>Savings</option><option>Spending</option><option>Earnings</option><option>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" placeholder="400"><button type="button" class="remove-goal" data-remove-goal="${id}" aria-label="Remove new goal"><i data-icon="x" aria-hidden="true"></i></button></div>`,
   );
   refreshIcons();
 }

@@ -1,6 +1,8 @@
 --
 -- PostgreSQL database dump
 --
+-- Canonical full schema snapshot for new database provisioning.
+-- Do not apply this dump to an existing database.
 
 \restrict DTng8SNbMLZAMC1WDniBjmm5YqXfvgVn3S3qIKA2iTr7IMLUSJ5L8DcK4psAs3o
 
@@ -908,4 +910,3 @@ CREATE POLICY "Users can view their own transactions" ON public."Transaction" FO
 --
 
 \unrestrict DTng8SNbMLZAMC1WDniBjmm5YqXfvgVn3S3qIKA2iTr7IMLUSJ5L8DcK4psAs3o
-

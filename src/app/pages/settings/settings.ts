@@ -3,8 +3,11 @@ import {
   escapeHTML,
   eventElement,
   money,
+  openDialog,
+  profileInitials,
   refreshIcons,
   saveState,
+  setProfileInitials,
   showToast,
   state,
   checkCategoryWarnings,
@@ -121,7 +124,7 @@ function renderBankConnections() {
                       .map(
                         (account) => `
                           <div class="bank-row">
-                            <span class="bank-icon"><i data-lucide="landmark" aria-hidden="true"></i></span>
+                            <span class="bank-icon"><i data-icon="landmark" aria-hidden="true"></i></span>
                             <span class="bank-info">
                               <strong>${escapeHTML(account.name)}</strong>
                               <span>${escapeHTML(
@@ -218,12 +221,8 @@ async function renderAuthenticatedProfile() {
 
     nameElement.textContent = name || "Name not provided";
     emailElement.textContent = email || "Email unavailable";
-    initialsElement.textContent = (name || email || "?")
-      .split(/\s+/)
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
+    initialsElement.textContent = profileInitials(name, email);
+    setProfileInitials(name, email);
     if (!name) {
       feedback.textContent = "Add your name to your account profile to see it here.";
     }
@@ -395,14 +394,14 @@ preferenceControls.forEach(([selector, key]) => {
 });
 
 $("#privacy-link").addEventListener("click", () => {
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Privacy & data</h2><p class="dialog-subtitle">Plaid connects your financial institution. Money Man stores your linked account details and balances, the transactions it imports from your bank (merchant, amount, date, and category), anything you add by hand, and the categories and merchant rules you create. This data is kept in Supabase and is only visible to your account. Plaid may process your transaction data under Plaid's own terms, and may have separate fees. Disconnecting a bank removes the saved account connection, but transactions already saved stay in your history without an account link, and entries you added yourself are never removed.</p>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
+  openDialog(
+    `<p class="eyebrow">YOUR ACCOUNT</p><h2 class="dialog-title">Privacy & data</h2><p class="dialog-subtitle">Plaid connects your financial institution. Money Man stores your linked account details and balances, the transactions it imports from your bank (merchant, amount, date, and category), anything you add by hand, and the categories and merchant rules you create. This data is kept in Supabase and is only visible to your account. Plaid may process your transaction data under Plaid's own terms, and may have separate fees. Disconnecting a bank removes the saved account connection, but transactions already saved stay in your history without an account link, and entries you added yourself are never removed.</p>`
+  );
 });
 $("#help-link").addEventListener("click", () => {
-  $("#dialog-content").innerHTML =
-    `<p class="eyebrow">HERE TO HELP</p><h2 class="dialog-title">Help & support</h2><p class="dialog-subtitle">Connect or disconnect financial institutions in Settings. Plaid account data is refreshed when Settings loads; Plaid may return cached balances rather than real-time values. Budgets and goals can be changed in Settings or from Edit on the Details page.</p>`;
-  $<HTMLDialogElement>("#detail-dialog").showModal();
+  openDialog(
+    `<p class="eyebrow">HERE TO HELP</p><h2 class="dialog-title">Help & support</h2><p class="dialog-subtitle">Connect or disconnect financial institutions in Settings. Plaid account data is refreshed when Settings loads; Plaid may return cached balances rather than real-time values. Budgets and goals can be changed in Settings or from Edit on the Details page.</p>`
+  );
 });
 renderSettings();
 renderAuthenticatedProfile();

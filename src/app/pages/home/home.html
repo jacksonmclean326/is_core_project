@@ -8,9 +8,6 @@
     <meta name="description" content="A simple view of your spending, budgets, and goals.">
     <title>Money Man - Home</title>
     <base href="/app/pages/home/">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../global.css">
     <link rel="stylesheet" href="home.css">
   </head>
@@ -24,45 +21,45 @@
         <section class="page dashboard-page" aria-labelledby="home-title">
           <div class="page-heading dashboard-heading">
             <div>
-              <div class="dashboard-meta"><p class="eyebrow" id="today-label">THURSDAY, OCTOBER 2</p><div class="streak-indicator" aria-label="12 day streak"><i data-lucide="flame" aria-hidden="true"></i><strong id="streak-count">12</strong><span>day streak</span></div></div>
+              <div class="dashboard-meta"><p class="eyebrow" id="today-label">THURSDAY, OCTOBER 2</p><div class="streak-indicator" aria-label="12 day streak"><i data-icon="flame" aria-hidden="true"></i><strong id="streak-count">12</strong><span>day streak</span></div></div>
               <h1 id="home-title">Your money, in view.</h1>
               <p class="subheading">A little clarity goes a long way.</p>
             </div>
-            <a class="text-button" href="/details">Monthly details <i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+            <a class="text-button" href="/details">Monthly details <i data-icon="arrow-up-right" aria-hidden="true"></i></a>
           </div>
           <section class="trend-section" aria-labelledby="trend-title">
             <div class="section-heading trend-heading">
               <div><p class="eyebrow">YOUR LAST SIX MONTHS</p><h2 id="trend-title">Spending trends</h2></div>
-              <label class="select-wrap" for="trend-mode"><span class="sr-only">Choose a trend to view</span><select id="trend-mode"><option value="spending">Monthly spending</option><option value="under">Under budget</option><option value="saved">Amount saved</option></select><i data-lucide="chevron-down" aria-hidden="true"></i></label>
+              <label class="select-wrap" for="trend-mode"><span class="sr-only">Choose a trend to view</span><select id="trend-mode"><option value="spending">Monthly spending</option><option value="under">Under budget</option><option value="saved">Amount saved</option></select><i data-icon="chevron-down" aria-hidden="true"></i></label>
             </div>
-            <div class="trend-summary"><div><p class="trend-value" id="trend-value">$1,740</p><p class="trend-caption" id="trend-caption">spent this month</p></div><span class="trend-change" id="trend-change"><i data-lucide="arrow-down-right" aria-hidden="true"></i> 8% from last month</span></div>
+            <div class="trend-summary"><div><p class="trend-value" id="trend-value">$1,740</p><p class="trend-caption" id="trend-caption">spent this month</p></div><span class="trend-change" id="trend-change"><i data-icon="arrow-down-right" aria-hidden="true"></i> 8% from last month</span></div>
             <div class="chart-wrap" id="trend-chart" role="img" aria-label="Monthly spending trend chart"></div>
           </section>
           <section class="overview-section" aria-label="This month's budget overview">
             <div class="overview-main">
-              <div class="section-heading compact-heading"><div><p class="eyebrow" id="period-label">OCTOBER OVERVIEW</p><h2>Monthly budget</h2></div><a class="icon-button small-action" href="/settings" aria-label="Edit monthly budget" title="Edit budget"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></a></div>
+              <div class="section-heading compact-heading"><div><p class="eyebrow" id="period-label">OCTOBER OVERVIEW</p><h2>Monthly budget</h2></div><a class="icon-button small-action" href="/settings" aria-label="Edit monthly budget" title="Edit budget"><i data-icon="sliders-horizontal" aria-hidden="true"></i></a></div>
               <div class="budget-stats"><div class="budget-stat"><span>Budget</span><strong id="budget-total">$2,200</strong></div><div class="budget-stat"><span>Spent</span><strong id="spent-total">$1,740</strong></div><div class="budget-stat remaining-stat"><span>Remaining</span><strong id="remaining-total">$460</strong></div></div>
               <div class="budget-track" role="img" aria-label="79 percent of monthly budget used"><span id="budget-progress"></span></div>
             </div>
             <div class="watch-list"><p class="eyebrow">WORTH A LOOK</p><h3>Getting close</h3><div id="watch-categories" class="watch-items"></div></div>
           </section>
           <section class="goal-strip" aria-label="Savings goal progress">
-            <div class="goal-icon"><i data-lucide="target" aria-hidden="true"></i></div>
+            <div class="goal-icon"><i data-icon="target" aria-hidden="true"></i></div>
             <div class="goal-copy"><p class="eyebrow">SAVINGS GOAL</p><strong id="dashboard-goal-name">A little breathing room</strong></div>
             <div class="goal-progress-copy"><strong id="dashboard-goal-progress">$315 <span>of $400</span></strong><div class="mini-track"><span id="dashboard-goal-track"></span></div></div>
-            <a class="icon-button goal-arrow" href="/details" aria-label="View goals"><i data-lucide="arrow-right" aria-hidden="true"></i></a>
+            <a class="icon-button goal-arrow" href="/details" aria-label="View goals"><i data-icon="arrow-right" aria-hidden="true"></i></a>
           </section>
-          <footer class="dashboard-sync"><i data-lucide="refresh-cw" aria-hidden="true"></i><span id="sync-account-status" aria-live="polite">Loading linked accounts…</span></footer>
+          <footer class="dashboard-sync"><i data-icon="refresh-cw" aria-hidden="true"></i><span id="sync-account-status" aria-live="polite">Loading linked accounts…</span></footer>
         </section>
       </main>
       <nav class="bottom-nav" aria-label="Main navigation">
-        <a href="/home" class="nav-item is-current" aria-current="page"><i data-lucide="house" aria-hidden="true"></i><span>Home</span></a>
-        <a href="/details" class="nav-item"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
-        <a href="/chat" class="nav-item"><i data-lucide="message-circle" aria-hidden="true"></i><span>Ask</span></a>
-        <a href="/leaderboard" class="nav-item"><i data-lucide="trophy" aria-hidden="true"></i><span>Friends</span></a>
+        <a href="/home" class="nav-item is-current" aria-current="page"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
       </nav>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
-      <dialog id="detail-dialog" class="detail-dialog"><button class="dialog-close" type="button" aria-label="Close"><i data-lucide="x" aria-hidden="true"></i></button><div id="dialog-content"></div></dialog>
+      <dialog id="detail-dialog" class="detail-dialog"><button class="dialog-close" type="button" aria-label="Close"><i data-icon="x" aria-hidden="true"></i></button><div id="dialog-content"></div></dialog>
     </div>
     <script type="module" src="home.ts"></script>
   </body>

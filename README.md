@@ -32,7 +32,7 @@ Notes on the spending tables:
 
 ## Tech Stack:
 
-For our front end, we use HTML, CSS, and TypeScript with Vite. TypeScript adds static checking while keeping the app framework-free and easy to work on as a team.
+For our front end, we use HTML, CSS, and TypeScript with Vite. TypeScript adds static checking while keeping the app framework-free and easy to work on as a team. Icons are a small local inline-SVG set, and text uses system fonts; pages do not download an icon library or web fonts.
 
 On the back end, we’re using Supabase. It gives us a solid place that will handle a lot of the backend work that is usually complex, allowing us to do solid backend work. It allows us to build the system fast and focus on the actual features of our product without getting slowed down by excessive configuration.
 
@@ -93,7 +93,7 @@ If either command is not found, install Node.js LTS as described above, then reo
 
 4. Set up the database.
 
-   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it).
+   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it). Then apply the goals migration described under **Supabase goals setup**.
    - **Existing project:** open the Supabase **SQL Editor** and run each file in `supabase/migrations/`, in date order. Every file is safe to run twice.
 
 5. Install the exact dependency versions from the lockfile:
@@ -185,7 +185,7 @@ npm start
 
 Budgets, category limits, and preferences are stored in the browser. Goals, bank connections, transactions, custom categories, and merchant rules are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
 
-Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`; shared browser state and the transaction/category dialogs are in `src/app/core.ts`.
+Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`. Shared browser state lives in `src/app/state/state.ts`, transaction loading in `src/app/transactions/transactions.ts`, and UI helpers and dialogs in `src/app/ui/`. `src/app/core.ts` re-exports these modules.
 
 ## Tests
 

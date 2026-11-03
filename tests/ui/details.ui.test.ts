@@ -24,6 +24,13 @@ test("the page lists every transaction with real headings, and shows hostile nam
   assert.equal(page.$("#tx-controls").hidden, false);
 });
 
+test("the see every transaction link resolves to the Details route despite the base URL", async () => {
+  const page = await openPage("details");
+  const target = new URL(page.$(".view-all-link").getAttribute("href"), page.window.document.baseURI);
+  assert.equal(target.pathname, "/details");
+  assert.equal(target.hash, "#all-transactions");
+});
+
 test("search, category filter and sort narrow and reorder the list", async () => {
   const page = await openPage("details");
   await page.type("#tx-search", "starbucks");

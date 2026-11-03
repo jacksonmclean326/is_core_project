@@ -9,7 +9,7 @@
 .money-avatar::before { left: -8px; transform: rotate(-24deg); }
 .money-avatar::after { right: -8px; transform: rotate(24deg); }
 .money-avatar > span { color: var(--green-dark); font: 800 1.5625rem/1 var(--font-display); }
-.money-avatar .lucide { position: absolute; top: -6px; right: -6px; width: 13px; height: 13px; color: var(--coral); stroke-width: 3; }
+.money-avatar .icon { position: absolute; top: -6px; right: -6px; width: 13px; height: 13px; color: var(--coral); stroke-width: 3; }
 .message-bubble { max-width: min(82%, 440px); padding: 12px 14px 9px; border-radius: 11px 11px 11px 3px; background: var(--white); }
 .message-bubble strong { display: block; margin-bottom: 4px; color: var(--green-dark); font-size: 0.75rem; }
 .message-bubble p { margin: 0; font-size: 0.8125rem; line-height: 1.5; }
@@ -20,7 +20,7 @@
 .suggestion-area { margin: 3px 0 12px; }
 .suggestion-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 12px 0; border: 0; border-top: 1px solid var(--line); color: var(--green-dark); background: transparent; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .suggestion-toggle > span { display: inline-flex; align-items: center; gap: 8px; }
-.suggestion-toggle .lucide { width: 17px; height: 17px; }
+.suggestion-toggle .icon { width: 17px; height: 17px; }
 .suggestion-chevron { transition: transform .2s ease; }
 .suggestion-toggle[aria-expanded="true"] .suggestion-chevron { transform: rotate(180deg); }
 .suggestion-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 0 14px; }
@@ -29,7 +29,7 @@
 .chat-compose input { flex: 1; min-width: 0; padding: 8px 0; border: 0; outline: 0; background: transparent; font-size: 0.8125rem; }
 .chat-compose input:focus-visible { outline: 0; }
 .chat-compose button { display: grid; flex: 0 0 36px; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 50%; color: white; background: var(--green); cursor: pointer; }
-.chat-compose button .lucide { width: 17px; height: 17px; }
+.chat-compose button .icon { width: 17px; height: 17px; }
 .chat-disclaimer { margin: 9px 0 0; color: var(--muted); font-size: 0.75rem; text-align: center; }
 @media (min-width: 980px) {
   .chat-page { min-height: 690px; }
