@@ -4,6 +4,7 @@ import { sendJson } from "../http/response.js";
 import { handleGoalsApi } from "./goals.js";
 import { handleAccountApi } from "./account.js";
 import { handleAuthApi } from "./auth.js";
+import { handleBudgetApi } from "./budget.js";
 import { handleCategoriesApi } from "./categories.js";
 import { handleManualTransactionsApi } from "./manual-transactions.js";
 import { handlePlaidApi } from "./plaid.js";
@@ -23,6 +24,7 @@ export async function handleApi(
   if (await handlePlaidApi(request, response, pathname)) return;
   if (await handleGoalsApi(request, response, pathname)) return;
   if (await handleAccountApi(request, response, pathname)) return;
+  if (await handleBudgetApi(request, response, pathname)) return;
   if (await handleCategoriesApi(request, response, pathname)) return;
   if (await handleManualTransactionsApi(request, response, pathname)) return;
   if (await handleTransactionsApi(request, response, pathname)) return;

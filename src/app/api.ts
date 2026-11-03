@@ -2,6 +2,40 @@ export interface ApiUser {
   id: string;
   email: string | null;
   user_metadata: Record<string, unknown> | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email_address?: string | null;
+  daily_sync?: boolean;
+  budget_reminders?: boolean;
+  leaderboard_visibility?: boolean;
+}
+
+export interface AccountPreferences {
+  daily_sync: boolean;
+  budget_reminders: boolean;
+  leaderboard_visibility: boolean;
+}
+
+export interface BudgetRecord {
+  budgetId: string;
+  monthlyBudget: number | null;
+  monthlyIncome: number;
+  month: string | null;
+}
+
+export function getBudget(month: string): Promise<{ budget: BudgetRecord | null }> {
+  return request(`/api/budget?month=${encodeURIComponent(month)}`);
+}
+
+export function saveBudget(input: {
+  month: string;
+  monthlyBudget: number | null;
+  monthlyIncome: number;
+}): Promise<{ budget: BudgetRecord }> {
+  return request("/api/budget", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export interface BankAccount {
@@ -138,6 +172,28 @@ export function getSession(): Promise<{ user: ApiUser | null }> {
 
 export function getAccount(): Promise<ApiUser> {
   return request("/api/account");
+}
+
+export function updateAccountPreference(
+  preference: keyof AccountPreferences,
+  enabled: boolean,
+): Promise<AccountPreferences> {
+  return request("/api/account/preferences", {
+    method: "PATCH",
+    body: JSON.stringify({ preference, enabled }),
+  });
+}
+
+export function updateAccount(input: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password?: string;
+}): Promise<ApiUser & { emailConfirmationRequired: boolean }> {
+  return request("/api/account", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 }
 
 export function getFriendCode(): Promise<{ friendCode: string }> {

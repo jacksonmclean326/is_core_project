@@ -1,5 +1,6 @@
 import { scaleLimits } from "../../shared/limits.js";
 import { showToast } from "../ui/ui.js";
+import { getAccount } from "../api.js";
 
 const palette = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#d9d5c7"];
 
@@ -117,6 +118,26 @@ function loadState(): AppState {
 }
 
 export const state: AppState = loadState();
+let accountPreferencesPromise: Promise<void> | null = null;
+
+export function loadAccountPreferences(): Promise<void> {
+  if (!accountPreferencesPromise) {
+    accountPreferencesPromise = getAccount()
+      .then((user) => {
+        state.preferences = {
+          sync: user.daily_sync !== false,
+          reminders: user.budget_reminders !== false,
+          leaderboard: user.leaderboard_visibility !== false,
+        };
+      })
+      .catch((error: unknown) => {
+        accountPreferencesPromise = null;
+        throw error;
+      });
+  }
+  return accountPreferencesPromise;
+}
+
 export const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 export const trends: Record<TrendMode, { values: number[]; caption: string; format: (value: number) => string }> = {
   spending: { values: [1920, 1880, 2050, 1800, 1890, 1740], caption: "spent this month", format: (value) => currency.format(value) },

@@ -16,7 +16,15 @@ import {
   type MonthKey
 } from "../../shared/months.js";
 import { showToast } from "../ui/ui.js";
-import { money, state, totalSpent, transactions, type TrendMode } from "../state/state.js";
+import {
+  checkCategoryWarnings,
+  loadAccountPreferences,
+  money,
+  state,
+  totalSpent,
+  transactions,
+  type TrendMode
+} from "../state/state.js";
 
 export type LoadResult = "linked" | "sample" | "stale" | "error";
 let latestTransactionRequest = 0;
@@ -89,9 +97,13 @@ export async function loadLinkedTransactions(
   const requestId = ++latestTransactionRequest;
   lastHistory = history;
   try {
+    await loadAccountPreferences().catch((error: unknown) => {
+      console.error("Unable to load account preferences before checking budget reminders.", error);
+    });
     const result = await getTransactions(month, history);
     if (requestId !== latestTransactionRequest) return "stale";
     const outcome = applyResult(month, result);
+    if (outcome === "linked") checkCategoryWarnings();
     if (outcome === "linked") saveSnapshot(month, history, result);
     if (result.warning && result.warning !== lastWarning) showToast(result.warning);
     lastWarning = result.warning ?? "";

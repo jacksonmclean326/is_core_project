@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5ef" />
+    <meta name="description" content="Help and support for using Money Man." />
+    <title>Money Man - Help &amp; Support</title>
+    <base href="/app/pages/help/">
+    <link rel="stylesheet" href="../../global.css" />
+    <link rel="stylesheet" href="help.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/home" aria-label="Money Man home">
+          <img class="brand-mascot" src="../../assets/money-man-mascot.png" alt="" />
+          <span>Money Man</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings">
+            <span class="profile-initials">?</span>
+          </a>
+        </div>
+      </header>
+      <main id="main-content">
+        <section class="page help-page" aria-labelledby="help-title">
+          <div class="page-heading help-heading">
+            <div>
+              <p class="eyebrow">SUPPORT</p>
+              <h1 id="help-title">Help &amp; support</h1>
+              <p class="subheading">Answers for your accounts, budget, and transactions.</p>
+            </div>
+            <a class="primary-button page-return-button help-back" href="/settings">Back to Settings</a>
+          </div>
+
+          <div class="help-document-layout">
+            <nav class="help-toc" aria-label="Help topics">
+              <strong>Browse topics</strong>
+              <ol>
+                <li><a href="#bank-accounts">Bank accounts</a></li>
+                <li><a href="#budget">Budgets and categories</a></li>
+                <li><a href="#transactions">Transactions</a></li>
+                <li><a href="#settings">Settings and account</a></li>
+                <li><a href="#app">Using Money Man</a></li>
+                <li><a href="#contact">Contact support</a></li>
+              </ol>
+            </nav>
+
+            <article class="help-document">
+              <section id="bank-accounts" aria-labelledby="bank-accounts-title">
+                <h2 id="bank-accounts-title">Bank accounts</h2>
+                <details class="help-faq">
+                  <summary>How do I connect a bank?</summary>
+                  <p>Open Settings, choose <strong>Connect another account</strong>, and follow the secure Plaid Link steps. Choose your institution and finish its sign-in flow there. You can connect another institution from Settings later.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Why are my transactions missing or still loading?</summary>
+                  <p>New connections can take a little time to prepare. Recent transactions usually appear first; Plaid may take a few minutes to finish importing older history. Check the sync message in Settings or Details, then refresh the page. Daily account sync must be on for automatic background updates.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Why does a bank balance not match my bank's app?</summary>
+                  <p>Money Man displays the latest balance saved from Plaid, which may be cached and not real-time. Open Settings to request an account refresh. Pending activity and the timing of your bank's updates can also cause differences.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>What happens when I disconnect a bank?</summary>
+                  <p>Disconnecting removes the saved bank connection and account records. Transactions already imported remain in your history, and manual transactions are not removed. To learn more about stored data, see <a href="/privacy">Privacy &amp; data</a>.</p>
+                </details>
+              </section>
+
+              <section id="budget" aria-labelledby="budget-title">
+                <h2 id="budget-title">Budgets and categories</h2>
+                <details class="help-faq">
+                  <summary>Where do I set my monthly budget?</summary>
+                  <p>In Settings, enter your monthly budget and income, then choose <strong>Save budget</strong>. Your budget should not exceed your income. Clearing the budget leaves your spending visible without a monthly budget target.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>How do I set a limit for a category?</summary>
+                  <p>On Details, choose <strong>Edit</strong> to update category limits together, or open a category and choose <strong>Set a limit</strong>. Changing your monthly budget scales existing limits proportionally; saving the same budget leaves limits unchanged.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Why did I get a budget reminder?</summary>
+                  <p>A reminder appears when a category reaches 90% of its limit. Turn off <strong>Budget reminders</strong> in Settings to stop these reminders.</p>
+                </details>
+              </section>
+
+              <section id="transactions" aria-labelledby="transactions-title">
+                <h2 id="transactions-title">Transactions</h2>
+                <details class="help-faq">
+                  <summary>How do I fix a transaction's category?</summary>
+                  <p>On Details, use the category menu on the transaction row. Select the option to apply the change to the same merchant if you want matching bank transactions, including future ones, to use that category. Your own category choice takes priority over automatic categorization.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Can I add a cash purchase or edit a transaction?</summary>
+                  <p>Choose <strong>Add</strong> on Details to enter a transaction manually. Manual entries can be edited or deleted from their row. Bank-imported transactions cannot be edited or deleted there, but you can change their category. Manual entries require a positive amount and a date within the supported 24-month history.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Why am I seeing sample spending?</summary>
+                  <p>Sample data appears when no bank is connected and no manual transaction has been added. Connect a bank or add your first manual transaction to use your own spending data.</p>
+                </details>
+              </section>
+
+              <section id="settings" aria-labelledby="settings-title">
+                <h2 id="settings-title">Settings and account</h2>
+                <details class="help-faq">
+                  <summary>What do the Preferences switches control?</summary>
+                  <p><strong>Daily account sync</strong> allows automatic transaction refreshes. <strong>Budget reminders</strong> enables alerts when a category reaches 90% of its limit. <strong>Leaderboard visibility</strong> controls whether your own entry appears on the Friends page.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>How do I change my email address?</summary>
+                  <p>Open Settings, choose <strong>Edit details</strong>, and save your new email. Supabase may ask you to confirm the new address through an email link before the change takes effect.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Will my budget and category limits follow me to another browser?</summary>
+                  <p>No. Monthly budget, income, category limits, goals, and some app settings are stored in the browser you use. Transactions, connected accounts, custom categories, merchant rules, and account preferences are saved with your Money Man account.</p>
+                </details>
+              </section>
+
+              <section id="app" aria-labelledby="app-title">
+                <h2 id="app-title">Using Money Man</h2>
+                <details class="help-faq">
+                  <summary>Are the chat answers generated by AI?</summary>
+                  <p>No. The current chat uses your spending information in the browser to provide canned answers about food spending, savings goals, and your budget. Messages are not sent to an external AI service.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Is the Friends leaderboard based on real friend activity?</summary>
+                  <p>Your friend code is tied to your account, but friend names and points on the Friends page are currently sample data. The visibility switch hides your own entry in that page; it does not publish or retrieve real rankings between accounts.</p>
+                </details>
+              </section>
+
+              <section id="contact" class="help-contact" aria-labelledby="contact-title">
+                <h2 id="contact-title">Still need help?</h2>
+                <p>Email <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a>. Include the page you were using and what happened. Do not send your bank password, Plaid credentials, or full account number.</p>
+                <address>Team Money Man<br />7150 TNRB, Brigham Young University<br />Provo, UT 84602-3113</address>
+              </section>
+            </article>
+          </div>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="/home" class="nav-item"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+    </div>
+    <script type="module" src="help.ts"></script>
+  </body>
+</html>

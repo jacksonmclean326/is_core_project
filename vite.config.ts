@@ -19,6 +19,8 @@ export default defineConfig({
           "chat",
           "leaderboard",
           "settings",
+          "privacy",
+          "help"
         ]);
 
         server.middlewares.use((request, response, next) => {
@@ -61,7 +63,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         ...Object.fromEntries(
-          ["auth", "home", "details", "chat", "leaderboard", "settings"].map(
+          ["auth", "home", "details", "chat", "leaderboard", "settings", "privacy", "help"].map(
             (page) => [
               page,
               resolve(process.cwd(), `src/app/pages/${page}/${page}.html`),

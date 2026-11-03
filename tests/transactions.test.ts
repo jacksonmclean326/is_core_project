@@ -4,8 +4,9 @@ import { test } from "node:test";
 process.env.SUPABASE_URL = "https://example.supabase.co";
 process.env.SUPABASE_PUBLISHABLE_KEY = "test";
 
-const { parseTransactionsQuery, summarizeMonths } = await import("../src/server/api/transactions.ts");
+const { parseTransactionsQuery, summarizeMonths, syncCandidates } = await import("../src/server/api/transactions.ts");
 const { HttpError } = await import("../src/server/errors.ts");
+const { categorizerVersion } = await import("../src/server/categorize.ts");
 
 const query = (qs: string, today = "2026-10-31") => parseTransactionsQuery(new URLSearchParams(qs), today);
 const rejects = (qs: string, today?: string) =>
@@ -13,6 +14,23 @@ const rejects = (qs: string, today?: string) =>
 
 const tx = (date: string, amount: number, category: string) =>
   ({ id: date + amount + category, name: "x", amount, date, category, account: "a", institution: "b" }) as never;
+
+test("daily sync preference suppresses automatic Plaid sync but preserves explicit refresh", () => {
+  const item = {
+    item_id: "item-1",
+    user_id: "user-1",
+    institution_name: "Bank",
+    access_token_encrypted: "encrypted",
+    transactions_cursor: "cursor",
+    transactions_synced_at: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    history_complete: true,
+    categorizer_version: categorizerVersion,
+  };
+  const now = Date.now();
+  assert.deepEqual(syncCandidates([item], false, false, now), []);
+  assert.deepEqual(syncCandidates([item], false, true, now), [item]);
+  assert.deepEqual(syncCandidates([item], true, false, now), [item]);
+});
 
 test("query defaults to the current month with no history", () => {
   assert.deepEqual(query(""), { month: "2026-10", history: 0 });

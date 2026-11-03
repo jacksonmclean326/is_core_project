@@ -294,6 +294,9 @@ CREATE TABLE public."User" (
     last_active timestamp without time zone,
     user_id uuid DEFAULT auth.uid() NOT NULL,
     auth_user_id uuid,
+    daily_sync boolean DEFAULT true NOT NULL,
+    budget_reminders boolean DEFAULT true NOT NULL,
+    leaderboard_visibility boolean DEFAULT true NOT NULL,
     CONSTRAINT "User_friend_code_format_check" CHECK (((friend_code)::text ~ '^[A-HJ-NP-Z2-9]{6}$'::text))
 );
 

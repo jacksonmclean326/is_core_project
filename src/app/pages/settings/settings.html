@@ -54,8 +54,8 @@
             <div class="bank-list" id="bank-list"></div>
             <p class="bank-disclosure">
               Plaid Transactions is enabled for supported connections; Plaid may process
-              transaction data and fees may apply. Money Man stores account details and
-              cached balances only, not transactions. Balances may not be real-time.
+              transaction data and fees may apply. Money Man stores linked account details,
+              cached balances, and imported transactions. Balances may not be real-time.
             </p>
             <div class="bank-actions">
               <button class="outline-button" type="button" id="connect-bank">
@@ -146,6 +146,7 @@
                 ></span
               ></label>
             </div>
+            <p class="form-feedback" id="preferences-feedback" role="status" aria-live="polite"></p>
           </section>
           <section class="settings-group">
             <div class="section-heading compact-heading">
@@ -171,14 +172,22 @@
                 ></p>
               </div>
             </div>
+            <button
+              class="primary-button profile-edit-button"
+              id="edit-account"
+              type="button"
+              aria-haspopup="dialog"
+            >
+              <i data-icon="pencil" aria-hidden="true"></i> Edit details
+            </button>
             <div class="settings-links">
-              <button type="button" id="privacy-link">
+              <a id="privacy-link" href="/privacy">
                 Privacy & data
-                <i data-icon="arrow-up-right" aria-hidden="true"></i></button
-              ><button type="button" id="help-link">
+                <i data-icon="arrow-up-right" aria-hidden="true"></i></a
+              ><a id="help-link" href="/help">
                 Help & support
                 <i data-icon="arrow-up-right" aria-hidden="true"></i>
-              </button>
+              </a>
             </div>
           </section>
         </section>
@@ -201,7 +210,7 @@
         >
       </nav>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
-      <dialog id="detail-dialog" class="detail-dialog">
+      <dialog id="detail-dialog" class="detail-dialog settings-dialog">
         <button class="dialog-close" type="button" aria-label="Close">
           <i data-icon="x" aria-hidden="true"></i>
         </button>

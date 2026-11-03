@@ -2,6 +2,7 @@ import {
   $,
   escapeHTML,
   eventElement,
+  loadAccountPreferences,
   type Friend,
   refreshIcons,
   saveState,
@@ -16,7 +17,7 @@ let friendCode = "";
 function renderLeaderboard() {
   const friends: Friend[] = [
     ...state.friends.map((friend) => ({ ...friend })),
-    {
+    ...(state.preferences.leaderboard ? [{
       id: "you",
       name: state.profile.name || "You",
       initials: (state.profile.name || "You")
@@ -29,7 +30,7 @@ function renderLeaderboard() {
       streak: 16,
       color: "coral",
       isYou: true,
-    },
+    }] : []),
   ].sort((first, second) => second.points - first.points);
   $("#friend-list").innerHTML = friends
     .map(
@@ -59,6 +60,7 @@ function renderLeaderboard() {
   });
   $("#friend-count").textContent =
     `${friends.length} ${friends.length === 1 ? "person" : "people"}`;
+  $("#leaderboard-hidden-note").hidden = state.preferences.leaderboard;
   refreshIcons();
 }
 
@@ -129,6 +131,10 @@ async function loadFriendCode() {
   }
 }
 
-renderLeaderboard();
 refreshIcons();
 loadFriendCode();
+void loadAccountPreferences()
+  .catch((error: unknown) => {
+    console.error("Unable to load account preferences for the leaderboard.", error);
+  })
+  .then(renderLeaderboard);

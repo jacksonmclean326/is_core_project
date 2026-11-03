@@ -1,6 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { publicUser, requireSession } from "../auth/session.js";
+import {
+  publicUser,
+  rememberVerifiedUser,
+  requireSession,
+} from "../auth/session.js";
 import { HttpError, supabaseFailure } from "../errors.js";
+import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 
 export async function handleAccountApi(
@@ -9,8 +14,112 @@ export async function handleAccountApi(
   pathname: string,
 ): Promise<boolean> {
   if (pathname === "/api/account" && request.method === "GET") {
-    const { user } = await requireSession(request, response);
-    sendJson(response, 200, publicUser(user));
+    const { client, user } = await requireSession(request, response);
+    const profile = await client
+      .from("User")
+      .select(
+        "first_name,last_name,email_address,daily_sync,budget_reminders,leaderboard_visibility",
+      )
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profile.error) throw supabaseFailure(profile.error);
+    sendJson(response, 200, {
+      ...publicUser(user),
+      first_name: profile.data?.first_name ?? null,
+      last_name: profile.data?.last_name ?? null,
+      email_address: profile.data?.email_address ?? null,
+      daily_sync: profile.data?.daily_sync !== false,
+      budget_reminders: profile.data?.budget_reminders !== false,
+      leaderboard_visibility: profile.data?.leaderboard_visibility !== false,
+    });
+    return true;
+  }
+
+  if (pathname === "/api/account/preferences" && request.method === "PATCH") {
+    const { client, user } = await requireSession(request, response);
+    const body = await readJsonBody(request);
+    const preference = body.preference;
+    const columns = {
+      daily_sync: "daily_sync",
+      budget_reminders: "budget_reminders",
+      leaderboard_visibility: "leaderboard_visibility",
+    } as const;
+    if (
+      typeof preference !== "string" ||
+      !Object.hasOwn(columns, preference) ||
+      typeof body.enabled !== "boolean"
+    ) {
+      throw new HttpError(400, "Choose a valid preference and enabled value.");
+    }
+    const column = columns[preference as keyof typeof columns];
+    const result = await client
+      .from("User")
+      .update({ [column]: body.enabled })
+      .eq("user_id", user.id)
+      .select("daily_sync,budget_reminders,leaderboard_visibility")
+      .single();
+    if (result.error) throw supabaseFailure(result.error);
+    sendJson(response, 200, {
+      daily_sync: result.data.daily_sync !== false,
+      budget_reminders: result.data.budget_reminders !== false,
+      leaderboard_visibility: result.data.leaderboard_visibility !== false,
+    });
+    return true;
+  }
+
+  if (pathname === "/api/account" && request.method === "PATCH") {
+    const { client, user, sessionId } = await requireSession(request, response);
+    const body = await readJsonBody(request);
+    const firstName = requiredString(body.firstName, "First name", 100);
+    const lastName = requiredString(body.lastName, "Last name", 100);
+    const email = requiredString(body.email, "Email", 320).toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new HttpError(400, "Enter a valid email address.");
+    }
+    const emailChanged = email !== (user.email ?? "").toLowerCase();
+    const password = body.password;
+    if (
+      password !== undefined &&
+      password !== "" &&
+      (typeof password !== "string" || password.length > 1024)
+    ) {
+      throw new HttpError(400, "Password must be 1024 characters or fewer.");
+    }
+
+    const authUpdate = await client.auth.updateUser({
+      ...(emailChanged ? { email } : {}),
+      ...(typeof password === "string" && password
+        ? { password }
+        : {}),
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`,
+      },
+    });
+    if (authUpdate.error) throw supabaseFailure(authUpdate.error, 400);
+    rememberVerifiedUser(sessionId, authUpdate.data.user);
+
+    const profile = await client
+      .from("User")
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        email_address: email,
+      })
+      .eq("user_id", user.id)
+      .select("first_name,last_name,email_address")
+      .single();
+    if (profile.error) throw supabaseFailure(profile.error);
+
+    sendJson(response, 200, {
+      ...publicUser(authUpdate.data.user),
+      first_name: profile.data.first_name,
+      last_name: profile.data.last_name,
+      email_address: profile.data.email_address,
+      emailConfirmationRequired:
+        emailChanged && authUpdate.data.user.email !== email,
+    });
     return true;
   }
 

@@ -296,6 +296,13 @@ h3 {
   font-weight: 700;
   cursor: pointer;
 }
+.page-return-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  text-decoration: none;
+}
 .bottom-nav {
   position: fixed;
   z-index: 10;
