@@ -20,7 +20,7 @@ export default defineConfig({
           "leaderboard",
           "settings",
           "privacy",
-          "help"
+          "help",
         ]);
 
         server.middlewares.use((request, response, next) => {
