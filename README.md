@@ -244,4 +244,4 @@ New goals start with `progress = 0`. Existing progress is read from Supabase and
 
 The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.
 
-App is autodeployed every commit to main through github actions
+App is autodeployed to AWS Beanstalk every commit to main through github actions
