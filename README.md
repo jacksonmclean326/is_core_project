@@ -4,17 +4,17 @@ College students often struggle to budget effectively due to limited time, incom
 
 ## Current status
 
-| Area | State |
-| --- | --- |
-| Sign-up, sign-in, sessions | Working. Supabase Auth, HttpOnly session cookie. |
-| Bank connections | Working in Plaid Sandbox: link, balances, disconnect. |
-| Transactions | Working. Imported from Plaid (up to 24 months) and saved to Supabase; users can also add their own by hand. |
-| Automatic categorization | Working. Merchant rules, then Plaid's hints, then Other; users can add categories and re-categorize. |
-| Month views | Working. Details has a month switcher; Home shows a real six-month trend. |
-| Home, Details | Real data once a bank is linked or a transaction is added; sample data before that. |
-| Budget, goals, preferences, streak | Prototype. Still stored in the browser (`localStorage`). |
-| Friends, leaderboard | The friend code is real; friends and points are sample data. |
-| Chat | Canned replies built from the current month's spending. Not AI-powered yet. |
+| Area                               | State                                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Sign-up, sign-in, sessions         | Working. Supabase Auth, HttpOnly session cookie.                                                            |
+| Bank connections                   | Working in Plaid Sandbox: link, balances, disconnect.                                                       |
+| Transactions                       | Working. Imported from Plaid (up to 24 months) and saved to Supabase; users can also add their own by hand. |
+| Automatic categorization           | Working. Merchant rules, then Plaid's hints, then Other; users can add categories and re-categorize.        |
+| Month views                        | Working. Details has a month switcher; Home shows a real six-month trend.                                   |
+| Home, Details                      | Real data once a bank is linked or a transaction is added; sample data before that.                         |
+| Budget, goals, preferences, streak | Prototype. Still stored in the browser (`localStorage`).                                                    |
+| Friends, leaderboard               | The friend code is real; friends and points are sample data.                                                |
+| Chat                               | Canned replies built from the current month's spending. Not AI-powered yet.                                 |
 
 ## ERD:
 
@@ -41,8 +41,8 @@ A small Node.js server sits between the browser and Supabase. It keeps all crede
 This combination of HTML, CSS, TypeScript, and Supabase allows us to focus on building the app without introducing an additional front-end framework.
 
 ## Diagram:
-<img width="4440" height="2300" alt="Blank diagram (1)" src="https://github.com/user-attachments/assets/d3f5cdbf-9d70-4ddc-8921-aa6351f06ca0" />
 
+<img width="4440" height="2300" alt="Blank diagram (1)" src="https://github.com/user-attachments/assets/d3f5cdbf-9d70-4ddc-8921-aa6351f06ca0" />
 
 ## Development Setup
 
@@ -77,15 +77,15 @@ If either command is not found, install Node.js LTS as described above, then reo
 
 3. Fill in `.env`. Keep all secret keys in the backend environment only. `.env` is ignored by Git and should stay local.
 
-   | Variable | Where to get it |
-   | --- | --- |
-   | `SUPABASE_URL` | Supabase project URL (`https://<project>.supabase.co`, without a path). |
-   | `SUPABASE_PUBLISHABLE_KEY` | Supabase **Project Settings → API Keys**. |
-   | `SUPABASE_SECRET_KEY` | The Supabase secret (service role) key. Server only. |
-   | `CLIENT_ID`, `PLAID_SECRET` | Plaid Dashboard **Developers → Keys** (use the Sandbox secret). |
-   | `PLAID_MODE` | `sandbox` (the default) or `production`. |
-   | `PLAID_TOKEN_ENCRYPTION_KEY` | A 32-byte key, generated with the command below. |
-   | `SUPABASE_JWKS_URL` | Not used by the app. Leave it blank. |
+   | Variable                     | Where to get it                                                         |
+   | ---------------------------- | ----------------------------------------------------------------------- |
+   | `SUPABASE_URL`               | Supabase project URL (`https://<project>.supabase.co`, without a path). |
+   | `SUPABASE_PUBLISHABLE_KEY`   | Supabase **Project Settings → API Keys**.                               |
+   | `SUPABASE_SECRET_KEY`        | The Supabase secret (service role) key. Server only.                    |
+   | `CLIENT_ID`, `PLAID_SECRET`  | Plaid Dashboard **Developers → Keys** (use the Sandbox secret).         |
+   | `PLAID_MODE`                 | `sandbox` (the default) or `production`.                                |
+   | `PLAID_TOKEN_ENCRYPTION_KEY` | A 32-byte key, generated with the command below.                        |
+   | `SUPABASE_JWKS_URL`          | Not used by the app. Leave it blank.                                    |
 
    Generate the encryption key with:
 
@@ -96,7 +96,6 @@ If either command is not found, install Node.js LTS as described above, then reo
    Back up the encryption key securely; changing it without first re-encrypting saved Plaid tokens will require users to reconnect their institutions.
 
 4. Set up the database.
-
    - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it). Then apply the goals migration described under **Supabase goals setup**.
    - **Existing project:** open the Supabase **SQL Editor** and run each file in `supabase/migrations/`, in date order. Every file is safe to run twice.
 
@@ -162,16 +161,16 @@ Users can add their own categories (up to 12, names up to 24 characters), rename
 
 All endpoints require a signed-in session (except sign-up and sign-in) and return JSON.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/auth/signup`, `/signin`, `/signout`, `GET /api/auth/session` | Account and session handling. |
-| `GET /api/account`, `GET /api/friend-code` | Account details and the friend code. |
-| `POST /api/plaid/link-token`, `/exchange` | Start and finish a bank connection. |
-| `GET /api/plaid/accounts`, `POST /api/plaid/accounts/refresh`, `DELETE /api/plaid/items/:id` | Linked accounts, balance refresh, disconnect. |
-| `GET /api/transactions?month=YYYY-MM&history=N` | One month of categorized transactions, plus optional monthly summaries and the user's custom categories. |
-| `PUT /api/transactions/category` | Move a bank transaction (`transactionId`, `category`, optional `applyToMerchant`). |
-| `POST /api/transactions/manual`, `PATCH`/`DELETE /api/transactions/manual/:id` | Add, edit, delete a manual transaction. |
-| `GET`/`POST /api/categories`, `PATCH`/`DELETE /api/categories/:key` | List, create, rename, delete custom categories. |
+| Endpoint                                                                                     | Purpose                                                                                                  |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/signup`, `/signin`, `/signout`, `GET /api/auth/session`                      | Account and session handling.                                                                            |
+| `GET /api/account`, `GET /api/friend-code`                                                   | Account details and the friend code.                                                                     |
+| `POST /api/plaid/link-token`, `/exchange`                                                    | Start and finish a bank connection.                                                                      |
+| `GET /api/plaid/accounts`, `POST /api/plaid/accounts/refresh`, `DELETE /api/plaid/items/:id` | Linked accounts, balance refresh, disconnect.                                                            |
+| `GET /api/transactions?month=YYYY-MM&history=N`                                              | One month of categorized transactions, plus optional monthly summaries and the user's custom categories. |
+| `PUT /api/transactions/category`                                                             | Move a bank transaction (`transactionId`, `category`, optional `applyToMerchant`).                       |
+| `POST /api/transactions/manual`, `PATCH`/`DELETE /api/transactions/manual/:id`               | Add, edit, delete a manual transaction.                                                                  |
+| `GET`/`POST /api/categories`, `PATCH`/`DELETE /api/categories/:key`                          | List, create, rename, delete custom categories.                                                          |
 
 ### Build and run the production server
 
@@ -244,3 +243,5 @@ Each row belongs to a Supabase Auth user. Row Level Security checks `auth.uid() 
 New goals start with `progress = 0`. Existing progress is read from Supabase and preserved when editing goals. Automatic progress from banking transactions is not implemented. To verify the progress display, update your test goal's `amount_savings` in the Supabase Table Editor and refresh the app. Target amounts are independent of the prototype income value. Old sample/local goals are not imported.
 
 The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.
+
+App is autodeployed every commit to main through github actions
