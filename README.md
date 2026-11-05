@@ -40,6 +40,10 @@ A small Node.js server sits between the browser and Supabase. It keeps all crede
 
 This combination of HTML, CSS, TypeScript, and Supabase allows us to focus on building the app without introducing an additional front-end framework.
 
+## Diagram:
+<img width="4440" height="2300" alt="Blank diagram (1)" src="https://github.com/user-attachments/assets/d3f5cdbf-9d70-4ddc-8921-aa6351f06ca0" />
+
+
 ## Development Setup
 
 Follow these steps to run a fresh clone locally.
