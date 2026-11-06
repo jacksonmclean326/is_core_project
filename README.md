@@ -182,7 +182,7 @@ Use these commands when needed:
 npm start
 ```
 
-`npm start` runs a prestart step that builds the app when `environment=development`, then serves the compiled app from `dist/` on port `3000` (or set `PORT`). For production, build during deployment and include `dist/`; set `environment=production` and `NODE_ENV=production` so the server uses the production cookie setting. Deploy the Node.js server rather than the static `dist/` folder alone.
+`npm start` runs a prestart step that builds the app when `ENVIRONMENT=development`, then serves the compiled app from `dist/` on port `3000` (or set `PORT`). For production, build during deployment and include `dist/`; set `ENVIRONMENT=production` and `NODE_ENV=production` so the server uses the production cookie setting. Deploy the Node.js server rather than the static `dist/` folder alone.
 
 ### Server-side code
 
