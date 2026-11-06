@@ -12,9 +12,9 @@ College students often struggle to budget effectively due to limited time, incom
 | Automatic categorization           | Working. Merchant rules, then Plaid's hints, then Other; users can add categories and re-categorize.        |
 | Month views                        | Working. Details has a month switcher; Home shows a real six-month trend.                                   |
 | Home, Details                      | Real data once a bank is linked or a transaction is added; sample data before that.                         |
-| Budget, goals, preferences, streak | Prototype. Still stored in the browser (`localStorage`).                                                    |
+| Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
 | Friends, leaderboard               | The friend code is real; friends and points are sample data.                                                |
-| Chat                               | Canned replies built from the current month's spending. Not AI-powered yet.                                 |
+| Chat                               | Groq-powered replies with recent monthly spending summaries, saved budgets, and goals from the signed-in account. |
 
 ## ERD:
 
@@ -85,6 +85,7 @@ If either command is not found, install Node.js LTS as described above, then reo
    | `CLIENT_ID`, `PLAID_SECRET`  | Plaid Dashboard **Developers → Keys** (use the Sandbox secret).         |
    | `PLAID_MODE`                 | `sandbox` (the default) or `production`.                                |
    | `PLAID_TOKEN_ENCRYPTION_KEY` | A 32-byte key, generated with the command below.                        |
+   | `GROQ_KEY`                  | GroqCloud API key. Server only; required for AI chat.                    |
    | `SUPABASE_JWKS_URL`          | Not used by the app. Leave it blank.                                    |
 
    Generate the encryption key with:
@@ -218,9 +219,9 @@ To check spending data:
 
 ## Known limitations
 
-- Budgets and category limits are not saved per user yet, so they do not follow someone to another browser.
-- Friends and leaderboard points are sample data, and the chat does not use an AI model yet.
-- The Home trend and Details totals compare spending against one monthly budget; there are no per-month budgets.
+- Category limits and streaks are not saved per user, so they do not follow someone to another browser.
+- Friends and leaderboard points are sample data. Chat sends recent monthly totals and category summaries, saved budgets, and saved goals to Groq; individual transaction names are not included.
+- The monthly budget is saved for the selected month and does not automatically carry forward to a new month.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
 - Plaid takes several seconds to prepare a newly linked bank (about 7 seconds in the Sandbox), so the very first load after linking cannot be instant. Every load after that is.

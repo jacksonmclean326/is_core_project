@@ -321,3 +321,7 @@ export function getGoals(): Promise<{ goals: import("./goals.js").GoalRow[] }> {
 export function putGoals(items: { id: string; kind: string; name: string; target: number }[]): Promise<{ goals: import("./goals.js").GoalRow[] }> {
   return request("/api/goals", { method: "PUT", body: JSON.stringify({ items }) });
 }
+
+export function sendChat(messages: { role: "user" | "assistant"; content: string }[]): Promise<{ reply: string }> {
+  return request("/api/chat", { method: "POST", body: JSON.stringify({ messages }) });
+}

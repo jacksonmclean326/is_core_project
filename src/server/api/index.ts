@@ -9,6 +9,7 @@ import { handleCategoriesApi } from "./categories.js";
 import { handleManualTransactionsApi } from "./manual-transactions.js";
 import { handlePlaidApi } from "./plaid.js";
 import { handleTransactionsApi } from "./transactions.js";
+import { handleChatApi } from "./chat.js";
 
 export async function handleApi(
   request: IncomingMessage,
@@ -28,6 +29,7 @@ export async function handleApi(
   if (await handleCategoriesApi(request, response, pathname)) return;
   if (await handleManualTransactionsApi(request, response, pathname)) return;
   if (await handleTransactionsApi(request, response, pathname)) return;
+  if (await handleChatApi(request, response, pathname)) return;
 
   if (pathname.startsWith("/api/")) {
     sendJson(response, 404, { error: "API endpoint not found." });

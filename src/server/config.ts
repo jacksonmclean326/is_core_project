@@ -43,6 +43,7 @@ export const config = {
   plaidSecret: process.env.PLAID_SECRET?.trim() || "",
   plaidMode,
   plaidTokenEncryptionKey: process.env.PLAID_TOKEN_ENCRYPTION_KEY?.trim() || "",
+  groqKey: process.env.GROQ_KEY?.trim() || "",
   port: readPort(),
   distributionDirectory: resolve(process.cwd(), "dist"),
 };
