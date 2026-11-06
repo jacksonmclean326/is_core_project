@@ -436,6 +436,13 @@ CREATE INDEX "Transaction_user_date_idx" ON public."Transaction" USING btree (us
 
 
 --
+-- Name: Chatbot History_user_date_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX "Chatbot History_user_date_idx" ON public."Chatbot History" USING btree (user_id, datestamp, chat_id);
+
+
+--
 -- Name: User User_friend_code_key; Type: INDEX; Schema: public; Owner: -
 --
 

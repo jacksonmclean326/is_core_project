@@ -21,16 +21,17 @@
         <section class="page chat-page" aria-labelledby="chat-title">
           <div class="page-heading chat-heading"><div><p class="eyebrow">A SECOND SET OF EYES</p><h1 id="chat-title">Ask Mr. Moneyman.</h1><p class="subheading">A friendly place to think things through.</p></div></div>
           <div class="chat-window" id="chat-window" aria-label="Conversation with Mr. Moneyman">
-            <div class="chat-date">TODAY</div>
-            <div class="message-row assistant-row"><img class="money-avatar" src="../../assets/money-man-mascot.png" alt=""><div class="message-bubble assistant-bubble"><strong>Mr. Moneyman</strong><p>Hey Jordan. Want to take a look at anything in your budget together?</p><time>8:42 AM</time></div></div>
+            <div class="chat-toolbar"><span class="chat-date">SAVED CONVERSATION</span><button class="chat-clear" id="clear-chat" type="button" disabled>Clear history</button></div>
+            <div class="message-row assistant-row"><img class="money-avatar" src="../../assets/money-man-mascot.png" alt=""><div class="message-bubble assistant-bubble"><strong>Mr. Moneyman</strong><p>Hi! I can help you understand the spending and goals recorded in your account.</p></div></div>
             <div class="message-list" id="message-list" aria-live="polite"></div>
           </div>
+          <p class="chat-status" id="chat-status" role="status" aria-live="polite">Loading saved history…</p>
           <div class="suggestion-area">
             <button class="suggestion-toggle" id="suggestion-toggle" type="button" aria-expanded="false" aria-controls="suggestions"><span><i data-icon="message-circle-question" aria-hidden="true"></i> Need a place to start?</span><i data-icon="chevron-down" class="suggestion-chevron" aria-hidden="true"></i></button>
             <div class="suggestion-list" id="suggestions" hidden><button type="button">How can I spend less on food?</button><button type="button">Am I on track with my savings goal?</button><button type="button">What does 90% of my budget look like?</button></div>
           </div>
-          <form class="chat-compose" id="chat-form"><label class="sr-only" for="chat-input">Write a message</label><input id="chat-input" type="text" maxlength="1000" placeholder="Write a message..." autocomplete="off"><button type="submit" aria-label="Send message"><i data-icon="arrow-up" aria-hidden="true"></i></button></form>
-          <p class="chat-disclaimer">Your messages, recent spending summaries, budgets, and goals are sent to Groq. AI responses are informational and aren't financial advice.</p>
+          <form class="chat-compose" id="chat-form"><label class="sr-only" for="chat-input">Write a message</label><input id="chat-input" type="text" maxlength="1000" placeholder="Write a message..." autocomplete="off" disabled><button type="submit" aria-label="Send message" disabled><i data-icon="arrow-up" aria-hidden="true"></i></button></form>
+          <p class="chat-disclaimer">Your chat messages are saved to your account until cleared. Messages, recent spending summaries, budgets, and goals are sent to Groq. AI responses are informational and aren't financial advice.</p>
         </section>
       </main>
       <nav class="bottom-nav" aria-label="Main navigation">

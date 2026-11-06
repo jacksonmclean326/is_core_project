@@ -322,6 +322,25 @@ export function putGoals(items: { id: string; kind: string; name: string; target
   return request("/api/goals", { method: "PUT", body: JSON.stringify({ items }) });
 }
 
-export function sendChat(messages: { role: "user" | "assistant"; content: string }[]): Promise<{ reply: string }> {
-  return request("/api/chat", { method: "POST", body: JSON.stringify({ messages }) });
+export interface ChatHistoryMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt: string;
+}
+
+export function getChatHistory(): Promise<{ messages: ChatHistoryMessage[] }> {
+  return request("/api/chat");
+}
+
+export function sendChat(message: string): Promise<{
+  reply: string;
+  chatId: string;
+  createdAt: string;
+}> {
+  return request("/api/chat", { method: "POST", body: JSON.stringify({ message }) });
+}
+
+export function clearChatHistory(): Promise<{ cleared: number }> {
+  return request("/api/chat", { method: "DELETE" });
 }

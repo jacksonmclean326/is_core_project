@@ -34,7 +34,7 @@
             <a class="primary-button page-return-button privacy-back" href="/settings">Back to Settings</a>
           </div>
 
-          <p class="privacy-updated">Privacy notice · Last updated November 3, 2026</p>
+          <p class="privacy-updated">Privacy notice · Last updated November 6, 2026</p>
 
           <div class="privacy-document-layout">
             <nav class="privacy-toc" aria-label="Privacy notice contents">
@@ -88,19 +88,23 @@
                 </p>
                 <h3>Budget and app information</h3>
                 <p>
-                  Custom categories, merchant categorization rules, and manual transaction changes are
-                  stored with your account. Monthly budget and income values, category limits, goals,
-                  friends, and other app settings are stored in this browser rather than synced to your
-                  Supabase account. The three Settings preferences are saved to your account.
+                  Custom categories, merchant categorization rules, manual transaction changes, monthly
+                  budget and income values, goals, and the three Settings preferences are stored with
+                  your Supabase account. Category limits, streaks, and some app display settings remain
+                  in this browser.
                 </p>
                 <h3>Chat and technical information</h3>
                 <p>
-                  Chat messages and your current spending data are processed in the browser to create a
-                  response. Messages are not sent to an external AI service or saved by Money Man as chat
-                  history. The app also uses an essential
-                  session cookie and receives ordinary connection information needed to deliver and
-                  secure the service. Google Fonts requests are made by your browser when the app loads;
-                  Google may receive connection information such as your IP address and browser details.
+                  When you use Ask, your messages and prior saved conversation are sent to Groq to
+                  generate replies, along with recent monthly spending totals and category summaries,
+                  saved monthly budgets, and goals. Individual transaction names are not included in
+                  that spending context. Successful user and assistant messages are saved in your
+                  account's Chatbot History until you choose Clear history in Ask. Groq processes the
+                  information it receives under its own terms and privacy practices. The app also uses
+                  an essential session cookie and receives ordinary connection information needed to
+                  deliver and secure the service. Google Fonts requests are made by your browser when
+                  the app loads; Google may receive connection information such as your IP address and
+                  browser details.
                 </p>
               </section>
 
@@ -110,6 +114,7 @@
                   <li>To create and secure your account, authenticate you, and provide the app.</li>
                   <li>To connect accounts through Plaid, retrieve balances and transactions, and keep imported transactions in sync.</li>
                   <li>To organize transactions, apply your category choices and merchant rules, and show spending summaries.</li>
+                  <li>To provide the AI chat responses you request, using your saved conversation and budgeting context.</li>
                   <li>To save your account preferences and apply sync, reminder, and leaderboard settings.</li>
                   <li>To diagnose service errors, protect the service, respond to requests, and meet legal obligations.</li>
                 </ul>
@@ -146,6 +151,7 @@
                 <ul>
                   <li><strong>Supabase</strong> provides authentication and cloud database services.</li>
                   <li><strong>Plaid</strong> provides bank linking and financial data services when you connect an account.</li>
+                  <li><strong>Groq</strong> processes chat messages and budgeting context to generate AI replies.</li>
                   <li><strong>Google</strong> serves the web fonts used by the app when your browser requests them.</li>
                 </ul>
                 <p>
@@ -164,9 +170,10 @@
               <section id="storage" aria-labelledby="storage-title">
                 <h2 id="storage-title">6. Storage and retention</h2>
                 <p>
-                  Account, linked-account, category, and transaction records are stored in the operator's
-                  Supabase project. Some app settings and budget data are stored locally in the browser.
-                  A short-lived transaction snapshot may be kept in the current browser tab to make
+                  Account, linked-account, category, transaction, budget, goal, preference, and chat
+                  history records are stored in the operator's Supabase project. Category limits,
+                  streaks, and some app settings are stored locally in the browser. A short-lived
+                  transaction snapshot may be kept in the current browser tab to make
                   recently viewed data load faster.
                 </p>
                 <p>
@@ -185,7 +192,7 @@
                 <p>
                   Money Man uses an essential, HttpOnly session cookie to keep you signed in. It is
                   configured as SameSite=Lax and is set as Secure in production; its lifetime is seven
-                  days. The app also uses browser local storage for budget and app settings, and
+                  days. The app also uses browser local storage for category limits and app settings, and
                   session storage for temporary transaction snapshots. These technologies are used for
                   the service rather than advertising. You can clear browser storage through your
                   browser, though doing so may remove locally saved app information or end your session.

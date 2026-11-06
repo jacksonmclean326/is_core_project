@@ -14,7 +14,7 @@ College students often struggle to budget effectively due to limited time, incom
 | Home, Details                      | Real data once a bank is linked or a transaction is added; sample data before that.                         |
 | Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
 | Friends, leaderboard               | The friend code is real; friends and points are sample data.                                                |
-| Chat                               | Groq-powered replies with recent monthly spending summaries, saved budgets, and goals from the signed-in account. |
+| Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
 
 ## ERD:
 
@@ -172,6 +172,7 @@ All endpoints require a signed-in session (except sign-up and sign-in) and retur
 | `PUT /api/transactions/category`                                                             | Move a bank transaction (`transactionId`, `category`, optional `applyToMerchant`).                       |
 | `POST /api/transactions/manual`, `PATCH`/`DELETE /api/transactions/manual/:id`               | Add, edit, delete a manual transaction.                                                                  |
 | `GET`/`POST /api/categories`, `PATCH`/`DELETE /api/categories/:key`                          | List, create, rename, delete custom categories.                                                          |
+| `GET`/`POST`/`DELETE /api/chat`                                                              | Load saved chat history, send a message, or clear the signed-in user's history.                           |
 
 ### Build and run the production server
 
@@ -181,7 +182,7 @@ Use these commands when needed:
 npm start
 ```
 
-`npm start` first runs the full build: it type-checks the frontend and backend TypeScript, builds the frontend, and compiles the backend into `dist/server/`. It then serves the frontend and backend together on port `3000` (or set `PORT`). For production HTTPS deployments, set `NODE_ENV=production` so the session cookie is marked `Secure`; deploy the Node.js server rather than the static `dist/` folder alone.
+`npm start` runs a prestart step that builds the app when `environment=development`, then serves the compiled app from `dist/` on port `3000` (or set `PORT`). For production, build during deployment and include `dist/`; set `environment=production` and `NODE_ENV=production` so the server uses the production cookie setting. Deploy the Node.js server rather than the static `dist/` folder alone.
 
 ### Server-side code
 
@@ -220,7 +221,7 @@ To check spending data:
 ## Known limitations
 
 - Category limits and streaks are not saved per user, so they do not follow someone to another browser.
-- Friends and leaderboard points are sample data. Chat sends recent monthly totals and category summaries, saved budgets, and saved goals to Groq; individual transaction names are not included.
+- Friends and leaderboard points are sample data. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
 - The monthly budget is saved for the selected month and does not automatically carry forward to a new month.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
