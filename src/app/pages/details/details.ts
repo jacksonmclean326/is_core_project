@@ -237,14 +237,7 @@ function renderSummary() {
   $("#goal-card-list").innerHTML = goalsStatus !== "ready"
     ? `<p class="watch-empty">${goalsStatus === "loading" ? "Loading your goals…" : "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again."}</p>`
     : state.goals.length
-    ? state.goals
-        .map((goal) => {
-          const progress = goal.target
-            ? Math.min(100, (goal.progress / goal.target) * 100)
-            : 0;
-          return `<article class="goal-card"><div class="goal-card-top"><span class="goal-kind">${escapeHTML(goal.kind)} goal</span><i data-icon="target" aria-hidden="true"></i></div><strong>${escapeHTML(goal.name)}</strong><div class="mini-track"><span style="width:${progress}%"></span></div><div class="goal-amounts"><span>${money(goal.progress)} toward goal</span><span>${money(goal.target)} goal</span></div></article>`;
-        })
-        .join("")
+    ? state.goals.map(goalCardHTML).join("")
     : `<p class="watch-empty">Add a goal to see your progress here.</p>`;
   refreshIcons();
 }
@@ -341,15 +334,87 @@ function openSummaryEditor() {
   refreshIcons();
 }
 
-function openGoalsEditor() {
-  const goalRows = state.goals
-    .map(
-      (goal) =>
-        `<div class="edit-row goal-edit-row" data-goal-row="${escapeHTML(goal.id)}"><select class="goal-kind-input" aria-label="Goal type"><option ${goal.kind === "Savings" ? "selected" : ""}>Savings</option><option ${goal.kind === "Spending" ? "selected" : ""}>Spending</option><option ${goal.kind === "Earnings" ? "selected" : ""}>Earnings</option><option ${goal.kind === "Investing" ? "selected" : ""}>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" value="${escapeHTML(goal.name)}"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" value="${Number(goal.target)}"><button type="button" class="remove-goal" data-remove-goal="${escapeHTML(goal.id)}" aria-label="Remove ${escapeHTML(goal.name)}"><i data-icon="x" aria-hidden="true"></i></button></div>`,
-    )
+/** Darkens a pale category color (like the tan "Other") so its ring still shows against the track. */
+function ringColor(hex: string): string {
+  const match = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!match) return hex;
+  const channels = [0, 2, 4].map((start) => {
+    const value = parseInt((match[1] as string).slice(start, start + 2), 16) / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = 0.2126 * (channels[0] as number) + 0.7152 * (channels[1] as number) + 0.0722 * (channels[2] as number);
+  if (luminance <= 0.42) return hex;
+  return `color-mix(in srgb, ${hex} 70%, #17201d)`;
+}
+
+/**
+ * A goal card with a progress ring. The ring takes its category's color (spending goals) or its goal
+ * type's color (see details.css). Near or over a limit shows in the colored status line.
+ */
+function goalCardHTML(goal: (typeof state.goals)[number]): string {
+  const ratio = goal.target > 0 ? goal.progress / goal.target : 0;
+  const isSpending = goal.kind === "Spending";
+  const over = isSpending && ratio > 1;
+  const near = isSpending && ratio >= 0.9 && ratio <= 1;
+  const done = !isSpending && ratio >= 1;
+  const left = Math.max(0, goal.target - goal.progress);
+  const tone = over ? "is-over" : near ? "is-near" : done ? "is-done" : "";
+  const shown = Math.round(ratio * 100);
+  const percent = !isSpending && done ? "100%" : shown > 999 ? "999%+" : `${shown}%`;
+  const status = over
+    ? `${money(goal.progress - goal.target)} over your limit`
+    : near
+      ? `${money(left)} left · near your limit`
+      : done
+        ? "Goal reached"
+        : isSpending
+          ? `${money(left)} left`
+          : `${money(left)} to go`;
+  const category = goal.category
+    ? ` · ${escapeHTML(state.categories.find((item) => item.id === goal.category)?.name ?? "Category")}`
+    : "";
+  const note = goal.note && !done ? `<p class="goal-note">${escapeHTML(goal.note)}</p>` : "";
+  const label = `${goal.name}:${percent}${isSpending ? " of limit used" : " of goal"}`;
+  const arc = Math.min(100, Math.max(0, ratio * 100));
+  const value =
+    arc > 0
+      ? `<circle class="goal-ring-value" cx="50" cy="50" r="40" pathLength="100" stroke-dasharray="${arc} 100" />`
+      : "";
+  const categoryColor = goal.category ? state.categories.find((item) => item.id === goal.category)?.color : undefined;
+  const colorStyle = categoryColor ? ` style="--goal-color:${ringColor(categoryColor)}"` : "";
+  return `<article class="goal-card goal-ring-card ${tone}" data-kind="${escapeHTML(goal.kind)}"${colorStyle}><div class="goal-card-top"><span class="goal-kind">${escapeHTML(goal.kind)} goal${category}${goal.automatic ? " · automatic" : ""}</span><i data-icon="target" aria-hidden="true"></i></div><div class="goal-ring-body"><div class="goal-ring" role="img" aria-label="${escapeHTML(label)}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="goal-ring-track" cx="50" cy="50" r="40" />${value}</svg><span class="goal-ring-percent">${percent}</span></div><div class="goal-ring-text"><strong>${escapeHTML(goal.name)}</strong><span class="goal-ring-amount">${money(goal.progress)} of ${money(goal.target)}${isSpending ? " limit" : ""}</span><span class="goal-ring-status">${status}</span></div></div>${note}</article>`;
+}
+
+const goalKindOptions: [string, string][] = [
+  ["Savings", "Savings (auto)"],
+  ["Spending", "Spending (auto)"],
+  ["Earnings", "Earnings"],
+  ["Investing", "Investing"],
+  ["Custom", "Custom"],
+];
+
+/** One editable goal row. Which extra fields show depends on the row's `data-kind` (see global.css). */
+function goalRowHTML(goal: (typeof state.goals)[number] | null, id: string): string {
+  const kind = goal?.kind ?? "Savings";
+  const kindOptions = goalKindOptions
+    .map(([value, label]) => `<option value="${value}"${value === kind ? " selected" : ""}>${label}</option>`)
     .join("");
+  const categoryOptions = [
+    `<option value="">All spending</option>`,
+    ...state.categories.map(
+      (category) =>
+        `<option value="${escapeHTML(category.id)}"${goal?.category === category.id ? " selected" : ""}>${escapeHTML(category.name)}</option>`,
+    ),
+  ].join("");
+  const progress = goal && !goal.automatic ? Number(goal.progress) : "";
+  const label = goal ? goal.name : "new goal";
+  return `<div class="edit-row goal-edit-row" data-goal-row="${escapeHTML(id)}" data-kind="${escapeHTML(kind)}"><select class="goal-kind-input" aria-label="Goal type">${kindOptions}</select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name" value="${escapeHTML(goal?.name ?? "")}"><input class="goal-target-input" aria-label="Goal amount" type="number" min="0.01" step="0.01" placeholder="400" value="${goal ? Number(goal.target) : ""}"><button type="button" class="remove-goal" data-remove-goal="${escapeHTML(id)}" aria-label="Remove ${escapeHTML(label)}"><i data-icon="x" aria-hidden="true"></i></button><div class="goal-extra"><p class="goal-hint goal-extra-savings">Tracks this month's income minus spending. Set your income in Settings.</p><label class="goal-extra-spending">Limit applies to<select class="goal-category-input">${categoryOptions}</select></label><label class="goal-extra-manual">Saved so far<input class="goal-progress-input" type="number" min="0" step="0.01" placeholder="0" value="${progress}"></label><label class="goal-extra-manual">Deadline (optional)<input class="goal-deadline-input" type="date" value="${escapeHTML(goal?.deadline ?? "")}"></label></div></div>`;
+}
+
+function openGoalsEditor() {
+  const goalRows = state.goals.map((goal) => goalRowHTML(goal, goal.id)).join("");
   openDialog(
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Add, update, or remove your goals.</p><form id="goals-edit-form" class="edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
+    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Savings (income minus spending) and Spending limits (all spending or one category) update automatically each month. Earnings, Investing, and Custom goals are yours to name, with an amount you update and an optional deadline.</p><form id="goals-edit-form" class="edit-form goals-edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
   );
   refreshIcons();
 }
@@ -374,10 +439,7 @@ function addCategoryEditorRow() {
 
 function addGoalEditorRow() {
   const id = crypto.randomUUID();
-  $("#goal-editor-rows").insertAdjacentHTML(
-    "beforeend",
-    `<div class="edit-row goal-edit-row" data-goal-row="${id}"><select class="goal-kind-input" aria-label="Goal type"><option>Savings</option><option>Spending</option><option>Earnings</option><option>Investing</option></select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name"><input class="goal-target-input" aria-label="Goal amount" type="number" min="1" step="1" placeholder="400"><button type="button" class="remove-goal" data-remove-goal="${id}" aria-label="Remove new goal"><i data-icon="x" aria-hidden="true"></i></button></div>`,
-  );
+  $("#goal-editor-rows").insertAdjacentHTML("beforeend", goalRowHTML(null, id));
   refreshIcons();
 }
 
@@ -398,12 +460,20 @@ async function saveGoalsEditor(event: SubmitEvent, form: HTMLFormElement) {
     const oldGoal = state.goals.find((goal) => goal.id === row.dataset.goalRow);
     const id = oldGoal?.id ?? row.dataset.goalRow;
     if (!id) throw new Error("Goal editor row is missing its identifier.");
+    const manual = kind !== "Savings" && kind !== "Spending";
+    const progress = manual ? Number($<HTMLInputElement>(".goal-progress-input", row).value || 0) : 0;
+    if (!Number.isFinite(progress) || progress < 0) {
+      feedback.textContent = "Saved so far must be zero or more.";
+      return;
+    }
     goals.push({
       id,
       kind,
       name,
       target,
-      progress: oldGoal?.progress || 0,
+      progress,
+      category: kind === "Spending" ? $<HTMLSelectElement>(".goal-category-input", row).value || null : null,
+      deadline: manual ? $<HTMLInputElement>(".goal-deadline-input", row).value || null : null,
     });
   }
   const submit = $<HTMLButtonElement>('button[type="submit"]', form);
@@ -527,6 +597,11 @@ $("#detail-dialog").addEventListener("submit", (event) => {
   if (!(form instanceof HTMLFormElement)) return;
   if (form.id === "summary-edit-form") void saveSummaryEditor(event);
   if (form.id === "goals-edit-form") void saveGoalsEditor(event, form);
+});
+$("#detail-dialog").addEventListener("change", (event) => {
+  const select = eventElement(event)?.closest<HTMLSelectElement>(".goal-kind-input");
+  const row = select?.closest<HTMLElement>(".goal-edit-row");
+  if (select && row) row.dataset.kind = select.value;
 });
 $("#detail-dialog").addEventListener("click", (event) => {
   const target = eventElement(event);

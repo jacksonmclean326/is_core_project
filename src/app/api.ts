@@ -318,7 +318,17 @@ export function getGoals(): Promise<{ goals: import("./goals.js").GoalRow[] }> {
   return request("/api/goals");
 }
 
-export function putGoals(items: { id: string; kind: string; name: string; target: number }[]): Promise<{ goals: import("./goals.js").GoalRow[] }> {
+export function putGoals(
+  items: {
+    id: string;
+    kind: string;
+    name: string;
+    target: number;
+    category: string | null;
+    deadline: string | null;
+    progress: number;
+  }[],
+): Promise<{ goals: import("./goals.js").GoalRow[] }> {
   return request("/api/goals", { method: "PUT", body: JSON.stringify({ items }) });
 }
 

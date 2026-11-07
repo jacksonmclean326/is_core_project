@@ -20,6 +20,14 @@ export interface Goal {
   name: string;
   target: number;
   progress: number;
+  /** True when progress is calculated from transactions (Savings and Spending goals). */
+  automatic?: boolean;
+  /** Spending goals: the category key the limit applies to, or null for all spending. */
+  category?: string | null;
+  /** Manual goals: the YYYY-MM-DD deadline, or null. */
+  deadline?: string | null;
+  /** A short explanation of how progress is measured. */
+  note?: string | null;
 }
 
 export interface Friend {

@@ -37,17 +37,6 @@
 .watch-amount { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); white-space: nowrap; }
 .watch-amount::before { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); content: ""; }
 .watch-empty { color: var(--muted); font-size: 0.75rem; }
-.goal-strip { display: flex; align-items: center; gap: 14px; padding: 22px 1px 0; }
-.goal-icon { display: grid; flex: 0 0 40px; width: 40px; height: 40px; place-items: center; border-radius: 50%; color: var(--green-dark); background: var(--green-soft); }
-.goal-icon .icon { width: 18px; height: 18px; }
-.goal-copy { display: grid; gap: 2px; min-width: 0; }
-.goal-copy .eyebrow { margin-bottom: 0; }
-.goal-copy strong { overflow: hidden; font-size: 0.8125rem; text-overflow: ellipsis; white-space: nowrap; }
-.goal-progress-copy { width: 160px; margin-left: auto; }
-.goal-progress-copy strong { display: block; margin-bottom: 7px; font: 700 0.8125rem var(--font-display); text-align: right; }
-.goal-progress-copy strong span { color: var(--muted); font: 500 0.75rem var(--font-body); }
-.goal-arrow { width: 33px; height: 33px; margin-left: 2px; border: 1px solid var(--line); border-radius: 50%; color: var(--green-dark); background: transparent; }
-.goal-arrow .icon { width: 15px; height: 15px; }
 .dashboard-sync { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 31px; padding: 15px 0 2px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.75rem; }
 .dashboard-sync .icon { width: 14px; height: 14px; }
 @media (min-width: 980px) {
@@ -76,17 +65,9 @@
   .watch-list h3 { margin-bottom: 11px; }
   .watch-items { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 14px; }
   .watch-item { font-size: 0.75rem; }
-  .goal-strip { gap: 9px; padding-top: 17px; }
-  .goal-icon { flex-basis: 35px; width: 35px; height: 35px; }
-  .goal-copy strong { max-width: 110px; font-size: 0.75rem; }
-  .goal-progress-copy { width: 115px; }
-  .goal-progress-copy strong { font-size: 0.75rem; }
-  .goal-arrow { flex: 0 0 30px; width: 30px; height: 30px; }
 }
 @media (max-width: 380px) {
   .trend-section { padding-right: 12px; padding-left: 12px; }
   .chart-wrap { height: 160px; }
   .watch-items { grid-template-columns: 1fr; }
-  .goal-progress-copy { width: 102px; }
-  .goal-copy strong { max-width: 95px; }
 }

@@ -6,6 +6,7 @@ import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
+import { withGoalProgress } from "./goals.js";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type ChatTurnRow = {
@@ -28,6 +29,8 @@ type GoalRow = {
   goal_name: string | null;
   desired_savings: number | null;
   amount_savings: number | null;
+  category_key: string | null;
+  target_date: string | null;
 };
 
 const model = "openai/gpt-oss-20b";
@@ -106,7 +109,7 @@ async function loadSpendingContext(userId: string) {
       .returns<BudgetRow[]>(),
     admin
       .from("Goal")
-      .select("goal_type,goal_name,desired_savings,amount_savings")
+      .select("goal_type,goal_name,desired_savings,amount_savings,category_key,target_date")
       .eq("user_id", userId)
       .order("goal_id")
       .returns<GoalRow[]>(),
@@ -197,17 +200,22 @@ async function loadSpendingContext(userId: string) {
         .map(([category, amount]) => ({ category, amount }))
     : [];
 
+  const goalsWithProgress = await withGoalProgress(userId, goalsResult.data ?? []);
+
   return {
     currency: "USD",
     transactionsThrough: today,
     monthlySpending,
     latestMonthWithTransactions: latestMonthWithTransactions?.month ?? null,
     focusCandidates,
-    goals: (goalsResult.data ?? []).map((goal) => ({
+    goals: goalsWithProgress.map((goal) => ({
       type: goal.goal_type,
       name: goal.goal_name,
       target: goal.desired_savings,
-      savedProgress: goal.amount_savings,
+      savedProgress: goal.progress,
+      ...(goal.category_key ? { category: categoryNamesForUser.get(goal.category_key) ?? goal.category_key } : {}),
+      ...(goal.target_date ? { deadline: goal.target_date.slice(0, 10) } : {}),
+      ...(goal.automatic ? { progressBasis: "current month, calculated from recorded transactions and saved monthly income" } : {}),
     })),
   };
 }

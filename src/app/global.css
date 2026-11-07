@@ -565,16 +565,63 @@ h3 {
   padding: 0;
 }
 .goal-edit-row {
-  grid-template-columns: minmax(72px, 0.8fr) minmax(90px, 1.2fr) minmax(
-      68px,
-      0.75fr
+  grid-template-columns: minmax(108px, 0.9fr) minmax(90px, 1.4fr) minmax(
+      72px,
+      0.7fr
     ) 29px;
-  gap: 6px;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
+}
+#goal-editor-rows {
+  display: grid;
+  gap: 10px;
+}
+/* The goals editor is taller than other editors: widen the dialog and let it scroll once. */
+.detail-dialog:has(.goals-edit-form) {
+  width: min(560px, calc(100vw - 32px));
+}
+.edit-form.goals-edit-form {
+  max-height: none;
+  overflow: visible;
 }
 .goal-edit-row input,
 .goal-edit-row select {
   padding-right: 6px;
   padding-left: 6px;
+}
+/* Extra fields sit on their own line and show only for the goal types that use them. */
+.goal-extra {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 6px;
+}
+.goal-extra label {
+  display: none;
+  flex: 1 1 120px;
+  gap: 3px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.goal-extra .goal-hint {
+  display: none;
+  flex: 1 1 100%;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.goal-edit-row[data-kind="Savings"] .goal-extra-savings {
+  display: block;
+}
+.goal-edit-row[data-kind="Spending"] .goal-extra-spending,
+.goal-edit-row[data-kind="Earnings"] .goal-extra-manual,
+.goal-edit-row[data-kind="Investing"] .goal-extra-manual,
+.goal-edit-row[data-kind="Custom"] .goal-extra-manual {
+  display: grid;
 }
 .remove-goal {
   display: grid;

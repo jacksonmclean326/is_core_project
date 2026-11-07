@@ -44,7 +44,27 @@
 .goal-card .goal-kind { color: var(--muted); font-size: 0.6875rem; }
 .goal-card strong { display: block; margin: 5px 0 11px; font-size: 0.8125rem; }
 .goal-card .goal-amounts { display: flex; justify-content: space-between; margin-top: 7px; color: var(--muted); font-size: 0.75rem; }
-.goal-card .mini-track span { background: var(--coral); }
+.goal-card .goal-note { margin: 10px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+/* Ring cards: the ring sits on the left like the spending donut, with the numbers beside it. */
+.goal-ring-body { display: flex; align-items: center; gap: 16px; margin-top: 10px; }
+.goal-ring { position: relative; display: grid; flex: 0 0 88px; width: 88px; aspect-ratio: 1; place-items: center; }
+.goal-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.goal-ring circle { fill: none; stroke-width: 12; }
+.goal-ring-track { stroke: #e8eae4; }
+/* Ring color: a spending goal's category sets --goal-color inline; every other type has its own. */
+.goal-ring-card { --goal-color: var(--green); --plum: #b0608a; --teal: #3b8c8f; }
+.goal-ring-card[data-kind="Spending"] { --goal-color: #5f6d66; }
+.goal-ring-card[data-kind="Earnings"] { --goal-color: var(--gold); }
+.goal-ring-card[data-kind="Investing"] { --goal-color: var(--teal); }
+.goal-ring-card[data-kind="Custom"] { --goal-color: var(--plum); }
+.goal-ring-value { stroke: var(--goal-color); stroke-linecap: round; }
+.goal-ring-percent { position: relative; font: 700 1rem var(--font-display); }
+.goal-ring-text { display: grid; min-width: 0; gap: 3px; }
+.goal-card .goal-ring-text strong { margin: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
+.goal-ring-amount { color: var(--muted); font-size: 0.75rem; }
+.goal-ring-status { color: var(--green-dark); font-size: 0.75rem; font-weight: 700; }
+.goal-card.is-over .goal-ring-status { color: #b3451f; }
+.goal-card.is-near .goal-ring-status { color: #7a5a0c; }
 @media (min-width: 980px) {
   .spending-layout { min-height: 350px; }
 }

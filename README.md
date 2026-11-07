@@ -97,7 +97,7 @@ If either command is not found, install Node.js LTS as described above, then reo
    Back up the encryption key securely; changing it without first re-encrypting saved Plaid tokens will require users to reconnect their institutions.
 
 4. Set up the database.
-   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it). Then apply the goals migration described under **Supabase goals setup**.
+   - **Fresh Supabase project:** run `supabase/schema.sql` with `psql` (it contains a `psql`-only line, so the SQL Editor cannot run it). Then apply the goals migrations described under **Supabase goals setup**.
    - **Existing project:** open the Supabase **SQL Editor** and run each file in `supabase/migrations/`, in date order. Every file is safe to run twice.
 
 5. Install the exact dependency versions from the lockfile:
@@ -242,7 +242,13 @@ Goals now use Supabase instead of the sample goals or browser storage. Run this 
 
 Each row belongs to a Supabase Auth user. Row Level Security checks `auth.uid() = user_id`, so signed-in users can only read and change their own rows. The function uses invoker security and the same policies. Use the existing publishable key in `.env`; no service-role key is needed.
 
-New goals start with `progress = 0`. Existing progress is read from Supabase and preserved when editing goals. Automatic progress from banking transactions is not implemented. To verify the progress display, update your test goal's `amount_savings` in the Supabase Table Editor and refresh the app. Target amounts are independent of the prototype income value. Old sample/local goals are not imported.
+**Run `supabase/migrations/20261105_flexible_goals.sql` as well** (after the goals migration). It adds `category_key` and `target_date` to `Goal` and replaces `save_user_goals` so goals can be flexible. The app's goals and chat endpoints fail until it has run.
+
+Goal types (`src/shared/goal-progress.ts`, applied by `GET /api/goals`):
+
+- **Savings** (automatic): the current month's income minus spending so far (the monthly income saved in Settings, or the monthly budget if no income is set).
+- **Spending limit** (automatic): spending so far this month against the target as a limit, for all spending or for one category (built-in or custom). The card turns red when over.
+- **Earnings, Investing, Custom** (manual): any goal you name. You type how much you have so far ("Saved so far", stored in `amount_savings`) and can set an optional deadline, which adds a note like "About $180 a month to finish by Mar 15." Income and investment balances are not tracked, so these are not calculated. Target amounts are independent of the prototype income value. Old sample/local goals are not imported.
 
 The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.
 

@@ -1,8 +1,165 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { addMonths, isDateString, monthStart, utcDateString } from "../../shared/months.js";
+import {
+  computeGoalProgress,
+  isAutomaticKind,
+  isGoalKind,
+  type MonthFacts,
+} from "../../shared/goal-progress.js";
 import { requireSession } from "../auth/session.js";
+import { createServiceSupabaseClient, type SessionClient } from "../auth/supabase.js";
+import { isBuiltInCategory, isCategoryKey } from "../categorize.js";
+import { listCustomCategories } from "../category-store.js";
+import { config } from "../config.js";
 import { HttpError, isRecord, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
+
+const pageSize = 1000;
+const goalColumns = "goal_id, goal_type, goal_name, desired_savings, amount_savings, category_key, target_date";
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** What the user has spent, earned (budget income) and budgeted so far in the current month. */
+async function loadMonthFacts(admin: SessionClient, userId: string): Promise<MonthFacts> {
+  const today = utcDateString();
+  const month = today.slice(0, 7);
+  const from = `${monthStart(month)}T00:00:00Z`;
+  const to = `${monthStart(addMonths(month, 1))}T00:00:00Z`;
+
+  let totalCents = 0;
+  const categoryCents = new Map<string, number>();
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await admin
+      .from("Transaction")
+      .select("amount,category_key")
+      .eq("user_id", userId)
+      .gte("date", from)
+      .lt("date", to)
+      .order("transaction_id", { ascending: true })
+      .range(offset, offset + pageSize - 1)
+      .returns<{ amount: number | null; category_key: string | null }[]>();
+    if (result.error) throw supabaseFailure(result.error);
+    const rows = result.data ?? [];
+    for (const row of rows) {
+      if (typeof row.amount !== "number" || !Number.isFinite(row.amount)) continue;
+      const amountCents = Math.round(row.amount * 100);
+      totalCents += amountCents;
+      const key = row.category_key || "other";
+      categoryCents.set(key, (categoryCents.get(key) ?? 0) + amountCents);
+    }
+    if (rows.length < pageSize) break;
+  }
+
+  const budget = await admin
+    .from("Budget")
+    .select("monthly_budget,monthly_income")
+    .eq("user_id", userId)
+    .eq("month", monthStart(month))
+    .order("budget_id", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ monthly_budget: number | null; monthly_income: number | null }>();
+  if (budget.error) throw supabaseFailure(budget.error);
+
+  return {
+    today,
+    spent: totalCents / 100,
+    spentByCategory: Object.fromEntries([...categoryCents].map(([key, value]) => [key, value / 100])),
+    income: budget.data?.monthly_income ?? null,
+    budget: budget.data?.monthly_budget ?? null,
+  };
+}
+
+/**
+ * Adds `progress`, `automatic` and `note` to goal rows. Savings and Spending goals are worked out
+ * from this month's transactions and budget; the other goals keep the amount the user saved.
+ */
+export async function withGoalProgress<
+  T extends {
+    goal_type: string | null;
+    desired_savings: number | string | null;
+    amount_savings: number | string | null;
+    category_key?: string | null;
+    target_date?: string | null;
+  },
+>(userId: string, rows: T[]): Promise<(T & { progress: number; automatic: boolean; note: string | null })[]> {
+  const facts = config.supabaseSecretKey ? await loadMonthFacts(createServiceSupabaseClient(), userId) : null;
+  return rows.map((row) => {
+    const stored = Number(row.amount_savings ?? 0);
+    const kind = row.goal_type ?? "";
+    const result =
+      facts && (isAutomaticKind(kind) || row.target_date)
+        ? computeGoalProgress(
+            {
+              kind,
+              stored,
+              target: Number(row.desired_savings ?? 0),
+              category: row.category_key ?? null,
+              deadline: row.target_date ? row.target_date.slice(0, 10) : null,
+            },
+            facts,
+          )
+        : { progress: stored, automatic: false, note: null };
+    return { ...row, ...result };
+  });
+}
+
+interface GoalInput {
+  id: string;
+  kind: string;
+  name: string;
+  target: number;
+  category: string | null;
+  deadline: string | null;
+  progress: number;
+}
+
+async function parseGoals(items: unknown, userId: string): Promise<GoalInput[]> {
+  const bad = new HttpError(400, "Each goal needs a valid ID, type, name, and positive target.");
+  if (!Array.isArray(items)) throw bad;
+  const customKeys = items.some((item) => isRecord(item) && item.kind === "Spending" && item.category)
+    ? new Set((await listCustomCategories(createServiceSupabaseClient(), userId)).map((category) => category.key))
+    : new Set<string>();
+
+  return items.map((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      !uuidPattern.test(item.id) ||
+      !isGoalKind(item.kind) ||
+      typeof item.name !== "string" ||
+      !item.name.trim() ||
+      item.name.trim().length > 36 ||
+      typeof item.target !== "number" ||
+      !Number.isFinite(item.target) ||
+      item.target <= 0
+    ) throw bad;
+
+    // A category only applies to Spending goals; it must be a built-in or one of the user's own.
+    let category: string | null = null;
+    if (item.kind === "Spending" && item.category) {
+      if (!isCategoryKey(item.category) || !(isBuiltInCategory(item.category) || customKeys.has(item.category))) {
+        throw new HttpError(400, "Choose a valid category for the spending goal.");
+      }
+      category = item.category;
+    }
+
+    // Progress and deadline are only typed in for manual goals.
+    const manual = !isAutomaticKind(item.kind);
+    let deadline: string | null = null;
+    if (manual && item.deadline) {
+      if (!isDateString(item.deadline)) throw new HttpError(400, "Choose a valid deadline.");
+      deadline = item.deadline;
+    }
+    let progress = 0;
+    if (manual && item.progress !== undefined && item.progress !== null) {
+      if (typeof item.progress !== "number" || !Number.isFinite(item.progress) || item.progress < 0) {
+        throw new HttpError(400, "Progress must be zero or more.");
+      }
+      progress = item.progress;
+    }
+    return { id: item.id, kind: item.kind, name: item.name.trim(), target: item.target, category, deadline, progress };
+  });
+}
 
 export async function handleGoalsApi(
   request: IncomingMessage,
@@ -15,25 +172,15 @@ export async function handleGoalsApi(
   }
   const { client, user } = await requireSession(request, response);
   if (request.method === "GET") {
-    const result = await client.from("Goal")
-      .select("goal_id, goal_type, goal_name, desired_savings, amount_savings")
-      .eq("user_id", user.id).order("goal_id");
+    const result = await client.from("Goal").select(goalColumns).eq("user_id", user.id).order("goal_id");
     if (result.error) throw supabaseFailure(result.error);
-    sendJson(response, 200, { goals: result.data });
+    sendJson(response, 200, { goals: await withGoalProgress(user.id, result.data) });
     return true;
   }
   const { items } = await readJsonBody(request);
-  if (!Array.isArray(items) || items.some((item) =>
-    !isRecord(item) || typeof item.id !== "string" ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id) ||
-    typeof item.kind !== "string" || !["Savings", "Spending", "Earnings", "Investing"].includes(item.kind) ||
-    typeof item.name !== "string" || !item.name.trim() || item.name.trim().length > 36 ||
-    typeof item.target !== "number" || !Number.isFinite(item.target) || item.target <= 0
-  )) throw new HttpError(400, "Each goal needs a valid ID, type, name, and positive target.");
-  const result = await client.rpc("save_user_goals", {
-    items: items.map(({ id, kind, name, target }) => ({ id, kind, name, target }))
-  });
+  const goals = await parseGoals(items, user.id);
+  const result = await client.rpc("save_user_goals", { items: goals });
   if (result.error) throw supabaseFailure(result.error);
-  sendJson(response, 200, { goals: result.data });
+  sendJson(response, 200, { goals: await withGoalProgress(user.id, result.data ?? []) });
   return true;
 }
