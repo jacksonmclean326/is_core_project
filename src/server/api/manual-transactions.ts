@@ -53,16 +53,18 @@ export function cleanDescription(value: unknown): string {
   return name;
 }
 
-/** Returns the amount in dollars, rounded to cents. Manual entries record spending, so it must be positive. */
+/**
+ * Returns the amount in dollars. Manual entries record spending, so it must be positive. It is kept to six
+ * decimals, not cents: people type amounts in their own currency, and rounding the converted dollars to cents
+ * would make 1,000 yen come back as 1,001.
+ */
 export function cleanAmount(value: unknown): number {
   const number = typeof value === "number" ? value : typeof value === "string" && value.trim() !== "" ? Number(value) : NaN;
   if (!Number.isFinite(number)) throw new HttpError(400, "Enter an amount, like 12.50.");
-  const cents = Math.round(number * 100);
-  if (cents <= 0) throw new HttpError(400, "The amount must be more than $0.");
-  if (cents > maxAmount * 100) throw new HttpError(400, "That amount is too large.");
-  return cents / 100;
+  if (number <= 0) throw new HttpError(400, "The amount must be more than zero.");
+  if (number > maxAmount) throw new HttpError(400, "That amount is too large.");
+  return Math.round(number * 1e6) / 1e6;
 }
-
 export function cleanDate(value: unknown, today: string): string {
   if (typeof value !== "string" || !dateAllowed(value, today)) {
     throw new HttpError(400, `Choose a valid date within the last ${transactionHistoryMonths} months, no later than tomorrow.`);

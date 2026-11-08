@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
 import { monthRange, utcDateString } from "../../shared/months.js";
 import { requireSession } from "../auth/session.js";
 import { createServiceSupabaseClient, type SessionClient } from "../auth/supabase.js";
@@ -7,6 +8,8 @@ import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { withGoalProgress } from "./goals.js";
+import { currencyOrDefault } from "../../shared/currencies.js";
+import { rateFor } from "../rates.js";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type ChatTurnRow = {
@@ -86,7 +89,7 @@ function publicHistory(turns: ChatTurnRow[]) {
   ]);
 }
 
-async function loadSpendingContext(userId: string) {
+async function loadSpendingContext(userId: string, currency: string) {
   if (!config.supabaseSecretKey) {
     throw new HttpError(
       503,
@@ -133,13 +136,17 @@ async function loadSpendingContext(userId: string) {
       { cents: 0, transactionCount: 0, categoryCents: new Map<string, number>() },
     ]),
   );
+  const hidden = await hiddenSourceIds(admin, userId);
   for (let from = 0; ; from += pageSize) {
-    const result = await admin
-      .from("Transaction")
-      .select("amount,date,category_key")
-      .eq("user_id", userId)
-      .gte("date", start)
-      .lte("date", end)
+    const result = await withoutHidden(
+      admin
+        .from("Transaction")
+        .select("amount,date,category_key")
+        .eq("user_id", userId)
+        .gte("date", start)
+        .lte("date", end),
+      hidden,
+    )
       .order("date", { ascending: true })
       .order("transaction_id", { ascending: true })
       .range(from, from + pageSize - 1)
@@ -170,6 +177,10 @@ async function loadSpendingContext(userId: string) {
     if (rows.length < pageSize) break;
   }
 
+  // Amounts are stored in dollars. The assistant gets them in the display currency, so what it says matches the screen.
+  const rate = (await rateFor(currency)) ?? 1;
+  const shownCurrency = rate === 1 ? "USD" : currency;
+  const fx = (amount: number) => Math.round(amount * rate * 100) / 100;
   const budgets = new Map(
     (budgetsResult.data ?? []).map((row) => [row.month?.slice(0, 7), row]),
   );
@@ -179,14 +190,14 @@ async function loadSpendingContext(userId: string) {
     return {
       month,
       transactionCount: bucket?.transactionCount ?? 0,
-      spendingTotal: (bucket?.cents ?? 0) / 100,
+      spendingTotal: fx((bucket?.cents ?? 0) / 100),
       spendingByCategory: Object.fromEntries(
         [...(bucket?.categoryCents ?? new Map())].map(([key, cents]) => [
           categoryNamesForUser.get(key) ?? "Other",
-          cents / 100,
+          fx(cents / 100),
         ]),
       ),
-      ...(budget ? { monthlyBudget: budget.monthly_budget } : {}),
+      ...(budget ? { monthlyBudget: budget.monthly_budget === null ? null : fx(budget.monthly_budget) } : {}),
     };
   });
   const latestMonthWithTransactions = [...monthlySpending]
@@ -200,10 +211,10 @@ async function loadSpendingContext(userId: string) {
         .map(([category, amount]) => ({ category, amount }))
     : [];
 
-  const goalsWithProgress = await withGoalProgress(userId, goalsResult.data ?? []);
+  const goalsWithProgress = await withGoalProgress(userId, goalsResult.data ?? [], currency);
 
   return {
-    currency: "USD",
+    currency: shownCurrency,
     transactionsThrough: today,
     monthlySpending,
     latestMonthWithTransactions: latestMonthWithTransactions?.month ?? null,
@@ -211,8 +222,10 @@ async function loadSpendingContext(userId: string) {
     goals: goalsWithProgress.map((goal) => ({
       type: goal.goal_type,
       name: goal.goal_name,
-      target: goal.desired_savings,
-      savedProgress: goal.progress,
+      // A checklist goal counts steps, not money.
+      target: goal.goal_type === "Checklist" || goal.desired_savings === null ? goal.desired_savings : fx(goal.desired_savings),
+      savedProgress: goal.goal_type === "Checklist" ? goal.progress : fx(goal.progress),
+      ...(goal.goal_type === "Checklist" ? { unit: "steps (savedProgress steps done out of target steps)" } : {}),
       ...(goal.category_key ? { category: categoryNamesForUser.get(goal.category_key) ?? goal.category_key } : {}),
       ...(goal.target_date ? { deadline: goal.target_date.slice(0, 10) } : {}),
       ...(goal.automatic ? { progressBasis: "current month, calculated from recorded transactions and saved monthly income" } : {}),
@@ -257,7 +270,7 @@ export async function handleChatApi(
   const body = await readJsonBody(request);
   const userMessage = requiredString(body.message, "message", 1000);
   const turns = await readChatTurns(client, user.id);
-  const context = await loadSpendingContext(user.id);
+  const context = await loadSpendingContext(user.id, currencyOrDefault(user.user_metadata?.currency));
   let result: Response;
   try {
     result = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -283,7 +296,7 @@ Never invent amounts, months, categories, savings progress, causes, budgets, cap
 
 Write plain text only: no Markdown, tables, headings, bullets, images, or decorative separators. Usually answer in 1–3 short sentences (under 70 words). If a detail is needed to avoid a guess, ask one clear follow-up question. Be warm without overpraising.
 
-Account context (USD):\n${JSON.stringify(context)}`,
+Account context (${context.currency}; amounts are shown in this currency, not converted):\n${JSON.stringify(context)}`,
           },
           ...modelHistory(turns),
           { role: "user", content: userMessage },

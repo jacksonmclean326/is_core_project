@@ -10,6 +10,8 @@ import { handleManualTransactionsApi } from "./manual-transactions.js";
 import { handlePlaidApi } from "./plaid.js";
 import { handleTransactionsApi } from "./transactions.js";
 import { handleChatApi } from "./chat.js";
+import { handleFeedbackApi } from "./feedback.js";
+import { handleRatesApi } from "./rates.js";
 
 export async function handleApi(
   request: IncomingMessage,
@@ -30,6 +32,8 @@ export async function handleApi(
   if (await handleManualTransactionsApi(request, response, pathname)) return;
   if (await handleTransactionsApi(request, response, pathname)) return;
   if (await handleChatApi(request, response, pathname)) return;
+  if (await handleFeedbackApi(request, response, pathname)) return;
+  if (await handleRatesApi(request, response, pathname)) return;
 
   if (pathname.startsWith("/api/")) {
     sendJson(response, 404, { error: "API endpoint not found." });

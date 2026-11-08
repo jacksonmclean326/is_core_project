@@ -51,7 +51,15 @@ function applyResult(month: MonthKey, result: TransactionsResponse): LoadResult 
   syncCustomCategories(result.customCategories ?? []);
   hasRealData = result.connected;
   monthTransactions = result.connected ? result.transactions : [];
-  if (!result.connected) return "sample";
+  if (!result.connected) {
+    // No bank and no manual transactions: show zeros, never made-up spending.
+    for (const category of state.categories) {
+      category.amount = 0;
+      transactions[category.id] = [];
+    }
+    monthlyHistory = [];
+    return "sample";
+  }
 
   const totals = new Map<string, number>();
   for (const category of state.categories) {
@@ -183,9 +191,9 @@ export function trendValues(mode: TrendMode): number[] {
   const budget = Number(state.budget) || 0;
   if (!monthlyHistory.length) {
     const fallback = {
-      spending: [1920, 1880, 2050, 1800, 1890, 1740],
-      under: [13, 18, 7, 15, 14, 21],
-      saved: [240, 290, 190, 330, 310, 460]
+      spending: [0, 0, 0, 0, 0, 0],
+      under: [0, 0, 0, 0, 0, 0],
+      saved: [0, 0, 0, 0, 0, 0]
     }[mode];
     const values = [...fallback];
     const spent = totalSpent();

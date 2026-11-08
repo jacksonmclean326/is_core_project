@@ -1,5 +1,8 @@
 import { getSession, signOut } from "./api.js";
 import { setProfileInitials } from "./ui/ui.js";
+import { ensureRates, setCurrency } from "./state/state.js";
+import { currencyOrDefault } from "../shared/currencies.js";
+import "./feedback.js";
 
 const publicRoute = "/auth";
 
@@ -18,6 +21,17 @@ async function initializeNavigation() {
     }
     if (user) {
       const metadata = user.user_metadata || {};
+      // The saved currency lives on the account. This browser caches it so pages paint in the right
+      // currency straight away; if the account has a different one (new device, changed elsewhere), reload once.
+      if (setCurrency(currencyOrDefault(metadata.currency))) {
+        window.location.reload();
+        return;
+      }
+      // A currency other than dollars needs a rate. If this browser had none, reload once so amounts convert.
+      if (await ensureRates()) {
+        window.location.reload();
+        return;
+      }
       const metadataName = [metadata.first_name, metadata.last_name]
         .filter((part) => typeof part === "string" && part.trim())
         .join(" ");

@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="../../assets/money-man-mascot.png">
     <meta
       name="description"
-      content="Manage your Money Man budget, preferences, and account."
+      content="Manage your Money Man profile, budget, currency, and preferences."
     />
     <title>Money Man - Settings</title>
     <base href="/app/pages/settings/">
@@ -25,86 +25,50 @@
           /><span>Money Man</span></a
         >
         <div class="topbar-actions">
-          <a
-            class="icon-button profile-button"
-            href="/settings"
-            aria-label="Open settings"
-            title="Settings"
-            ><span class="profile-initials">?</span></a
-          >
+          <a class="icon-button settings-button is-current" href="/settings" aria-label="Settings" aria-current="page" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a>
         </div>
       </header>
       <main id="main-content">
         <section class="page settings-page" aria-labelledby="settings-title">
           <div class="page-heading">
             <div>
-              <p class="eyebrow">YOUR ACCOUNT</p>
               <h1 id="settings-title">Settings</h1>
-              <p class="subheading">Make this feel like your money.</p>
+              <p class="subheading">Your profile, budget, currency, and preferences.</p>
             </div>
           </div>
-          <section class="settings-group">
-            <div class="section-heading compact-heading">
+
+          <section class="settings-card" aria-labelledby="profile-heading">
+            <h2 id="profile-heading">Profile</h2>
+            <div class="profile-row">
+              <span class="profile-initials large-initials" id="account-initials" aria-hidden="true"></span>
               <div>
-                <p class="eyebrow">CONNECTED MONEY</p>
-                <h2>Bank accounts</h2>
+                <strong id="account-name">Loading your profile…</strong
+                ><span id="account-email"></span>
+                <p id="account-feedback" class="form-feedback" role="status" aria-live="polite"></p>
               </div>
-              <span class="account-count" id="account-count">0 accounts</span>
-            </div>
-            <div class="bank-list" id="bank-list"></div>
-            <p class="bank-disclosure">
-              Plaid Transactions is enabled for supported connections; Plaid may process
-              transaction data and fees may apply. Money Man stores linked account details,
-              cached balances, and imported transactions. Balances may not be real-time.
-            </p>
-            <div class="bank-actions">
-              <button class="outline-button" type="button" id="connect-bank">
-                <i data-icon="landmark" aria-hidden="true"></i> Connect
-                another account
+              <button class="outline-button profile-edit-button" id="edit-account" type="button" aria-haspopup="dialog">
+                <i data-icon="pencil" aria-hidden="true"></i> Edit details
               </button>
-              <p
-                id="link-feedback"
-                class="form-feedback"
-                aria-live="polite"
-              ></p>
             </div>
           </section>
-          <section class="settings-group">
-            <div class="section-heading compact-heading">
-              <div>
-                <p class="eyebrow">BUDGET & PROFILE</p>
-                <h2>Your plan</h2>
-              </div>
-            </div>
+
+          <section class="settings-card" aria-labelledby="budget-heading">
+            <h2 id="budget-heading">Budget &amp; income</h2>
+            <p class="card-help">Set what you earn and what you plan to spend each month.</p>
             <form id="budget-form" class="settings-form">
-              <label for="monthly-budget">Monthly budget</label>
-              <div class="input-with-prefix">
-                <span>$</span
-                ><input
-                  id="monthly-budget"
-                  inputmode="decimal"
-                  type="number"
-                  min="1"
-                />
-              </div>
               <label for="monthly-income">Monthly income</label>
+              <label for="monthly-budget">Monthly budget <span class="optional">(optional)</span></label>
               <div class="input-with-prefix">
-                <span>$</span
-                ><input
-                  id="monthly-income"
-                  inputmode="decimal"
-                  type="number"
-                  min="1"
-                  required
-                />
+                <span class="currency-symbol" aria-hidden="true"></span
+                ><input id="monthly-income" inputmode="decimal" type="number" min="1" required />
               </div>
-              <button class="primary-button" type="submit">Save budget</button>
-              <p
-                class="form-feedback"
-                id="budget-feedback"
-                aria-live="polite"
-              ></p>
-            <p class="form-note">
+              <div class="input-with-prefix">
+                <span class="currency-symbol" aria-hidden="true"></span
+                ><input id="monthly-budget" inputmode="decimal" type="number" min="1" />
+              </div>
+              <button class="primary-button" type="submit">Save</button>
+              <p class="form-feedback" id="budget-feedback" aria-live="polite"></p>
+              <p class="form-note">
                 Each category has its own monthly limit. Set them on the Details
                 page with <strong>Edit</strong>, or open a category and choose
                 <strong>Set a limit</strong>. Changing this budget scales your
@@ -112,19 +76,30 @@
               </p>
             </form>
           </section>
-          <section class="settings-group">
-            <div class="section-heading compact-heading">
-              <div>
-                <p class="eyebrow">HOW IT WORKS</p>
-                <h2>Preferences</h2>
-              </div>
+
+          <section class="settings-card" aria-labelledby="currency-heading">
+            <h2 id="currency-heading">Currency</h2>
+            <p class="card-help">
+              Choose the currency amounts are shown in. Everything is stored in US dollars and
+              converted using the European Central Bank's daily exchange rate, so figures can
+              shift slightly as rates change.
+            </p>
+            <div class="currency-row">
+              <label for="currency-select">Display currency</label>
+              <select id="currency-select"></select>
             </div>
+            <p class="card-help" id="currency-rate"></p>
+            <p class="form-feedback" id="currency-feedback" role="status" aria-live="polite"></p>
+          </section>
+
+          <section class="settings-card" aria-labelledby="preferences-heading">
+            <h2 id="preferences-heading">Preferences</h2>
             <div class="preference-list">
               <label class="preference-row"
                 ><span
                   ><strong>Daily account sync</strong
                   ><small>Refresh transactions before you check in</small></span
-                ><input type="checkbox" id="sync-toggle" checked /><span
+                ><input type="checkbox" id="sync-toggle" /><span
                   class="switch"
                   aria-hidden="true"
                 ></span></label
@@ -132,7 +107,7 @@
                 ><span
                   ><strong>Budget reminders</strong
                   ><small>Get a nudge when a category reaches 90%</small></span
-                ><input type="checkbox" id="reminder-toggle" checked /><span
+                ><input type="checkbox" id="reminder-toggle" /><span
                   class="switch"
                   aria-hidden="true"
                 ></span></label
@@ -140,7 +115,7 @@
                 ><span
                   ><strong>Leaderboard visibility</strong
                   ><small>Share your progress with friends</small></span
-                ><input type="checkbox" id="leaderboard-toggle" checked /><span
+                ><input type="checkbox" id="leaderboard-toggle" /><span
                   class="switch"
                   aria-hidden="true"
                 ></span
@@ -148,47 +123,35 @@
             </div>
             <p class="form-feedback" id="preferences-feedback" role="status" aria-live="polite"></p>
           </section>
-          <section class="settings-group">
-            <div class="section-heading compact-heading">
-              <div>
-                <p class="eyebrow">YOUR PROFILE</p>
-                <h2>Account details</h2>
-              </div>
-            </div>
-            <div class="profile-row">
-              <span
-                class="profile-initials large-initials"
-                id="account-initials"
-                >?</span
-              >
-              <div>
-                <strong id="account-name">Loading account...</strong
-                ><span id="account-email"></span>
-                <p
-                  id="account-feedback"
-                  class="form-feedback"
-                  role="status"
-                  aria-live="polite"
-                ></p>
-              </div>
-            </div>
-            <button
-              class="primary-button profile-edit-button"
-              id="edit-account"
-              type="button"
-              aria-haspopup="dialog"
-            >
-              <i data-icon="pencil" aria-hidden="true"></i> Edit details
-            </button>
-            <div class="settings-links">
-              <a id="privacy-link" href="/privacy">
-                Privacy & data
-                <i data-icon="arrow-up-right" aria-hidden="true"></i></a
-              ><a id="help-link" href="/help">
-                Help & support
-                <i data-icon="arrow-up-right" aria-hidden="true"></i>
-              </a>
-            </div>
+
+          <section class="settings-card" aria-labelledby="more-heading">
+            <h2 id="more-heading">More</h2>
+            <ul class="settings-link-list">
+              <li>
+                <a href="/accounts">
+                  <span><strong>Bank accounts</strong><small>Connect, refresh, or disconnect your banks</small></span>
+                  <i data-icon="chevron-right" aria-hidden="true"></i>
+                </a>
+              </li>
+              <li>
+                <a id="privacy-link" href="/privacy">
+                  <span><strong>Privacy &amp; data</strong><small>How your information is used</small></span>
+                  <i data-icon="chevron-right" aria-hidden="true"></i>
+                </a>
+              </li>
+              <li>
+                <button type="button" data-open-feedback>
+                  <span><strong>Send feedback</strong><small>Tell the team what is working and what is not</small></span>
+                  <i data-icon="chevron-right" aria-hidden="true"></i>
+                </button>
+              </li>
+              <li>
+                <a id="help-link" href="/help">
+                  <span><strong>Help &amp; support</strong><small>Answers to common questions</small></span>
+                  <i data-icon="chevron-right" aria-hidden="true"></i>
+                </a>
+              </li>
+            </ul>
           </section>
         </section>
       </main>
@@ -199,6 +162,9 @@
         <a href="/details" class="nav-item"
           ><i data-icon="circle-dollar-sign" aria-hidden="true"></i
           ><span>Details</span></a
+        >
+        <a href="/accounts" class="nav-item"
+          ><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a
         >
         <a href="/chat" class="nav-item"
           ><i data-icon="message-circle" aria-hidden="true"></i

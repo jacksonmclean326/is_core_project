@@ -10,6 +10,7 @@ export type PageRoute =
   | "auth"
   | "home"
   | "details"
+  | "accounts"
   | "chat"
   | "leaderboard"
   | "settings"
@@ -20,6 +21,7 @@ export const pageFiles = new Map<string, PageRoute>([
   ["/auth", "auth"],
   ["/home", "home"],
   ["/details", "details"],
+  ["/accounts", "accounts"],
   ["/chat", "chat"],
   ["/leaderboard", "leaderboard"],
   ["/settings", "settings"],

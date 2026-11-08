@@ -11,7 +11,7 @@ College students often struggle to budget effectively due to limited time, incom
 | Transactions                       | Working. Imported from Plaid (up to 24 months) and saved to Supabase; users can also add their own by hand. |
 | Automatic categorization           | Working. Merchant rules, then Plaid's hints, then Other; users can add categories and re-categorize.        |
 | Month views                        | Working. Details has a month switcher; Home shows a real six-month trend.                                   |
-| Home, Details                      | Real data once a bank is linked or a transaction is added; sample data before that.                         |
+| Home, Details                      | Real data once a bank is linked or a transaction is added; a "No spending yet" prompt before that.          |
 | Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
 | Friends, leaderboard               | The friend code is real; friends and points are sample data.                                                |
 | Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
@@ -118,7 +118,7 @@ In Supabase **Authentication** settings, enable email/password sign-in and add b
 
 The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, friend-code lookups, bank connections, transactions, and categories through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include Supabase credentials. Plaid connection records, encrypted access tokens, transactions, and categories are managed server-side using the Supabase secret key, so every query is filtered to the signed-in user. Keep direct table access to `Plaid Item` restricted to the server's service role; review its grants and row-level security policies before deployment.
 
-The server serves the pages at `/auth`, `/home`, `/details`, `/chat`, `/leaderboard`, `/settings`, `/privacy`, and `/help`. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`. The Details page also accepts `?month=YYYY-MM`.
+The server serves the pages at `/auth`, `/home`, `/details`, `/accounts`, `/chat`, `/leaderboard`, `/settings`, `/privacy`, and `/help`. Bank accounts live on **Accounts** (its own tab in the bottom nav); **Settings** (the gear icon in the top bar) holds the profile, budget and income, display currency, and preferences. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`. The Details page also accepts `?month=YYYY-MM`.
 
 For the Friends page's dynamic friend code, the Supabase project must have a `public."User"` profile row whose `user_id` matches the Auth user ID and whose `friend_code` is a unique six-character code. The table's Row Level Security policy must allow authenticated users to select their own profile row (for example, `auth.uid() = user_id`). The sign-up form sends `first_name`, `last_name`, and `full_name` as Auth user metadata; configure the Auth-to-profile trigger to copy the names and generate the friend code in the database.
 
@@ -126,15 +126,29 @@ For the Friends page's dynamic friend code, the Supabase project must have a `pu
 
 Plaid starts in Sandbox, which only offers fake test banks. In the bank login popup use `user_transactions_dynamic` with password `pass_good` for about three months of realistic transactions, or `user_good` / `pass_good` for about one month. Real banks need Plaid production access.
 
-The web client loads Plaid Link from Plaid's CDN; the server creates Link tokens, exchanges public tokens, encrypts access tokens with AES-256-GCM, and stores them only in the server-managed Plaid Item table. Account metadata and cached balances are synced with Plaid's `/accounts/get` endpoint when Settings opens. The Home page reads the saved linked-account count without triggering a sync. Cached balances are not guaranteed to be real-time.
+The web client loads Plaid Link from Plaid's CDN; the server creates Link tokens, exchanges public tokens, encrypts access tokens with AES-256-GCM, and stores them only in the server-managed Plaid Item table. Account metadata and cached balances are synced with Plaid's `/accounts/get` endpoint when the Accounts page opens (or when you choose **Refresh balances**). Each balance is shown in the currency its bank reports. The Home page reads the saved linked-account count without triggering a sync. Cached balances are not guaranteed to be real-time.
 
 Plaid requires at least one product for new Link sessions, and this integration uses Transactions. Plaid pulls the last ~30 days first and fills in older months a few minutes later, so right after linking, older months can look incomplete; the app shows a notice during the first 10 minutes. Plaid's product access and any applicable pricing still apply, especially before changing `PLAID_MODE` to `production`; review your Plaid Dashboard access and pricing before production use.
+
+### Feedback
+
+**Send feedback** opens a dialog (`src/app/feedback.ts`, loaded by every page) from Settings (under More), the bottom of Details, and Help. Any element with `data-open-feedback` opens it, and `data-feedback-kind="bug"` pre-selects a type. People pick a type (broken, confusing, idea, or something they like), write up to 1,000 characters, and can allow the team to email them. A half-written message is kept for the tab. `POST /api/feedback` saves it to the `Feedback` table, limited to 10 messages an hour per person, and records the page it came from. **Run `supabase/migrations/20261107_feedback.sql` once**; until then sending shows a friendly error with the team's email. The team reads feedback in the Supabase Table Editor (**Feedback**, newest first by `created_at`); each person can only read their own through the app.
+
+### Categories and bank connections
+
+**Categories** (Details, **Edit categories**) is a panel in the page, not a dialog: each row is edited in place and saves as you leave the box or flip the switch (rename, monthly limit, show on the chart; your own categories can also be deleted, with a confirmation in the row). **Add a category** takes a name and one of 12 colors (`src/shared/category-colors.ts`). Built-in category names and all limits stay in the browser; your own categories are saved to your account.
+
+**Accounts** lets you **rename** a bank connection or an account and turn **Include in totals** off for an account. A hidden account's transactions are left out of the transaction list, spending totals, goal progress and chat (`src/server/hidden-accounts.ts`); nothing is disconnected. This needs `supabase/migrations/20261108_bank_nicknames.sql`; until it has run, the Accounts page still works and only renaming/hiding is refused.
+
+### Display currency
+
+Settings has a **Display currency** picker (the list is in `src/shared/currencies.ts`). Everything is **stored in US dollars** and converted when shown, using the European Central Bank's daily reference rates from Frankfurter (free, no key; `src/server/rates.ts` caches them for six hours and falls back to the last good copy; `GET /api/rates`). Amounts people type (budget, income, goals, limits, manual transactions) are converted back to dollars and saved unrounded, so typing 500 and reloading shows 500; because the rate moves daily, a saved amount in another currency can drift slightly from day to day. If no rate is known, amounts are shown in dollars rather than with the wrong symbol, and changing currency is refused until a rate loads. The choice is saved in the account's Supabase Auth metadata (`user_metadata.currency`), so it needs no migration; the browser caches it and the rates so pages paint right away. Bank balances on Accounts show in the chosen currency with the bank's own figure beside them. Chat and goal notes use the same converted numbers.
 
 ### Spending data
 
 **Transactions.** Transactions live in our own database (the `Transaction` table) and pages read them from there, which is why loading is fast. In the background the server keeps them in sync with the bank using Plaid's incremental sync: it remembers a cursor for each bank and asks Plaid only for what changed (new, edited, and removed transactions). Income, refunds, transfers, and credit-card payments are skipped, so the numbers show spending only.
 
-**Months.** Everything is organized by calendar month. `?month=YYYY-MM` selects the month (default: the current one, up to 24 months back), and `&history=N` adds per-month totals for the N months before it, which Home uses for its six-month trend. The month math (month lengths, leap years, year rollover, weekdays) is in `src/shared/months.ts` and works on `YYYY-MM-DD` text, so results never depend on the computer's time zone. The current month stops at today.
+**Months.** Everything is organized by calendar month. Details has a month picker (the last 24 months) with back and forward arrows and a "Back to this month" link. `?month=YYYY-MM` selects the month (default: the current one, up to 24 months back), and `&history=N` adds per-month totals for the N months before it, which Home uses for its six-month trend. The month math (month lengths, leap years, year rollover, weekdays) is in `src/shared/months.ts` and works on `YYYY-MM-DD` text, so results never depend on the computer's time zone. The current month stops at today.
 
 **Categories.** Each transaction gets exactly one category. The first rule that applies wins:
 
@@ -152,9 +166,9 @@ Users can add their own categories (up to 12, names up to 24 characters), rename
 
 **Category limits.** Each category can have a monthly limit (blank means none). Set them on Details with **Edit** (a limit box on every category, with a running total against your budget), or open a category and choose **Set a limit**. Spending near a limit (90%) shows a warning, and Home lists the categories closest to theirs. Changing the monthly budget in Settings scales the limits in proportion; saving the same budget leaves them untouched. Limits are still stored in the browser only (see Known limitations).
 
-**All transactions.** Below the charts, Details lists every transaction in the month you are viewing (bank and manual together), newest first and grouped by day. You can search by merchant, amount, account, bank, or category, show one category, sort by date or size, and see the count and total for what is showing. Each row has its own category menu, so you can re-categorize without opening a category, and manual entries have Edit and Delete. The search, sort, and row-building code is in `src/shared/transaction-list.ts` and is unit-tested (including that merchant names cannot inject HTML).
+**All transactions.** Below the charts, Details lists every transaction in the month you are viewing (bank and manual together), newest first and grouped by day. You can search by merchant, amount, account, bank, or category, show one category, sort by date or size, and see the count and total for what is showing. Transactions are grouped into one card per day (with the day's count and total), and each row carries its category as a thin colored bar on its left edge. Tap a row to open it: category buttons re-categorize it (a bank transaction also has an "Also apply to every ... transaction" option), and manual entries have Edit and Delete. The search, sort, and row-building code is in `src/shared/transaction-list.ts` and is unit-tested (including that merchant names cannot inject HTML).
 
-**Manual transactions.** On the Details page, **Add** records a transaction by hand, and a category's transaction list has **Edit** and **Delete** for those entries. They are stored in the same table with no Plaid ID, count toward totals, charts, and trends, and work without a linked bank (the first entry replaces the sample data). Amounts must be positive, and dates can be at most tomorrow and 24 months back. A bank refresh never changes or deletes them, and merchant rules apply to bank transactions only.
+**Manual transactions.** On the Details page, **Add transaction** (next to the All transactions heading) records a transaction by hand, and a category's transaction list has **Edit** and **Delete** for those entries. They are stored in the same table with no Plaid ID, count toward totals, charts, and trends, and work without a linked bank (the first entry replaces the sample data). Amounts must be positive, and dates can be at most tomorrow and 24 months back. A bank refresh never changes or deletes them, and merchant rules apply to bank transactions only.
 
 **Speed.** Pages read the database, which takes about 90 ms whether the server just started or has been running for days. Syncing with Plaid happens in the background: a bank is checked when its saved data is more than 5 minutes old (every 15 seconds while Plaid is still importing its history), and a first sync starts the moment a bank is linked. Plaid itself needs several seconds to prepare a newly linked bank, so right after linking the page shows a notice and fills in as data arrives (it checks again every few seconds); the first month usually appears within about 10 seconds of linking. Each browser tab also keeps the last answer it saw and draws it instantly on the next visit while the fresh answer loads (cleared on sign-in and sign-out), and Details quietly prefetches the neighbouring months. Add `&refresh=1` to `GET /api/transactions` to sync with the bank right now and wait for the result. Every response includes a `Server-Timing` header showing how long each step took (visible in the browser's network tab).
 
@@ -172,6 +186,7 @@ All endpoints require a signed-in session (except sign-up and sign-in) and retur
 | `PUT /api/transactions/category`                                                             | Move a bank transaction (`transactionId`, `category`, optional `applyToMerchant`).                       |
 | `POST /api/transactions/manual`, `PATCH`/`DELETE /api/transactions/manual/:id`               | Add, edit, delete a manual transaction.                                                                  |
 | `GET`/`POST /api/categories`, `PATCH`/`DELETE /api/categories/:key`                          | List, create, rename, delete custom categories.                                                          |
+| `POST /api/feedback`                                                                         | Send feedback (`kind`, `message`, `page`, `contactOk`).                                                  |
 | `GET`/`POST`/`DELETE /api/chat`                                                              | Load saved chat history, send a message, or clear the signed-in user's history.                           |
 
 ### Build and run the production server
@@ -212,10 +227,10 @@ Run `npm start`, create an account from the sign-in screen, and confirm the emai
 
 To check spending data:
 
-1. In **Settings**, connect a Sandbox bank (`user_transactions_dynamic` / `pass_good`).
+1. On **Accounts**, connect a Sandbox bank (`user_transactions_dynamic` / `pass_good`).
 2. Open **Details**. Use the month arrows; the label, chart, and totals should change together, and `?month=` should appear in the address bar.
 3. Click a category, move a transaction to another category, and open **Edit** on the summary to add a category of your own.
-4. Use **Add** to enter a transaction by hand, then edit and delete it from its category's list.
+4. Use **Add transaction** to enter a transaction by hand, then edit and delete it from its category's list.
 5. Open **Home** and confirm today's date and a six-month trend ending with the current month.
 
 ## Known limitations
@@ -234,7 +249,7 @@ Goals now use Supabase instead of the sample goals or browser storage. Run this 
 1. Open your Supabase project → **SQL Editor** → **New query**.
 2. Copy all of `supabase/migrations/202611010001_goals.sql` into the editor and click **Run** once. This migration adapts the existing case-sensitive `public."Goal"` table and adds `goal_name` for the editor’s goal title. It preserves existing rows and foreign keys. It assumes `Goal.user_id` stores the Supabase Auth UUID, as `User.user_id` does in the app’s profile lookup. If that foreign key points to `User`, a matching profile row must exist before saving.
 3. Start the app with `npm start` and sign in.
-4. Open **Details → Edit goals → Add a goal**, enter the type, name, and target amount, then **Save changes**.
+4. Open **Details → Edit goals**, and under **Add a goal** enter the type, name, and target amount, then choose **Add**. Edits to existing goals save as you make them.
 5. In Supabase **Table Editor → Goal**, confirm a row exists with your Auth user ID in `user_id`. Refresh the app to confirm it loads from the database.
 6. Change a goal and save; verify the row updates. Remove a goal and save; verify its row disappears. Sign in with a second account and confirm its goals start empty and it cannot see the first account's goals.
 
@@ -248,6 +263,7 @@ Goal types (`src/shared/goal-progress.ts`, applied by `GET /api/goals`):
 
 - **Savings** (automatic): the current month's income minus spending so far (the monthly income saved in Settings, or the monthly budget if no income is set).
 - **Spending limit** (automatic): spending so far this month against the target as a limit, for all spending or for one category (built-in or custom). The card turns red when over.
+- **Checklist**: a list of steps (up to 20, one per line in the editor) you tick off on the goal card. Progress is steps done out of steps; ticking saves immediately through `PATCH /api/goals/steps`. It needs `supabase/migrations/20261107_checklist_goals.sql`; until that has run, the rest of goals keeps working and only saving a Checklist goal fails.
 - **Earnings, Investing, Custom** (manual): any goal you name. You type how much you have so far ("Saved so far", stored in `amount_savings`) and can set an optional deadline, which adds a note like "About $180 a month to finish by Mar 15." Income and investment balances are not tracked, so these are not calculated. Target amounts are independent of the prototype income value. Old sample/local goals are not imported.
 
 The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.

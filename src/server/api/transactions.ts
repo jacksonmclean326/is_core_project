@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
 import { createServiceSupabaseClient } from "../auth/supabase.js";
 import { requireSession } from "../auth/session.js";
 import { config } from "../config.js";
@@ -121,13 +122,17 @@ export function toPublicRow(row: RowRecord, validKeys?: Set<string>): PublicTran
 
 async function loadRows(admin: Admin, userId: string, start: string, end: string): Promise<RowRecord[]> {
   const rows: RowRecord[] = [];
+  const hidden = await hiddenSourceIds(admin, userId);
   for (let from = 0; ; from += readPageSize) {
-    const page = await admin
-      .from("Transaction")
-      .select("transaction_id,plaid_transaction_id,name,amount,date,category_key,account_name,institution_name")
-      .eq("user_id", userId)
-      .gte("date", `${start}T00:00:00Z`)
-      .lte("date", `${end}T23:59:59Z`)
+    const page = await withoutHidden(
+      admin
+        .from("Transaction")
+        .select("transaction_id,plaid_transaction_id,name,amount,date,category_key,account_name,institution_name")
+        .eq("user_id", userId)
+        .gte("date", `${start}T00:00:00Z`)
+        .lte("date", `${end}T23:59:59Z`),
+      hidden,
+    )
       .order("date", { ascending: false })
       .order("transaction_id")
       .range(from, from + readPageSize - 1)

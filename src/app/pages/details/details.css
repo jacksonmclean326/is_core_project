@@ -106,6 +106,26 @@
   text-align: center;
 }
 
+/* A real month picker: one obvious place to jump to any month, with bigger back/forward buttons beside it. */
+.month-switcher { flex-wrap: wrap; gap: 8px; }
+.month-switcher .small-action { width: 40px; height: 40px; }
+.month-select {
+  min-width: 190px;
+  padding: 9px 12px;
+  border: 1px solid var(--field-border);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--white);
+  font: 700 0.875rem var(--font-body);
+  cursor: pointer;
+}
+.month-select:focus-visible { outline: 3px solid rgba(47, 104, 84, .45); outline-offset: 2px; }
+.month-current { padding: 6px 4px; font-size: 0.75rem; }
+.section-note { margin: 4px 0 0; max-width: 56ch; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.row-edit { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-left: 6px; padding: 0; border: 1px solid transparent; border-radius: 5px; color: var(--muted); background: transparent; vertical-align: middle; cursor: pointer; }
+.row-edit:hover, .row-edit:focus-visible { border-color: var(--line); color: var(--green-dark); background: var(--white); }
+.row-edit .icon { width: 13px; height: 13px; }
+
 .month-switcher button:disabled {
   opacity: 0.35;
   cursor: default;
@@ -123,22 +143,38 @@
 .tx-controls input { flex: 1 1 220px; min-width: 0; }
 .tx-controls select { flex: 0 1 170px; min-width: 0; }
 .tx-summary { margin: 4px 0 2px; color: var(--muted); font-size: 0.75rem; }
-.tx-day { margin: 16px 0 2px; color: var(--muted); font-size: 0.625rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.tx-row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 0.75rem; }
-.tx-row:first-child { border-top: 0; }
-.tx-swatch { width: 10px; height: 10px; border-radius: 50%; }
+/* One card per day. Each row carries its category as a thin bar down its left edge (--c is the category color). */
+.tx-day-card { margin-top: 14px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--white); }
+.tx-day-card:first-child { margin-top: 10px; }
+.tx-day-card > header { display: flex; justify-content: space-between; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--green-soft) 55%, var(--white)); font-size: 0.8125rem; }
+.tx-day-card > header strong { font-size: 0.8125rem; }
+.tx-day-card > header span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.tx-card-row { position: relative; border-top: 1px solid var(--line); }
+.tx-day-card > .tx-card-row:first-of-type, .tx-day-card > header + .tx-card-row { border-top: 0; }
+.tx-card-row::before { position: absolute; top: 0; bottom: 0; left: 0; width: 4px; background: var(--c); content: ""; }
+.tx-line { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; padding: 12px 16px 12px 18px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.tx-line:hover, .tx-card-row.is-open > .tx-line { background: rgba(227, 237, 229, .4); }
+.tx-line:focus-visible { outline: 3px solid rgba(47, 104, 84, .5); outline-offset: -3px; }
+.tx-tile { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 10px; background: color-mix(in srgb, var(--c) 24%, var(--white)); font-size: 0.9375rem; font-weight: 700; }
 .tx-main { display: grid; gap: 2px; min-width: 0; }
-.tx-main strong { overflow: hidden; font-size: 0.8125rem; text-overflow: ellipsis; white-space: nowrap; }
-.tx-main small { overflow: hidden; color: var(--muted); font-size: 0.625rem; text-overflow: ellipsis; white-space: nowrap; }
-.tx-amount { font-size: 0.8125rem; font-weight: 700; white-space: nowrap; }
-.tx-row .recategorize-select { max-width: 140px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--white); font-size: 0.625rem; }
-.tx-row .recategorize-select:disabled { opacity: .5; }
-.tx-row .row-actions { grid-column: 2 / -1; justify-self: end; }
+.tx-main strong { display: -webkit-box; overflow: hidden; font-size: 0.875rem; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.tx-main small { color: var(--muted); font-size: 0.75rem; overflow-wrap: anywhere; }
+.tx-amount { font-size: 0.9375rem; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.tx-open { display: grid; gap: 12px; padding: 4px 16px 16px 68px; }
+.tx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tx-cat-chip { padding: 5px 12px; border: 1px solid var(--line); border-radius: 99px; background: transparent; color: var(--ink); font: inherit; font-size: 0.75rem; cursor: pointer; }
+.tx-cat-chip:hover { border-color: var(--c); }
+.tx-cat-chip[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 24%, var(--white)); font-weight: 700; }
+.tx-cat-chip:disabled { opacity: .5; cursor: wait; }
+.tx-cat-chip:focus-visible { outline: 3px solid rgba(47, 104, 84, .5); outline-offset: 2px; }
+.tx-merchant-opt { display: flex; align-items: flex-start; gap: 8px; color: var(--muted); font-size: 0.75rem; line-height: 1.4; cursor: pointer; }
+.tx-merchant-opt input { flex: 0 0 auto; margin-top: 2px; accent-color: var(--green); }
+.tx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tx-tag { padding: 2px 8px; border-radius: 4px; background: var(--line); color: var(--muted); font-size: 0.6875rem; font-weight: 600; }
 .tx-empty { margin: 18px 0; color: var(--muted); font-size: 0.75rem; }
 .tx-more { margin: 14px auto 0; display: block; }
 @media (max-width: 720px) {
-  .tx-row { grid-template-columns: 10px minmax(0, 1fr) auto; }
-  .tx-row .recategorize-select { grid-column: 2 / -1; max-width: none; justify-self: start; }
+  .tx-open { padding-left: 18px; }
 }
 
 /* Header: month switcher, title and the Add/Edit buttons wrap instead of squeezing past the screen edge. */
@@ -153,10 +189,6 @@
 /* The list: names wrap (up to two lines) instead of being cut off, fields share rows on narrow screens. */
 .tx-controls input, .tx-controls select { border-color: var(--field-border); font-size: 0.8125rem; }
 .tx-controls select { flex: 1 1 140px; }
-.tx-main strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
-.tx-main small { white-space: normal; overflow-wrap: anywhere; font-size: 0.75rem; }
-.tx-day { font-size: 0.6875rem; }
-.tx-row .recategorize-select { font-size: 0.75rem; }
 
 /* Chart legend and Top categories: each name is a button; make them at least 28px tall (WCAG 2.5.8 asks for 24),
    with the gap between rows taken down to match so the chart does not grow much. */
@@ -167,3 +199,136 @@
 .donut-chart { container-type: inline-size; }
 .donut-center strong { font-size: min(1.25rem, 11cqw); }
 .donut-center span, .donut-center small { font-size: min(0.6875rem, 6.5cqw); }
+
+/* Checklist goals: the ring counts steps done, and the steps are ticked right on the card. */
+.goal-ring-card[data-kind="Checklist"] { --goal-color: var(--blue); }
+.goal-steps { display: grid; gap: 2px; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); list-style: none; }
+.goal-steps label { display: flex; align-items: flex-start; gap: 9px; min-height: 28px; padding: 3px 0; font-size: 0.8125rem; line-height: 1.4; cursor: pointer; }
+.goal-steps input { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 2px; accent-color: var(--green); }
+.goal-steps input:checked + span { color: var(--muted); text-decoration: line-through; }
+.goal-steps input:focus-visible { outline: 3px solid rgba(47, 104, 84, .45); outline-offset: 2px; }
+
+/* Categories panel: a list edited in place. Every change saves as it is made, so there is no Save button. */
+.categories-panel { margin: 4px 0 8px; padding: 18px 20px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); scroll-margin-top: 16px; }
+.categories-panel[hidden] { display: none; }
+.categories-panel .section-heading { margin-bottom: 8px; }
+.categories-panel .limits-note { margin: 0 0 10px; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.categories-panel .limits-note:empty { display: none; }
+.categories-panel .limits-note.is-over { color: #b3451f; }
+.cat-head, .cat-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(130px, 170px) auto; align-items: center; gap: 4px 12px; }
+.cat-head { padding: 0 10px 6px 14px; color: var(--muted); font-size: 0.6875rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.cat-list { display: grid; border-top: 1px solid var(--line); }
+.cat-row { position: relative; padding: 10px 10px 10px 14px; border-bottom: 1px solid var(--line); }
+.cat-row::before { position: absolute; top: 0; bottom: 0; left: 0; width: 4px; background: var(--c); content: ""; }
+.cat-row.is-focus { background: var(--green-soft); }
+.cat-switch { position: relative; display: inline-block; width: 40px; height: 22px; cursor: pointer; }
+.cat-switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.cat-switch span { display: block; width: 100%; height: 100%; border-radius: 13px; background: #cbd1ca; transition: background .2s ease; }
+.cat-switch span::after { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px #0002; content: ""; transition: transform .2s ease; }
+.cat-switch input:checked + span { background: var(--green); }
+.cat-switch input:checked + span::after { transform: translateX(18px); }
+.cat-switch input:focus-visible + span { outline: 3px solid rgba(47, 104, 84, .45); outline-offset: 3px; }
+.cat-name, .cat-limit { min-width: 0; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--ink); font: inherit; font-size: 0.875rem; }
+.cat-name { padding: 8px 9px; font-weight: 600; }
+.cat-limit { display: flex; align-items: center; gap: 6px; padding: 0 9px; color: var(--muted); }
+.cat-limit-input { width: 100%; min-width: 0; padding: 8px 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 0.875rem; }
+.cat-name:hover, .cat-limit:hover { border-color: var(--line); background: #fbfbf7; }
+.cat-name:focus-visible, .cat-limit:focus-within { border-color: var(--field-border); background: var(--white); outline: 3px solid rgba(47, 104, 84, .3); outline-offset: 1px; }
+.cat-delete { padding: 6px 8px; border: 0; background: transparent; color: #a33f30; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.cat-delete:hover { text-decoration: underline; }
+.cat-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; grid-column: 2 / -1; font-size: 0.75rem; color: var(--muted); }
+.cat-danger, .cat-cancel { padding: 5px 11px; border: 1px solid var(--line); border-radius: 5px; background: var(--white); font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.cat-danger { border-color: #a33f30; background: #a33f30; color: #fff; }
+.cat-row.is-confirming .cat-delete { display: none; }
+.cat-message { grid-column: 2 / -1; margin: 0; min-height: 0; color: var(--green-dark); font-size: 0.75rem; }
+.cat-message:empty { display: none; }
+.cat-message.is-error { color: #a33f30; }
+.cat-add { display: grid; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.cat-add h3 { margin: 0; font-size: 0.9375rem; }
+.cat-add-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.cat-add-fields > input { flex: 1 1 200px; min-width: 0; padding: 9px 11px; border: 1px solid var(--field-border); border-radius: 5px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.875rem; }
+.cat-add-fields > input:focus-visible { outline: 3px solid rgba(47, 104, 84, .35); outline-offset: 1px; }
+.cat-add .primary-button { min-width: 0; padding: 9px 20px; }
+.cat-colors { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; border: 0; }
+.cat-color { position: relative; display: inline-block; cursor: pointer; }
+.cat-color input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.cat-color span { display: block; width: 24px; height: 24px; border: 2px solid transparent; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 2px var(--white); }
+.cat-color input:checked + span { border-color: var(--ink); }
+.cat-color input:focus-visible + span { outline: 3px solid rgba(47, 104, 84, .5); outline-offset: 2px; }
+.cat-color.is-taken { cursor: not-allowed; opacity: .35; }
+.cat-color.is-taken input { cursor: not-allowed; }
+.cat-add-note { margin: 0; color: var(--muted); font-size: 0.75rem; }
+.cat-add-error { margin: 0; color: #a33f30; font-size: 0.75rem; }
+.cat-add-error:empty { display: none; }
+@media (max-width: 720px) {
+  .categories-panel { padding: 16px 14px 18px; }
+  .cat-head { display: none; }
+  .cat-row { grid-template-columns: 52px minmax(0, 1fr) auto; }
+  .cat-limit { grid-column: 2 / 3; }
+  .cat-row > .cat-delete { grid-column: 3; grid-row: 1 / span 2; }
+  .cat-message, .cat-confirm { grid-column: 1 / -1; }
+}
+
+/* Goals panel: the same in-place list as Categories. Extra fields show only for the goal types that use them. */
+.goals-panel { margin: 0 0 14px; }
+.goals-panel h3 { margin: 0; font-size: 1rem; }
+.gp-head, .gp-row { display: grid; grid-template-columns: minmax(120px, 150px) minmax(0, 1fr) minmax(120px, 160px) auto; align-items: center; gap: 6px 12px; }
+.gp-head { padding: 0 10px 6px 14px; color: var(--muted); font-size: 0.6875rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.gp-row { --c: var(--green); position: relative; padding: 10px 10px 10px 14px; border-bottom: 1px solid var(--line); }
+.gp-row[data-kind="Spending"] { --c: #5f6d66; }
+.gp-row[data-kind="Earnings"] { --c: var(--gold); }
+.gp-row[data-kind="Investing"] { --c: #3b8c8f; }
+.gp-row[data-kind="Custom"] { --c: #b0608a; }
+.gp-row[data-kind="Checklist"] { --c: var(--blue); }
+.gp-row::before { position: absolute; top: 0; bottom: 0; left: 0; width: 4px; background: var(--c); content: ""; }
+.gp-kind, .gp-new-kind, .gp-category, .gp-deadline, .gp-money { min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 5px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.8125rem; }
+.gp-row.is-confirming .cat-delete { display: none; }
+.gp-row[data-kind="Checklist"] .gp-amount { visibility: hidden; }
+.gp-extra { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 14px; grid-column: 1 / -1; }
+.gp-hint { flex: 1 1 100%; margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.4; }
+.gp-hint:empty { display: none; }
+.gp-field { display: none; flex: 0 1 240px; gap: 3px; color: var(--muted); font-size: 0.75rem; }
+.gp-money { display: flex; align-items: center; gap: 6px; padding-top: 0; padding-bottom: 0; color: var(--muted); }
+.gp-money input { width: 100%; min-width: 0; padding: 8px 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; }
+.gp-money:focus-within, .gp-kind:focus-visible, .gp-category:focus-visible, .gp-deadline:focus-visible { outline: 3px solid rgba(47, 104, 84, .3); outline-offset: 1px; }
+.gp-row[data-kind="Spending"] .gp-only-spending,
+.gp-row:is([data-kind="Earnings"], [data-kind="Investing"], [data-kind="Custom"]) .gp-only-money,
+.gp-row:is([data-kind="Earnings"], [data-kind="Investing"], [data-kind="Custom"], [data-kind="Checklist"]) .gp-only-manual,
+.gp-row[data-kind="Checklist"] .gp-only-checklist { display: grid; }
+.gp-steps-field { flex: 1 1 100%; }
+.gp-steps, #gp-new-steps { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--field-border); border-radius: 5px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.8125rem; line-height: 1.5; resize: vertical; }
+.gp-row .cat-message, .gp-row .cat-confirm { grid-column: 1 / -1; }
+.gp-empty { margin: 0; padding: 14px; color: var(--muted); font-size: 0.8125rem; }
+.gp-add .cat-limit { flex: 0 1 160px; border-color: var(--field-border); background: var(--white); }
+.gp-add[data-kind="Checklist"] .gp-new-amount { display: none; }
+.gp-add .gp-new-steps { display: none; }
+.gp-add[data-kind="Checklist"] .gp-new-steps { display: grid; }
+@media (max-width: 640px) {
+  .gp-head { display: none; }
+  .gp-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .gp-kind { grid-column: 1; }
+  .gp-row > .cat-delete { grid-column: 2; grid-row: 1; }
+  .gp-name, .gp-amount { grid-column: 1 / -1; }
+  .gp-row[data-kind="Checklist"] .gp-amount { display: none; }
+}
+/* Phone polish: buttons keep their label on one line, and the chart switches have a full-size tap area. */
+.edit-summary-button { white-space: nowrap; }
+.cat-switch::before { position: absolute; inset: -11px -6px; content: ""; }
+/* Add a transaction: an inline panel like Categories and Goals, one row of fields that wraps on a phone. */
+.add-tx-panel { margin: 4px 0 6px; }
+.add-tx-panel h3 { margin: 0; font-size: 1rem; }
+.tx-add { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.tx-add-fields { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(110px, .8fr) minmax(140px, .9fr) minmax(130px, 1fr) auto; align-items: end; gap: 10px 12px; }
+.tx-add-field { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.tx-add-field > input, .tx-add-field > select, .tx-add-field .cat-limit { box-sizing: border-box; width: 100%; min-width: 0; height: 38px; padding: 0 10px; border: 1px solid var(--field-border); border-radius: 5px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.875rem; font-weight: 400; }
+.tx-add-field .cat-limit:hover { background: var(--white); }
+.tx-add-field > input:focus-visible, .tx-add-field > select:focus-visible { outline: 3px solid rgba(47, 104, 84, .3); outline-offset: 1px; }
+.tx-add .primary-button { min-width: 0; height: 38px; padding: 0 22px; }
+.tx-add-done { margin: 0; color: var(--green-dark); font-size: 0.75rem; }
+.tx-add-done:empty { display: none; }
+@media (max-width: 760px) {
+  .tx-add-fields { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .tx-add-name, .tx-add-category { grid-column: 1 / -1; }
+  .tx-add-field .cat-limit { grid-column: auto; }
+  .tx-add .primary-button { grid-column: 1 / -1; height: 42px; }
+}

@@ -29,6 +29,15 @@
 @media (max-width: 420px) {
   .help-toc ol { grid-template-columns: 1fr; }
 }
+/* On a phone the contents links are big enough to tap (at least 36px tall), in two columns. */
+@media (max-width: 760px) {
+  .help-toc ol { gap: 0 16px; }
+  .help-toc a { display: block; padding: 9px 0; font-size: 0.8125rem; }
+}
+@media (max-width: 420px) {
+  .help-toc ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media print {
   .topbar, .bottom-nav, .help-toc, .help-back { display: none; }
   main { padding: 0; }

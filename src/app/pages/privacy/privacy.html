@@ -18,9 +18,7 @@
           <span>Money Man</span>
         </a>
         <div class="topbar-actions">
-          <a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings">
-            <span class="profile-initials">?</span>
-          </a>
+          <a class="icon-button settings-button" href="/settings" aria-label="Settings" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a>
         </div>
       </header>
       <main id="main-content">
@@ -34,24 +32,24 @@
             <a class="primary-button page-return-button privacy-back" href="/settings">Back to Settings</a>
           </div>
 
-          <p class="privacy-updated">Privacy notice · Last updated November 6, 2026</p>
+          <p class="privacy-updated">Privacy notice · Last updated November 7, 2026</p>
 
           <div class="privacy-document-layout">
             <nav class="privacy-toc" aria-label="Privacy notice contents">
               <strong>On this page</strong>
               <ol>
-                <li><a href="#operator">Operator and contact</a></li>
-                <li><a href="#information">Information we handle</a></li>
-                <li><a href="#purposes">How we use information</a></li>
-                <li><a href="#financial">Connected financial accounts</a></li>
-                <li><a href="#sharing">When information is shared</a></li>
-                <li><a href="#storage">Storage and retention</a></li>
-                <li><a href="#browser-storage">Cookies and browser storage</a></li>
-                <li><a href="#security">Security</a></li>
-                <li><a href="#rights">Your choices and rights</a></li>
-                <li><a href="#children">Children's privacy</a></li>
-                <li><a href="#changes">Changes to this notice</a></li>
-                <li><a href="#contact">Contact and requests</a></li>
+                <li><a href="/privacy#operator">Operator and contact</a></li>
+                <li><a href="/privacy#information">Information we handle</a></li>
+                <li><a href="/privacy#purposes">How we use information</a></li>
+                <li><a href="/privacy#financial">Connected financial accounts</a></li>
+                <li><a href="/privacy#sharing">When information is shared</a></li>
+                <li><a href="/privacy#storage">Storage and retention</a></li>
+                <li><a href="/privacy#browser-storage">Cookies and browser storage</a></li>
+                <li><a href="/privacy#security">Security</a></li>
+                <li><a href="/privacy#rights">Your choices and rights</a></li>
+                <li><a href="/privacy#children">Children's privacy</a></li>
+                <li><a href="/privacy#changes">Changes to this notice</a></li>
+                <li><a href="/privacy#contact">Contact and requests</a></li>
               </ol>
             </nav>
 
@@ -89,9 +87,22 @@
                 <h3>Budget and app information</h3>
                 <p>
                   Custom categories, merchant categorization rules, manual transaction changes, monthly
-                  budget and income values, goals, and the three Settings preferences are stored with
-                  your Supabase account. Category limits, streaks, and some app display settings remain
-                  in this browser.
+                  budget and income values, goals, and your Settings choices (daily sync, budget
+                  reminders, leaderboard visibility, and display currency) are stored with your
+                  Supabase account. Everything is stored in US dollars; your display currency only
+                  changes how amounts are shown, using daily exchange rates the server fetches from a
+                  public rate service (Frankfurter, European Central Bank data) that receives no
+                  information about you. Names you give your banks and accounts, and which accounts
+                  you hide, are stored with your account too. Category limits, streaks, and some app
+                  display settings remain in this browser, along with a cached copy of your display
+                  currency and the exchange rates.
+                </p>
+                <h3>Feedback you send</h3>
+                <p>
+                  When you use Send feedback, we store your message, the type you chose, the page you
+                  sent it from, and basic browser details. If you tick the box that lets the team email
+                  you, we also store your email address with that message. The team reads feedback to
+                  improve the app, and you can ask us to delete a message by emailing us.
                 </p>
                 <h3>Chat and technical information</h3>
                 <p>
@@ -102,9 +113,9 @@
                   account's Chatbot History until you choose Clear history in Ask. Groq processes the
                   information it receives under its own terms and privacy practices. The app also uses
                   an essential session cookie and receives ordinary connection information needed to
-                  deliver and secure the service. Google Fonts requests are made by your browser when
-                  the app loads; Google may receive connection information such as your IP address and
-                  browser details.
+                  deliver and secure the service. When you connect a bank, your browser loads the Plaid
+                  Link script from Plaid's servers, so Plaid may receive connection information such as
+                  your IP address and browser details.
                 </p>
               </section>
 
@@ -115,7 +126,8 @@
                   <li>To connect accounts through Plaid, retrieve balances and transactions, and keep imported transactions in sync.</li>
                   <li>To organize transactions, apply your category choices and merchant rules, and show spending summaries.</li>
                   <li>To provide the AI chat responses you request, using your saved conversation and budgeting context.</li>
-                  <li>To save your account preferences and apply sync, reminder, and leaderboard settings.</li>
+                  <li>To calculate progress on your savings and spending goals from your recorded transactions and monthly income.</li>
+                  <li>To save your account preferences and apply sync, reminder, leaderboard, and currency settings.</li>
                   <li>To diagnose service errors, protect the service, respond to requests, and meet legal obligations.</li>
                 </ul>
                 <p>
@@ -152,7 +164,6 @@
                   <li><strong>Supabase</strong> provides authentication and cloud database services.</li>
                   <li><strong>Plaid</strong> provides bank linking and financial data services when you connect an account.</li>
                   <li><strong>Groq</strong> processes chat messages and budgeting context to generate AI replies.</li>
-                  <li><strong>Google</strong> serves the web fonts used by the app when your browser requests them.</li>
                 </ul>
                 <p>
                   These providers process information under their own terms and the agreements with the
@@ -192,8 +203,9 @@
                 <p>
                   Money Man uses an essential, HttpOnly session cookie to keep you signed in. It is
                   configured as SameSite=Lax and is set as Secure in production; its lifetime is seven
-                  days. The app also uses browser local storage for category limits and app settings, and
-                  session storage for temporary transaction snapshots. These technologies are used for
+                  days. The app also uses browser local storage for category limits, your cached display
+                  currency, and other app settings, and session storage for temporary transaction
+                  snapshots. These technologies are used for
                   the service rather than advertising. You can clear browser storage through your
                   browser, though doing so may remove locally saved app information or end your session.
                 </p>
@@ -220,8 +232,9 @@
                   information. These rights are subject to legal limits and may not apply in every case.
                 </p>
                 <p>
-                  You can update your name, email, password, and account preferences in Settings. You
-                  can disconnect a bank and delete manual transactions in the app. To exercise other
+                  You can update your name, email, password, currency, and account preferences in
+                  Settings (the gear icon). You can disconnect a bank on the Accounts page and delete
+                  manual transactions on Details. To exercise other
                   rights, email <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a>.
                   We may ask for information to verify your identity and will respond within the time
                   required by applicable law. You may also contact your local data protection authority
@@ -265,6 +278,7 @@
       <nav class="bottom-nav" aria-label="Main navigation">
         <a href="/home" class="nav-item"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
         <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/accounts" class="nav-item"><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a>
         <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
         <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
       </nav>

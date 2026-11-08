@@ -18,9 +18,7 @@
           <span>Money Man</span>
         </a>
         <div class="topbar-actions">
-          <a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings">
-            <span class="profile-initials">?</span>
-          </a>
+          <a class="icon-button settings-button" href="/settings" aria-label="Settings" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a>
         </div>
       </header>
       <main id="main-content">
@@ -38,12 +36,13 @@
             <nav class="help-toc" aria-label="Help topics">
               <strong>Browse topics</strong>
               <ol>
-                <li><a href="#bank-accounts">Bank accounts</a></li>
-                <li><a href="#budget">Budgets and categories</a></li>
-                <li><a href="#transactions">Transactions</a></li>
-                <li><a href="#settings">Settings and account</a></li>
-                <li><a href="#app">Using Money Man</a></li>
-                <li><a href="#contact">Contact support</a></li>
+                <li><a href="/help#bank-accounts">Bank accounts</a></li>
+                <li><a href="/help#budget">Budgets and categories</a></li>
+                <li><a href="/help#transactions">Transactions</a></li>
+                <li><a href="/help#goals">Goals</a></li>
+                <li><a href="/help#settings">Settings and account</a></li>
+                <li><a href="/help#app">Using Money Man</a></li>
+                <li><a href="/help#contact">Contact support</a></li>
               </ol>
             </nav>
 
@@ -52,15 +51,19 @@
                 <h2 id="bank-accounts-title">Bank accounts</h2>
                 <details class="help-faq">
                   <summary>How do I connect a bank?</summary>
-                  <p>Open Settings, choose <strong>Connect another account</strong>, and follow the secure Plaid Link steps. Choose your institution and finish its sign-in flow there. You can connect another institution from Settings later.</p>
+                  <p>Open the <strong>Accounts</strong> tab, choose <strong>Connect an account</strong>, and follow the secure Plaid Link steps. Choose your institution and finish its sign-in flow there. You can connect another institution from Accounts later.</p>
                 </details>
                 <details class="help-faq">
                   <summary>Why are my transactions missing or still loading?</summary>
-                  <p>New connections can take a little time to prepare. Recent transactions usually appear first; Plaid may take a few minutes to finish importing older history. Check the sync message in Settings or Details, then refresh the page. Daily account sync must be on for automatic background updates.</p>
+                  <p>New connections can take a little time to prepare. Recent transactions usually appear first; Plaid may take a few minutes to finish importing older history. Check the sync message on Accounts or Details, then refresh the page. Daily account sync must be on for automatic background updates.</p>
                 </details>
                 <details class="help-faq">
                   <summary>Why does a bank balance not match my bank's app?</summary>
-                  <p>Money Man displays the latest balance saved from Plaid, which may be cached and not real-time. Open Settings to request an account refresh. Pending activity and the timing of your bank's updates can also cause differences.</p>
+                  <p>Money Man displays the latest balance saved from Plaid, which may be cached and not real-time. Open Accounts and choose <strong>Refresh balances</strong> to request an account refresh. Pending activity and the timing of your bank's updates can also cause differences.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Can I rename a bank or an account, or leave one out of my totals?</summary>
+                  <p>Yes. On Accounts, choose <strong>Rename</strong> beside a bank or an account to give it a name you recognize, and leave the name blank to go back to the bank's own. Turn off <strong>Include in totals</strong> on an account to leave its transactions out of your spending totals, goals, and chat without disconnecting it. Turn it back on any time.</p>
                 </details>
                 <details class="help-faq">
                   <summary>What happens when I disconnect a bank?</summary>
@@ -72,11 +75,11 @@
                 <h2 id="budget-title">Budgets and categories</h2>
                 <details class="help-faq">
                   <summary>Where do I set my monthly budget?</summary>
-                  <p>In Settings, enter your monthly budget and income, then choose <strong>Save budget</strong>. Your budget should not exceed your income. Clearing the budget leaves your spending visible without a monthly budget target.</p>
+                  <p>In Settings, open <strong>Budget &amp; income</strong>, enter your monthly income and budget, then choose <strong>Save</strong>. Your budget should not exceed your income. Clearing the budget leaves your spending visible without a monthly budget target.</p>
                 </details>
                 <details class="help-faq">
                   <summary>How do I set a limit for a category?</summary>
-                  <p>On Details, choose <strong>Edit</strong> to update category limits together, or open a category and choose <strong>Set a limit</strong>. Changing your monthly budget scales existing limits proportionally; saving the same budget leaves limits unchanged.</p>
+                  <p>On Details, choose <strong>Edit categories</strong> to update limits together, or tap the pencil beside a category to change just that one. You can also open a category and choose <strong>Set a limit</strong>. Changing your monthly budget scales existing limits proportionally; saving the same budget leaves limits unchanged.</p>
                 </details>
                 <details class="help-faq">
                   <summary>Why did I get a budget reminder?</summary>
@@ -87,16 +90,40 @@
               <section id="transactions" aria-labelledby="transactions-title">
                 <h2 id="transactions-title">Transactions</h2>
                 <details class="help-faq">
+                  <summary>How do I look at a different month?</summary>
+                  <p>On Details, use the month picker at the top. Choose any of the last 24 months, or use the arrows to step back and forward. <strong>Back to this month</strong> returns you to the current one. <strong>See every transaction</strong> keeps the month you are viewing.</p>
+                </details>
+                <details class="help-faq">
                   <summary>How do I fix a transaction's category?</summary>
-                  <p>On Details, use the category menu on the transaction row. Select the option to apply the change to the same merchant if you want matching bank transactions, including future ones, to use that category. Your own category choice takes priority over automatic categorization.</p>
+                  <p>On Details, tap the transaction to open it, then choose a category. For a bank transaction, leave <strong>Also apply to every ... transaction</strong> ticked if you want matching transactions, including future ones, to use that category too. The thin colored bar on the left of each row shows its category. Your own category choice takes priority over automatic categorization.</p>
                 </details>
                 <details class="help-faq">
                   <summary>Can I add a cash purchase or edit a transaction?</summary>
-                  <p>Choose <strong>Add</strong> on Details to enter a transaction manually. Manual entries can be edited or deleted from their row. Bank-imported transactions cannot be edited or deleted there, but you can change their category. Manual entries require a positive amount and a date within the supported 24-month history.</p>
+                  <p>On Details, choose <strong>Add transaction</strong> next to the All transactions heading to enter one manually. Manual entries can be edited or deleted after you tap them open. Bank-imported transactions cannot be edited or deleted there, but you can change their category. Manual entries require a positive amount and a date within the supported 24-month history.</p>
                 </details>
                 <details class="help-faq">
-                  <summary>Why am I seeing sample spending?</summary>
-                  <p>Sample data appears when no bank is connected and no manual transaction has been added. Connect a bank or add your first manual transaction to use your own spending data.</p>
+                  <summary>Why does it say "No spending yet"?</summary>
+                  <p>A new account has no transactions, so Home and Details show a prompt instead of numbers. Connect a bank on the Accounts tab or add your first transaction to see your own spending.</p>
+                </details>
+              </section>
+
+              <section id="goals" aria-labelledby="goals-title">
+                <h2 id="goals-title">Goals</h2>
+                <details class="help-faq">
+                  <summary>What kinds of goals can I add?</summary>
+                  <p>On Details, choose <strong>Edit goals</strong> to open a list of your goals right on the page. Changes save as you make them, and <strong>Add a goal</strong> is at the bottom. A <strong>Savings</strong> goal tracks how much of your monthly income is left after spending. A <strong>Spending</strong> limit tracks what you have spent this month, for all spending or one category. <strong>Earnings</strong>, <strong>Investing</strong>, and <strong>Custom</strong> goals are yours to name: you enter the amount you have so far and an optional deadline. A <strong>Checklist</strong> goal is a list of steps (one per line) that you tick off right on the goal card, and its ring shows how many steps are done.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>How is goal progress calculated?</summary>
+                  <p>Savings and Spending goals update automatically for the current month from your recorded transactions and your monthly income (or budget if no income is set). They reset each month. For the other goals you update the amount yourself. If you add a deadline, the card shows about how much to set aside each month to finish on time.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Why does my savings goal show nothing saved?</summary>
+                  <p>Savings progress is your monthly income minus your spending, so it needs an income. Add your monthly income in Settings under <strong>Budget &amp; income</strong>.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>What do the colors on a goal mean?</summary>
+                  <p>The ring color matches the goal's category, such as green for Housing and coral for Food. For a spending limit, the text under the amounts turns gold-brown within 10% of the limit and red when you are over it.</p>
                 </details>
               </section>
 
@@ -107,12 +134,24 @@
                   <p><strong>Daily account sync</strong> allows automatic transaction refreshes. <strong>Budget reminders</strong> enables alerts when a category reaches 90% of its limit. <strong>Leaderboard visibility</strong> controls whether your own entry appears on the Friends page.</p>
                 </details>
                 <details class="help-faq">
+                  <summary>Do I need to save my changes?</summary>
+                  <p>No. The category and goal lists on Details save each change as soon as you leave the box or pick an option, and show "Saved" next to it. Press <strong>Esc</strong> in a box to undo what you typed there.</p>
+                </details>
+                <details class="help-faq">
                   <summary>How do I change my email address?</summary>
                   <p>Open Settings, choose <strong>Edit details</strong>, and save your new email. Supabase may ask you to confirm the new address through an email link before the change takes effect.</p>
                 </details>
                 <details class="help-faq">
-                  <summary>Will my budget and category limits follow me to another browser?</summary>
-                  <p>No. Monthly budget, income, category limits, goals, and some app settings are stored in the browser you use. Transactions, connected accounts, custom categories, merchant rules, and account preferences are saved with your Money Man account.</p>
+                  <summary>Will my settings follow me to another browser?</summary>
+                  <p>Mostly. Your monthly budget and income, goals, display currency, transactions, connected accounts, custom categories, merchant rules, and account preferences are saved with your Money Man account. Category limits, streaks, and a few display settings are stored only in the browser you use.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>How do I change the currency amounts are shown in?</summary>
+                  <p>In Settings, open <strong>Currency</strong> and pick one from the list. It saves right away and applies on every page and in Ask.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Does changing the currency convert my amounts?</summary>
+                  <p>Yes. Everything is stored in US dollars and converted using the European Central Bank's daily exchange rate, so a figure can shift slightly from day to day as rates change. Amounts you type are converted back to dollars when saved. Bank balances show in your chosen currency, with the bank's own figure beside them.</p>
                 </details>
               </section>
 
@@ -120,7 +159,15 @@
                 <h2 id="app-title">Using Money Man</h2>
                 <details class="help-faq">
                   <summary>Are the chat answers generated by AI?</summary>
-                  <p>No. The current chat uses your spending information in the browser to provide canned answers about food spending, savings goals, and your budget. Messages are not sent to an external AI service.</p>
+                  <p>Yes. Ask uses an AI model from Groq. To answer, it sends your messages and saved conversation, plus recent monthly spending totals by category, your saved budgets, and your goals. It does not send individual transaction names. Answers can be wrong, so double-check important numbers, and use <strong>Clear history</strong> in Ask to delete the saved conversation. See <a href="/privacy">Privacy &amp; data</a> for details.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>How do I send feedback or report a problem?</summary>
+                  <p>Choose <strong>Send feedback</strong> in Settings (under More), at the bottom of Details, or at the bottom of this page. Pick what kind of feedback it is, write a few lines, and send. The team reads every message. You can tick the box if you are happy for us to email you back.</p>
+                </details>
+                <details class="help-faq">
+                  <summary>Where is Settings?</summary>
+                  <p>Tap the gear icon in the top right of any page. Bank accounts are not in Settings; they have their own <strong>Accounts</strong> tab in the bottom navigation.</p>
                 </details>
                 <details class="help-faq">
                   <summary>Is the Friends leaderboard based on real friend activity?</summary>
@@ -131,6 +178,7 @@
               <section id="contact" class="help-contact" aria-labelledby="contact-title">
                 <h2 id="contact-title">Still need help?</h2>
                 <p>Email <a href="mailto:MoneyMan@MoneyMan.BYU.edu">MoneyMan@MoneyMan.BYU.edu</a>. Include the page you were using and what happened. Do not send your bank password, Plaid credentials, or full account number.</p>
+                <p><button class="primary-button" type="button" data-open-feedback>Send feedback in the app</button></p>
                 <address>Team Money Man<br />7150 TNRB, Brigham Young University<br />Provo, UT 84602-3113</address>
               </section>
             </article>
@@ -140,6 +188,7 @@
       <nav class="bottom-nav" aria-label="Main navigation">
         <a href="/home" class="nav-item"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
         <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/accounts" class="nav-item"><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a>
         <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
         <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
       </nav>

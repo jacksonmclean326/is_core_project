@@ -8,6 +8,12 @@ import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { settleUserSyncs } from "../plaid/sync.js";
 import { listCustomCategories, type CustomCategory } from "../category-store.js";
+import {
+  customCategoryColors,
+  isCustomCategoryColor,
+  maxCategoryNameLength,
+  maxCustomCategories,
+} from "../../shared/category-colors.js";
 
 export { listCustomCategories, loadOverrides, type CustomCategory } from "../category-store.js";
 import {
@@ -19,12 +25,8 @@ import {
   type CategoryOverrides,
 } from "../categorize.js";
 
-export const maxCustomCategories = 12;
-export const maxCategoryNameLength = 24;
-const customColors = [
-  "#c0504d", "#4f81bd", "#8064a2", "#4bacc6", "#f79646", "#9bbb59",
-  "#7f7f7f", "#2c4d75", "#b65708", "#6b8e23", "#8b4789", "#2e8b8b",
-];
+export { maxCustomCategories, maxCategoryNameLength };
+const customColors = customCategoryColors.map((color) => color.value);
 // Default names of the built-in categories: custom names may not collide with them.
 const builtInNames = ["housing", "food", "transport", "utilities", "education", "personal", "other"];
 
@@ -47,6 +49,15 @@ function nameTaken(name: string, existing: CustomCategory[], ignoreKey?: string)
     builtInNames.includes(wanted) ||
     existing.some((category) => category.key !== ignoreKey && category.name.toLowerCase() === wanted)
   );
+}
+
+/** The color the person picked if it is one of ours and not already used, otherwise the next free one. */
+function chosenColor(value: unknown, existing: CustomCategory[]): string {
+  if (isCustomCategoryColor(value)) {
+    const color = value.toLowerCase();
+    if (!existing.some((category) => category.color.toLowerCase() === color)) return color;
+  }
+  return nextCustomColor(existing);
 }
 
 export function nextCustomColor(existing: CustomCategory[]): string {
@@ -141,7 +152,8 @@ export async function handleCategoriesApi(
     const { user } = await requireSession(request, response);
     requireStorage();
     const admin = createServiceSupabaseClient();
-    const name = cleanCategoryName((await readJsonBody(request)).name);
+    const body = await readJsonBody(request);
+    const name = cleanCategoryName(body.name);
     const existing = await listCustomCategories(admin, user.id);
     if (existing.length >= maxCustomCategories) {
       throw new HttpError(400, `You can add up to ${maxCustomCategories} custom categories.`);
@@ -150,7 +162,7 @@ export async function handleCategoriesApi(
     const category: CustomCategory = {
       key: `c-${randomBytes(4).toString("hex")}`,
       name,
-      color: nextCustomColor(existing),
+      color: chosenColor(body.color, existing),
     };
     const inserted = await admin
       .from("Custom Category")

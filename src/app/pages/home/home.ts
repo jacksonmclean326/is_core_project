@@ -3,6 +3,7 @@ import {
   escapeHTML,
   eventElement,
   loadLinkedTransactions,
+  loadSavedBudget,
   onDataChanged,
   primeFromSnapshot,
   months,
@@ -116,8 +117,15 @@ function renderPeriodLabels() {
   $("#period-label").textContent = `${monthName(thisMonth).toUpperCase()} OVERVIEW`;
 }
 
+/** "empty" means no bank and no transactions yet: show a prompt instead of a chart of zeros. */
+let dataMode: "loading" | "empty" | "data" = "loading";
+
 function renderDashboard() {
   renderPeriodLabels();
+  const empty = dataMode === "empty";
+  $("#empty-state").hidden = !empty;
+  $("#empty-state").style.display = empty ? "" : "none";
+  document.querySelector<HTMLElement>(".trend-section")?.style.setProperty("display", empty ? "none" : "");
   const spent = totalSpent();
   const budget = Number(state.budget) || 0;
   const remaining = budget - spent;
@@ -184,7 +192,7 @@ async function loadBankAccountCount() {
   } catch (error) {
     console.error("Unable to load the linked bank account count.", error);
     state.accounts = [];
-    status.textContent = "Bank account data unavailable. Try Settings.";
+    status.textContent = "Bank account data unavailable. Try the Accounts tab.";
   }
 }
 
@@ -196,7 +204,8 @@ $("#watch-categories").addEventListener("click", (event) => {
 primeFromSnapshot(currentMonthKey(), months.length - 1);
 renderDashboard();
 void loadLinkedTransactions(currentMonthKey(), months.length - 1).then((result) => {
-  if (result === "linked") {
+  if (result === "linked" || result === "sample") dataMode = result === "linked" ? "data" : "empty";
+  if (result === "linked" || result === "sample") {
     renderDashboard();
     renderTrend();
   } else if (result === "error") {
@@ -204,8 +213,12 @@ void loadLinkedTransactions(currentMonthKey(), months.length - 1).then((result) 
   }
 });
 void loadBankAccountCount();
+void loadSavedBudget().then((changed) => {
+  if (changed) renderDashboard();
+});
 refreshIcons();
-onDataChanged(() => {
+onDataChanged((result) => {
+  if (result === "linked" || result === "sample") dataMode = result === "linked" ? "data" : "empty";
   renderDashboard();
   renderTrend();
 });

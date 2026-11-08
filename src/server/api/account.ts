@@ -7,6 +7,8 @@ import {
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
+import { currencyOrDefault, isCurrencyCode } from "../../shared/currencies.js";
+import { rateFor } from "../rates.js";
 
 export async function handleAccountApi(
   request: IncomingMessage,
@@ -31,7 +33,28 @@ export async function handleAccountApi(
       daily_sync: profile.data?.daily_sync !== false,
       budget_reminders: profile.data?.budget_reminders !== false,
       leaderboard_visibility: profile.data?.leaderboard_visibility !== false,
+      currency: currencyOrDefault(user.user_metadata?.currency),
     });
+    return true;
+  }
+
+  // The display currency is saved in the account's metadata, which every page already receives
+  // with the session. It only changes the symbol and format of amounts; nothing is converted.
+  if (pathname === "/api/account/currency" && request.method === "PATCH") {
+    const { client, user, sessionId } = await requireSession(request, response);
+    const body = await readJsonBody(request);
+    if (!isCurrencyCode(body.currency)) {
+      throw new HttpError(400, "Choose a currency from the list.");
+    }
+    if ((await rateFor(body.currency)) === null) {
+      throw new HttpError(503, "Exchange rates are unavailable right now, so the currency was not changed. Please try again in a moment.");
+    }
+    const update = await client.auth.updateUser({
+      data: { ...(user.user_metadata ?? {}), currency: body.currency },
+    });
+    if (update.error) throw supabaseFailure(update.error, 400);
+    rememberVerifiedUser(sessionId, update.data.user);
+    sendJson(response, 200, { currency: body.currency });
     return true;
   }
 

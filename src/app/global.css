@@ -117,6 +117,26 @@ summary:focus-visible {
   background: #e9d9c7;
   border-radius: 50%;
 }
+/* The Settings entry in the top bar: a gear, so it reads as "settings" and not as a profile picture. */
+.settings-button {
+  width: 39px;
+  height: 39px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--white);
+}
+.settings-button .icon {
+  width: 19px;
+  height: 19px;
+}
+.settings-button:hover,
+.settings-button.is-current {
+  background: var(--green-soft);
+}
+.settings-button:focus-visible {
+  outline: 3px solid rgba(47, 104, 84, 0.45);
+  outline-offset: 2px;
+}
 .profile-initials {
   display: inline-grid;
   place-items: center;
@@ -310,7 +330,7 @@ h3 {
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   width: 100%;
   padding: 8px max(16px, calc((100vw - 520px) / 2))
     calc(8px + env(safe-area-inset-bottom));
@@ -583,7 +603,8 @@ h3 {
 .detail-dialog:has(.goals-edit-form) {
   width: min(560px, calc(100vw - 32px));
 }
-.edit-form.goals-edit-form {
+/* The dialog is the only thing that scrolls. A form with its own scroll inside it gave two scrollbars. */
+.detail-dialog .edit-form {
   max-height: none;
   overflow: visible;
 }
@@ -1007,7 +1028,8 @@ html {
   .small-action,
   .dialog-close,
   .remove-goal,
-  .profile-button {
+  .profile-button,
+  .settings-button {
     min-width: 44px;
     min-height: 44px;
   }
@@ -1086,3 +1108,77 @@ html {
 .wordmark {
   min-width: 0;
 }
+
+/* Empty state: shown instead of made-up numbers when an account has no spending yet. */
+.empty-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin: 22px 0;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--white);
+}
+.empty-state[hidden] { display: none; }
+.empty-state h2 { margin: 0 0 4px; font-size: 1.125rem; }
+.empty-state p { margin: 0; max-width: 52ch; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+.empty-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.empty-actions a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+
+/* Unsaved-changes prompt at the top of an editor dialog. */
+.unsaved-bar {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  background: #fbf3dc;
+  color: var(--ink);
+}
+.unsaved-bar p { margin: 0; font-size: 0.8125rem; line-height: 1.45; }
+.unsaved-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.unsaved-actions .primary-button, .unsaved-actions .outline-button { min-width: 0; padding: 8px 14px; }
+
+/* Goal editor: a Checklist goal has steps (and an optional deadline) instead of an amount. */
+.goal-extra .goal-extra-checklist { flex-basis: 100%; }
+.goal-edit-row[data-kind="Checklist"] .goal-extra-checklist,
+.goal-edit-row[data-kind="Checklist"] .goal-extra-deadline { display: grid; }
+.goal-edit-row[data-kind="Checklist"] .goal-target-input { visibility: hidden; pointer-events: none; }
+.goal-extra-checklist textarea { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--field-border); border-radius: 4px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.75rem; line-height: 1.5; resize: vertical; }
+.editor-section { display: grid; gap: 10px; }
+.editor-section + .editor-section { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.editor-section h3 { margin: 0; font-size: 0.875rem; }
+.editor-help { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.category-edit-row.is-focus { padding: 8px; margin: -8px; border-radius: 6px; background: var(--green-soft); }
+
+/* Send feedback: the dialog (built by feedback.ts) and the quiet card at the end of Details. */
+.feedback-dialog { width: min(480px, calc(100vw - 32px)); }
+.feedback-form { display: grid; gap: 14px; margin-top: 16px; }
+.fb-kinds { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; border: 0; }
+.fb-kinds legend { width: 100%; margin-bottom: 8px; padding: 0; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.fb-kind { position: relative; cursor: pointer; }
+.fb-kind input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.fb-kind span { display: inline-block; padding: 7px 13px; border: 1px solid var(--field-border); border-radius: 99px; background: var(--white); font-size: 0.8125rem; }
+.fb-kind input:checked + span { border-color: var(--green); background: var(--green); color: #fff; font-weight: 700; }
+.fb-kind input:focus-visible + span { outline: 3px solid rgba(47, 104, 84, .5); outline-offset: 2px; }
+.fb-field { display: grid; gap: 6px; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.fb-field textarea { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.875rem; line-height: 1.5; resize: vertical; }
+.fb-field textarea:focus-visible { outline: 3px solid rgba(47, 104, 84, .35); outline-offset: 1px; }
+.fb-count { margin: -8px 0 0; color: var(--muted); font-size: 0.6875rem; text-align: right; }
+.fb-check { display: flex; align-items: center; gap: 9px; color: var(--ink); font-size: 0.8125rem; cursor: pointer; }
+.fb-check input { width: 16px; height: 16px; accent-color: var(--green); }
+.fb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.feedback-form .dialog-form-feedback { min-height: 0; margin: 0; }
+.feedback-form .dialog-form-feedback:empty { display: none; }
+.feedback-form .dialog-form-feedback.is-error { color: #a33f30; }
+.feedback-form .dialog-form-feedback a { color: inherit; text-decoration: underline; }
+.fb-thanks { display: grid; justify-items: start; gap: 8px; padding: 6px 0 2px; }
+.fb-thanks .icon { width: 30px; height: 30px; color: var(--green); }
+.fb-thanks p { margin: 0 0 6px; color: var(--muted); font-size: 0.875rem; }
+.feedback-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin: 28px 0 8px; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); }
+.feedback-card h2 { margin: 0 0 3px; font-size: 0.9375rem; }
+.feedback-card p { margin: 0; color: var(--muted); font-size: 0.8125rem; line-height: 1.45; }

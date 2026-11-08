@@ -8,6 +8,7 @@ export interface ApiUser {
   daily_sync?: boolean;
   budget_reminders?: boolean;
   leaderboard_visibility?: boolean;
+  currency?: string;
 }
 
 export interface AccountPreferences {
@@ -48,11 +49,17 @@ export interface BankAccount {
   balance: number | null;
   availableBalance: number | null;
   currencyCode: string | null;
+  /** A name the person gave this account, or null to use `name`. */
+  nickname?: string | null;
+  /** True when the account is left out of totals. */
+  hidden?: boolean;
 }
 
 export interface BankConnection {
   id: string;
   institution: string;
+  /** A name the person gave this connection, or null to use the bank's own name. */
+  nickname?: string | null;
   lastSyncedAt: string | null;
   accounts: BankAccount[];
 }
@@ -184,6 +191,13 @@ export function updateAccountPreference(
   });
 }
 
+export function updateAccountCurrency(currency: string): Promise<{ currency: string }> {
+  return request("/api/account/currency", {
+    method: "PATCH",
+    body: JSON.stringify({ currency }),
+  });
+}
+
 export function updateAccount(input: {
   firstName: string;
   lastName: string;
@@ -221,6 +235,19 @@ export function exchangePlaidPublicToken(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+/** Gives a bank connection a name. A blank name clears it. */
+export function renameBankConnection(itemId: string, nickname: string): Promise<{ nickname: string | null }> {
+  return request(`/api/plaid/items/${encodeURIComponent(itemId)}`, { method: "PATCH", body: JSON.stringify({ nickname }) });
+}
+
+/** Renames an account and/or hides it from totals. */
+export function updateBankAccount(
+  accountId: string,
+  changes: { nickname?: string; hidden?: boolean },
+): Promise<{ nickname?: string | null; hidden?: boolean }> {
+  return request(`/api/plaid/accounts/${encodeURIComponent(accountId)}`, { method: "PATCH", body: JSON.stringify(changes) });
 }
 
 export function disconnectPlaidItem(itemId: string): Promise<{ ok: boolean }> {
@@ -271,8 +298,8 @@ export function getTransactions(month: string, history = 0): Promise<Transaction
   return request(`/api/transactions?${params}`);
 }
 
-export function createCategory(name: string): Promise<{ category: CustomCategory }> {
-  return request("/api/categories", { method: "POST", body: JSON.stringify({ name }) });
+export function createCategory(name: string, color?: string): Promise<{ category: CustomCategory }> {
+  return request("/api/categories", { method: "POST", body: JSON.stringify({ name, ...(color ? { color } : {}) }) });
 }
 
 export function renameCategory(key: string, name: string): Promise<{ category: CustomCategory }> {
@@ -327,9 +354,27 @@ export function putGoals(
     category: string | null;
     deadline: string | null;
     progress: number;
+    steps: { text: string; done: boolean }[] | null;
   }[],
 ): Promise<{ goals: import("./goals.js").GoalRow[] }> {
   return request("/api/goals", { method: "PUT", body: JSON.stringify({ items }) });
+}
+
+/** Daily exchange rates: units of each currency per US dollar. */
+export function getRates(): Promise<{ base: "USD"; date: string; rates: Record<string, number> }> {
+  return request("/api/rates");
+}
+
+export type FeedbackKind = "bug" | "confusing" | "idea" | "praise";
+
+/** Sends feedback to the team. Rejects with the server's message if it could not be saved. */
+export function sendFeedback(input: { kind: FeedbackKind; message: string; page: string; contactOk: boolean }): Promise<{ ok: true }> {
+  return request("/api/feedback", { method: "POST", body: JSON.stringify(input) });
+}
+
+/** Saves which steps of one checklist goal are done. */
+export function patchGoalSteps(id: string, steps: { text: string; done: boolean }[]): Promise<{ goal: import("./goals.js").GoalRow }> {
+  return request("/api/goals/steps", { method: "PATCH", body: JSON.stringify({ id, steps }) });
 }
 
 export interface ChatHistoryMessage {

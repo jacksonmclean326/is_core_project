@@ -15,46 +15,71 @@
     <div class="app-shell">
       <header class="topbar">
         <a class="wordmark" href="/home" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
-        <div class="topbar-actions"><a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings"><span class="profile-initials">?</span></a></div>
+        <div class="topbar-actions"><a class="icon-button settings-button" href="/settings" aria-label="Settings" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a></div>
       </header>
       <main id="main-content">
         <section class="page details-page" aria-labelledby="details-title">
           <div class="page-heading summary-heading">
-            <div><div class="month-switcher" id="month-switcher"><button class="icon-button small-action" type="button" id="month-prev" aria-label="Previous month" title="Previous month"><i data-icon="chevron-left" aria-hidden="true"></i></button><p class="eyebrow" id="period-label" aria-live="polite">OCTOBER 2026</p><button class="icon-button small-action" type="button" id="month-next" aria-label="Next month" title="Next month"><i data-icon="chevron-right" aria-hidden="true"></i></button></div><h1 id="details-title">Spending, broken down.</h1></div>
-            <div class="heading-actions"><button class="edit-summary-button" type="button" id="add-transaction" aria-label="Add a transaction" title="Add a transaction"><i data-icon="plus" aria-hidden="true"></i><span>Add</span></button><button class="edit-summary-button" type="button" id="edit-summary" aria-label="Edit summary page" title="Edit summary"><i data-icon="settings-2" aria-hidden="true"></i><span>Edit</span></button></div>
+            <div><div class="month-switcher" id="month-switcher"><button class="icon-button small-action" type="button" id="month-prev" aria-label="Previous month" title="Previous month"><i data-icon="chevron-left" aria-hidden="true"></i></button><p class="eyebrow" id="period-label" aria-live="polite">–</p><select class="month-select" id="month-select" aria-label="Choose a month" hidden></select><button class="icon-button small-action" type="button" id="month-next" aria-label="Next month" title="Next month"><i data-icon="chevron-right" aria-hidden="true"></i></button><button class="text-button month-current" type="button" id="month-current" hidden>Back to this month</button></div><h1 id="details-title">Spending, broken down.</h1></div>
+            <div class="heading-actions"><button class="edit-summary-button" type="button" id="edit-summary" aria-expanded="false" aria-controls="categories-panel" aria-label="Edit categories" title="Edit categories: rename them, set limits, or add your own"><i data-icon="settings-2" aria-hidden="true"></i><span>Edit categories</span></button></div>
           </div>
-          <div class="summary-balance-row"><div class="current-spending"><span id="summary-spent-label">Current monthly spending</span><strong id="summary-spent">$1,740</strong><span class="current-budget-note">of <span id="summary-budget">$2,200</span> budget</span></div><div class="spending-available"><span>Spending Money Available:</span><strong id="summary-available">$460</strong></div></div>
+          <div class="summary-balance-row"><div class="current-spending"><span id="summary-spent-label">Current monthly spending</span><strong id="summary-spent">–</strong><span class="current-budget-note">of <span id="summary-budget">–</span> budget</span></div><div class="spending-available"><span>Spending Money Available:</span><strong id="summary-available">–</strong></div></div>
+          <section class="empty-state" id="empty-state" aria-labelledby="empty-title" hidden>
+            <div><h2 id="empty-title">No spending yet</h2><p>Connect a bank to import your transactions automatically, or add one yourself to get started.</p></div>
+            <div class="empty-actions"><a class="primary-button" href="/accounts">Connect a bank</a><button class="outline-button" type="button" id="empty-add">Add a transaction</button></div>
+          </section>
           <section class="spending-layout" aria-label="Monthly category spending">
             <div class="donut-panel">
               <div class="donut-chart" id="donut-chart" tabindex="0" role="group" aria-roledescription="interactive doughnut chart" aria-label="Spending by category. Focus and use arrow keys to preview, then press Enter for details.">
                 <svg class="donut-slices" id="donut-slices" viewBox="0 0 220 220" aria-hidden="true"></svg>
-                <div class="donut-center" aria-live="polite"><span id="donut-center-label">THIS MONTH</span><strong id="donut-total">$1,740</strong><small id="donut-center-subtitle">across categories</small></div>
+                <div class="donut-center" aria-live="polite"><span id="donut-center-label">THIS MONTH</span><strong id="donut-total">–</strong><small id="donut-center-subtitle">across categories</small></div>
               </div>
               <div class="category-legend" id="category-legend"></div>
             </div>
             <div class="top-categories-panel"><div class="section-heading compact-heading"><div><p class="eyebrow">WHERE IT GOES</p><h2>Top categories</h2></div><span class="quiet-note">% of spending</span></div><div class="top-category-list" id="top-category-list"></div><a class="text-button view-all-link" href="/details#all-transactions">See every transaction <i data-icon="arrow-down" aria-hidden="true"></i></a></div>
           </section>
+          <section class="categories-panel" id="categories-panel" aria-labelledby="categories-panel-title" hidden>
+            <div class="section-heading compact-heading"><div><h2 id="categories-panel-title">Categories</h2><p class="section-note">Changes save as you make them. Rename a category, set a monthly limit, or switch it off the chart.</p></div><button class="text-button" type="button" id="categories-done">Done</button></div>
+            <p class="limits-note" id="limits-note"></p>
+            <div class="cat-head" aria-hidden="true"><span>Chart</span><span>Name</span><span>Monthly limit</span></div>
+            <div class="cat-list" id="category-rows" role="list"></div>
+            <div id="category-add"></div>
+          </section>
           <section class="goals-section" aria-labelledby="goals-title">
-            <div class="section-heading compact-heading"><div><p class="eyebrow">SMALL STEPS ADD UP</p><h2 id="goals-title">Your goals</h2></div><button class="text-button" type="button" id="edit-goals-link">Edit goals <i data-icon="arrow-up-right" aria-hidden="true"></i></button></div>
+            <div class="section-heading compact-heading"><div><h2 id="goals-title">Goals</h2><p class="section-note">Track what you want to save, limit, or reach. Savings and spending goals update automatically each month.</p></div><button class="edit-summary-button" type="button" id="edit-goals-link" aria-expanded="false" aria-controls="goals-panel" title="Edit goals: change, add, or delete them"><i data-icon="settings-2" aria-hidden="true"></i><span>Edit goals</span></button></div>
+            <section class="categories-panel goals-panel" id="goals-panel" aria-labelledby="goals-panel-title" hidden>
+              <div class="section-heading compact-heading"><div><h3 id="goals-panel-title">Edit goals</h3><p class="section-note">Changes save as you make them. Change a goal's type, name, or amount, or add a new one below.</p></div><button class="text-button" type="button" id="goals-done">Done</button></div>
+              <div class="gp-head" aria-hidden="true"><span>Type</span><span>Name</span><span>Amount</span></div>
+              <div class="cat-list" id="goal-rows" role="list"></div>
+              <div id="goal-add"></div>
+            </section>
             <div class="goal-card-list" id="goal-card-list"></div>
           </section>
           <section class="transactions-section" id="all-transactions" aria-labelledby="all-transactions-title">
-            <div class="section-heading compact-heading"><div><h2 id="all-transactions-title">All transactions</h2></div></div>
+            <div class="section-heading compact-heading"><div><h2 id="all-transactions-title">All transactions</h2></div><button class="edit-summary-button" type="button" id="add-transaction" aria-expanded="false" aria-controls="add-tx-panel" title="Add a purchase your bank did not import"><i data-icon="plus" aria-hidden="true"></i><span>Add transaction</span></button></div>
+            <section class="categories-panel add-tx-panel" id="add-tx-panel" aria-labelledby="add-tx-title" hidden>
+              <div class="section-heading compact-heading"><div><h3 id="add-tx-title">Add a transaction</h3><p class="section-note">Record spending your bank did not import. It counts toward your totals, and you can add several in a row.</p></div><button class="text-button" type="button" id="add-tx-done">Done</button></div>
+              <div id="add-tx-form-slot"></div>
+            </section>
             <div class="tx-controls" id="tx-controls">
               <input type="search" id="tx-search" placeholder="Search merchant, amount, account..." aria-label="Search transactions" autocomplete="off" enterkeyhint="search">
               <select id="tx-category-filter" aria-label="Show one category"></select>
               <select id="tx-sort" aria-label="Sort transactions"></select>
             </div>
-            <label class="apply-merchant" id="tx-merchant-option"><input type="checkbox" class="apply-merchant-toggle"> When I move a transaction, move everything from the same merchant too</label>
             <p class="tx-summary" id="tx-summary" aria-live="polite"></p>
             <div class="tx-list" id="tx-list"></div>
             <button class="outline-button tx-more" type="button" id="tx-more" hidden>Show more</button>
+          </section>
+          <section class="feedback-card" aria-labelledby="feedback-card-title">
+            <div><h2 id="feedback-card-title">How is this page working for you?</h2><p>Spot something confusing or broken, or have an idea? Tell the team.</p></div>
+            <button class="outline-button" type="button" data-open-feedback>Send feedback</button>
           </section>
         </section>
       </main>
       <nav class="bottom-nav" aria-label="Main navigation">
         <a href="/home" class="nav-item"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
         <a href="/details" class="nav-item is-current" aria-current="page"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/accounts" class="nav-item"><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a>
         <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
         <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
       </nav>

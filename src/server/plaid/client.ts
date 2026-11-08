@@ -72,7 +72,7 @@ export function decryptPlaidAccessToken(encryptedToken: string): string {
   ) {
     throw new HttpError(
       500,
-      "A saved bank connection cannot be read. Reconnect it from Settings.",
+      "A saved bank connection cannot be read. Reconnect it from Accounts.",
     );
   }
 
@@ -91,7 +91,7 @@ export function decryptPlaidAccessToken(encryptedToken: string): string {
   } catch {
     throw new HttpError(
       500,
-      "A saved bank connection cannot be read. Reconnect it from Settings.",
+      "A saved bank connection cannot be read. Reconnect it from Accounts.",
     );
   }
 }

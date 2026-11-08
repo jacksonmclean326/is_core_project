@@ -1,0 +1,52 @@
+.accounts-page { max-width: 850px; margin: 0 auto; }
+.accounts-page .page-heading { margin-bottom: 17px; }
+.accounts-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 18px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.accounts-summary-label { display: block; color: var(--muted); font-size: 0.75rem; }
+.accounts-summary strong { font: 700 1.25rem var(--font-display); }
+.accounts-summary-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.accounts-summary-actions .icon { width: 14px; height: 14px; }
+.accounts-summary-actions button { display: inline-flex; align-items: center; gap: 7px; }
+.accounts-page .form-feedback { min-height: 1.2em; margin: 10px 0 0; }
+.accounts-page .form-feedback.is-error { color: #a33f30; }
+.bank-list { margin-top: 6px; }
+.bank-connection { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.bank-connection-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.bank-connection-heading > strong { font-size: 0.875rem; }
+.bank-connection-meta, .bank-empty, .bank-disclosure { color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
+.bank-connection-meta { margin: 4px 0 6px; }
+.bank-empty { margin: 14px 0; }
+.bank-disclosure { margin: 18px 0 0; }
+.bank-disconnect { padding: 6px 0; border: 0; color: #a33f30; background: transparent; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.bank-disconnect:disabled { opacity: .6; cursor: wait; }
+.bank-row { display: flex; flex-wrap: wrap; align-items: center; gap: 11px; padding: 10px 0; }
+.bank-icon { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 5px; color: var(--green-dark); background: #e3ece5; }
+.bank-icon .icon { width: 17px; height: 17px; }
+.bank-info { display: grid; flex: 1; gap: 3px; min-width: 100px; }
+.bank-info strong { font-size: 0.8125rem; }
+.bank-info span { color: var(--muted); font-size: 0.75rem; }
+.bank-balance { font-size: 0.8125rem; font-weight: 700; text-align: right; }
+.bank-balance small { display: block; margin-top: 3px; color: var(--muted); font-size: 0.75rem; font-weight: 400; }
+@media (max-width: 720px) {
+  .accounts-summary-actions { width: 100%; }
+  .accounts-summary-actions button { flex: 1 1 auto; justify-content: center; }
+}
+
+/* Rename and include-in-totals */
+.bank-title { display: grid; gap: 2px; min-width: 0; }
+.bank-original { color: var(--muted); font-size: 0.75rem; }
+.bank-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.bank-link { padding: 6px 0; border: 0; color: var(--green-dark); background: transparent; font: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.bank-link:hover { text-decoration: underline; }
+.bank-link:focus-visible, .bank-disconnect:focus-visible { outline: 3px solid rgba(47, 104, 84, .5); outline-offset: 2px; }
+.rename-form { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.rename-input { flex: 1 1 200px; min-width: 0; padding: 9px 11px; border: 1px solid var(--field-border); border-radius: 5px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.875rem; }
+.rename-input:focus-visible { outline: 3px solid rgba(47, 104, 84, .35); outline-offset: 1px; }
+.rename-form .primary-button { min-width: 0; padding: 9px 16px; }
+.rename-hint { flex: 1 1 100%; margin: 0; color: var(--muted); font-size: 0.75rem; }
+.bank-row-tools { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding-left: 47px; }
+.bank-include { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.75rem; cursor: pointer; }
+.bank-include input { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+.bank-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 4px; background: var(--line); color: var(--muted); font-size: 0.6875rem; font-weight: 600; }
+.bank-row.is-hidden .bank-icon, .bank-row.is-hidden .bank-balance { opacity: .55; }
+.bank-row.is-hidden .bank-info > strong { color: var(--muted); }
+@media (max-width: 720px) { .bank-row-tools { padding-left: 0; } }

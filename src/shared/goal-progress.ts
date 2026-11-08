@@ -7,14 +7,43 @@
  *   have a deadline, which adds a "about $X a month" pace note.
  */
 
+import { createMoneyFormatter, defaultCurrency } from "./currencies.js";
 import { addDays, shortDateLabel } from "./months.js";
 
-export const goalKinds = ["Savings", "Spending", "Earnings", "Investing", "Custom"] as const;
+export const goalKinds = ["Savings", "Spending", "Earnings", "Investing", "Custom", "Checklist"] as const;
+
+/** One step of a Checklist goal. */
+export interface GoalStep {
+  text: string;
+  done: boolean;
+}
+
+export const maxChecklistSteps = 20;
+export const maxStepLength = 80;
+
+/** Reads steps from untrusted JSON. Returns null if it is not a valid list of 1 to 20 steps. */
+export function parseSteps(value: unknown): GoalStep[] | null {
+  if (!Array.isArray(value) || value.length < 1 || value.length > maxChecklistSteps) return null;
+  const steps: GoalStep[] = [];
+  for (const item of value) {
+    if (typeof item !== "object" || item === null) return null;
+    const { text, done } = item as { text?: unknown; done?: unknown };
+    if (typeof text !== "string" || typeof done !== "boolean") return null;
+    const clean = text.replace(/\s+/g, " ").trim();
+    if (!clean || clean.length > maxStepLength || /[<>]/.test(clean)) return null;
+    steps.push({ text: clean, done });
+  }
+  return steps;
+}
 export type GoalKind = (typeof goalKinds)[number];
 
 export interface MonthFacts {
   /** Today as YYYY-MM-DD (UTC). */
   today: string;
+  /** The user's display currency code, for amounts written into notes. Defaults to USD. */
+  currency?: string;
+  /** Units of that currency per US dollar (amounts are stored in dollars). Defaults to 1. */
+  rate?: number;
   /** Total spending so far this month, in dollars. */
   spent: number;
   /** Spending so far this month for each category key, in dollars. */
@@ -53,10 +82,12 @@ export function isAutomaticKind(kind: string): boolean {
 }
 
 const cents = (dollars: number) => Math.round(dollars * 100) / 100;
-const dollars = (value: number) => `$${Math.round(value).toLocaleString("en-US")}`;
 
 /** "About $X a month to finish by Mar 15", or a short status when that does not apply. */
-function paceNote(goal: GoalInput, progress: number, today: string): string | null {
+function paceNote(goal: GoalInput, progress: number, facts: MonthFacts): string | null {
+  const today = facts.today;
+  const dollars = (value: number) =>
+    createMoneyFormatter(facts.currency ?? defaultCurrency).format(Math.round(value * (facts.rate ?? 1)));
   if (progress >= goal.target) return "Goal reached.";
   if (!goal.deadline) return null;
   if (goal.deadline < today) return `The deadline (${shortDateLabel(goal.deadline)}) has passed.`;
@@ -87,7 +118,18 @@ export function computeGoalProgress(goal: GoalInput, facts: MonthFacts): GoalPro
       note: "Saved so far this month: monthly income minus spending.",
     };
   }
-  return { progress: goal.stored, automatic: false, note: paceNote(goal, goal.stored, facts.today) };
+  if (goal.kind === "Checklist") {
+    // Progress is the number of steps done out of the number of steps, so there is nothing to convert or pace.
+    let note: string | null = null;
+    if (goal.stored < goal.target && goal.deadline) {
+      note =
+        goal.deadline < facts.today
+          ? `The deadline (${shortDateLabel(goal.deadline)}) has passed.`
+          : `Due ${shortDateLabel(goal.deadline)}.`;
+    }
+    return { progress: goal.stored, automatic: false, note };
+  }
+  return { progress: goal.stored, automatic: false, note: paceNote(goal, goal.stored, facts) };
 }
 
 /** Wording for the amounts under a goal's progress bar. */

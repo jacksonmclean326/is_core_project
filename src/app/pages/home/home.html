@@ -15,31 +15,35 @@
     <div class="app-shell">
       <header class="topbar">
         <a class="wordmark" href="/home" aria-label="Money Man home"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
-        <div class="topbar-actions"><a class="icon-button profile-button" href="/settings" aria-label="Open settings" title="Settings"><span class="profile-initials">?</span></a></div>
+        <div class="topbar-actions"><a class="icon-button settings-button" href="/settings" aria-label="Settings" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a></div>
       </header>
       <main id="main-content">
         <section class="page dashboard-page" aria-labelledby="home-title">
           <div class="page-heading dashboard-heading">
             <div>
-              <div class="dashboard-meta"><p class="eyebrow" id="today-label">THURSDAY, OCTOBER 2</p><div class="streak-indicator" aria-label="12 day streak"><i data-icon="flame" aria-hidden="true"></i><strong id="streak-count">12</strong><span>day streak</span></div></div>
+              <div class="dashboard-meta"><p class="eyebrow" id="today-label">–</p><div class="streak-indicator" aria-label="12 day streak"><i data-icon="flame" aria-hidden="true"></i><strong id="streak-count">12</strong><span>day streak</span></div></div>
               <h1 id="home-title">Your money, in view.</h1>
               <p class="subheading">A little clarity goes a long way.</p>
             </div>
             <a class="text-button" href="/details">Monthly details <i data-icon="arrow-up-right" aria-hidden="true"></i></a>
           </div>
+          <section class="empty-state" id="empty-state" aria-labelledby="empty-title" hidden>
+            <div><h2 id="empty-title">No spending yet</h2><p>Connect a bank to import your transactions automatically, or add one yourself to get started.</p></div>
+            <div class="empty-actions"><a class="primary-button" href="/accounts">Connect a bank</a><a class="outline-button" href="/details?add=1">Add a transaction</a></div>
+          </section>
           <section class="trend-section" aria-labelledby="trend-title">
             <div class="section-heading trend-heading">
               <div><p class="eyebrow">YOUR LAST SIX MONTHS</p><h2 id="trend-title">Spending trends</h2></div>
               <label class="select-wrap" for="trend-mode"><span class="sr-only">Choose a trend to view</span><select id="trend-mode"><option value="spending">Monthly spending</option><option value="under">Under budget</option><option value="saved">Amount saved</option></select><i data-icon="chevron-down" aria-hidden="true"></i></label>
             </div>
-            <div class="trend-summary"><div><p class="trend-value" id="trend-value">$1,740</p><p class="trend-caption" id="trend-caption">spent this month</p></div><span class="trend-change" id="trend-change"><i data-icon="arrow-down-right" aria-hidden="true"></i> 8% from last month</span></div>
+            <div class="trend-summary"><div><p class="trend-value" id="trend-value">–</p><p class="trend-caption" id="trend-caption">spent this month</p></div><span class="trend-change" id="trend-change"></span></div>
             <div class="chart-wrap" id="trend-chart" role="img" aria-label="Monthly spending trend chart"></div>
           </section>
           <section class="overview-section" aria-label="This month's budget overview">
             <div class="overview-main">
-              <div class="section-heading compact-heading"><div><p class="eyebrow" id="period-label">OCTOBER OVERVIEW</p><h2>Monthly budget</h2></div><a class="icon-button small-action" href="/settings" aria-label="Edit monthly budget" title="Edit budget"><i data-icon="sliders-horizontal" aria-hidden="true"></i></a></div>
-              <div class="budget-stats"><div class="budget-stat"><span>Budget</span><strong id="budget-total">$2,200</strong></div><div class="budget-stat"><span>Spent</span><strong id="spent-total">$1,740</strong></div><div class="budget-stat remaining-stat"><span>Remaining</span><strong id="remaining-total">$460</strong></div></div>
-              <div class="budget-track" role="img" aria-label="79 percent of monthly budget used"><span id="budget-progress"></span></div>
+              <div class="section-heading compact-heading"><div><p class="eyebrow" id="period-label">THIS MONTH</p><h2>Monthly budget</h2></div><a class="icon-button small-action" href="/settings" aria-label="Edit monthly budget" title="Edit budget"><i data-icon="sliders-horizontal" aria-hidden="true"></i></a></div>
+              <div class="budget-stats"><div class="budget-stat"><span>Budget</span><strong id="budget-total">–</strong></div><div class="budget-stat"><span>Spent</span><strong id="spent-total">–</strong></div><div class="budget-stat remaining-stat"><span>Remaining</span><strong id="remaining-total">–</strong></div></div>
+              <div class="budget-track" role="img" aria-label="Monthly budget used"><span id="budget-progress"></span></div>
             </div>
             <div class="watch-list"><p class="eyebrow">WORTH A LOOK</p><h3>Getting close</h3><div id="watch-categories" class="watch-items"></div></div>
           </section>
@@ -49,6 +53,7 @@
       <nav class="bottom-nav" aria-label="Main navigation">
         <a href="/home" class="nav-item is-current" aria-current="page"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
         <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/accounts" class="nav-item"><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a>
         <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
         <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
       </nav>

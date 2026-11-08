@@ -26,6 +26,7 @@ interface PlaidItemRow {
   institution_name: string;
   access_token_encrypted?: string;
   last_synced_at: string | null;
+  nickname?: string | null;
 }
 
 interface IncomeSourceRow {
@@ -42,6 +43,8 @@ interface IncomeSourceRow {
   available_balance: number | null;
   currency_code: string | null;
   balance_synced_at: string | null;
+  nickname?: string | null;
+  hidden?: boolean | null;
 }
 
 interface PublicBankAccount {
@@ -54,11 +57,17 @@ interface PublicBankAccount {
   balance: number | null;
   availableBalance: number | null;
   currencyCode: string | null;
+  /** A name the person gave this account, or null to use `name`. */
+  nickname: string | null;
+  /** True when the person left this account out of totals. */
+  hidden: boolean;
 }
 
 interface PublicBankConnection {
   id: string;
   institution: string;
+  /** A name the person gave this connection, or null to use the bank's own name. */
+  nickname: string | null;
   lastSyncedAt: string | null;
   accounts: PublicBankAccount[];
 }
@@ -66,6 +75,25 @@ interface PublicBankConnection {
 interface BankConnectionsResponse {
   connections: PublicBankConnection[];
   syncWarning?: string;
+}
+
+/** A name for a bank or account: blank clears it. */
+function cleanNickname(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const name = typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+  if (!name) return null;
+  if (name.length > 40) throw new HttpError(400, "Names can be up to 40 characters.");
+  if (/[<>]/.test(name)) throw new HttpError(400, "Names cannot contain < or >.");
+  return name;
+}
+
+/** Turns a missing-column error (migration not run yet) into a clear message. */
+function nicknameFailure(error: unknown): HttpError {
+  const message = typeof error === "object" && error !== null && typeof (error as { message?: unknown }).message === "string" ? (error as { message: string }).message : "";
+  if (/nickname|hidden/i.test(message) && /(does not exist|schema cache)/i.test(message)) {
+    return new HttpError(503, "Renaming and hiding are not set up yet. Run the bank nickname migration in Supabase.");
+  }
+  return supabaseFailure(error);
 }
 
 function requirePlaidStorage(requireEncryptionKey = true): void {
@@ -208,11 +236,15 @@ async function readConnections(
   const itemColumns = sync
     ? "item_id,user_id,institution_name,access_token_encrypted,last_synced_at"
     : "item_id,user_id,institution_name,last_synced_at";
-  const itemResult = await admin
+  // Nicknames come from a later migration; until it has been run, read the older columns only.
+  let itemResult = await admin
     .from("Plaid Item")
-    .select(itemColumns)
+    .select(`${itemColumns},nickname`)
     .eq("user_id", userId)
     .returns<PlaidItemRow[]>();
+  if (itemResult.error && /nickname/i.test(itemResult.error.message)) {
+    itemResult = await admin.from("Plaid Item").select(itemColumns).eq("user_id", userId).returns<PlaidItemRow[]>();
+  }
   if (itemResult.error) throw supabaseFailure(itemResult.error);
   const items = itemResult.data ?? [];
 
@@ -226,14 +258,22 @@ async function readConnections(
     }
   }
 
-  const accountResult = await admin
+  const accountColumns =
+    "source_id,user_id,plaid_connection_id,plaid_account_id,account_name,official_name,account_mask,account_subtype,source_type,balance,available_balance,currency_code,balance_synced_at";
+  let accountResult = await admin
     .from("Income Source")
-    .select(
-      "source_id,user_id,plaid_connection_id,plaid_account_id,account_name,official_name,account_mask,account_subtype,source_type,balance,available_balance,currency_code,balance_synced_at",
-    )
+    .select(`${accountColumns},nickname,hidden`)
     .eq("user_id", userId)
     .not("plaid_connection_id", "is", null)
     .returns<IncomeSourceRow[]>();
+  if (accountResult.error && /nickname|hidden/i.test(accountResult.error.message)) {
+    accountResult = await admin
+      .from("Income Source")
+      .select(accountColumns)
+      .eq("user_id", userId)
+      .not("plaid_connection_id", "is", null)
+      .returns<IncomeSourceRow[]>();
+  }
   if (accountResult.error) throw supabaseFailure(accountResult.error);
 
   const accountsByConnection = new Map<string, PublicBankAccount[]>();
@@ -250,6 +290,8 @@ async function readConnections(
       balance: row.balance,
       availableBalance: row.available_balance,
       currencyCode: row.currency_code,
+      nickname: row.nickname ?? null,
+      hidden: row.hidden === true,
     });
     accountsByConnection.set(row.plaid_connection_id, accounts);
   }
@@ -257,6 +299,7 @@ async function readConnections(
   const connections: PublicBankConnection[] = items.map((item) => ({
     id: item.item_id,
     institution: item.institution_name,
+    nickname: item.nickname ?? null,
     lastSyncedAt: item.last_synced_at,
     accounts: accountsByConnection.get(item.item_id) ?? [],
   }));
@@ -438,6 +481,50 @@ export async function handlePlaidApi(
     const { user } = await requireSession(request, response);
     requirePlaidStorage();
     sendJson(response, 200, await readConnections(user.id, true));
+    return true;
+  }
+
+  // Rename a bank connection, or an account, and hide or show an account.
+  const renameItemMatch = pathname.match(/^\/api\/plaid\/items\/([0-9a-f-]{36})$/i);
+  if (renameItemMatch && request.method === "PATCH") {
+    const { user } = await requireSession(request, response);
+    requirePlaidStorage(false);
+    const body = await readJsonBody(request);
+    const nickname = cleanNickname(body.nickname);
+    const updated = await createServiceSupabaseClient()
+      .from("Plaid Item")
+      .update({ nickname })
+      .eq("item_id", renameItemMatch[1])
+      .eq("user_id", user.id)
+      .select("item_id");
+    if (updated.error) throw nicknameFailure(updated.error);
+    if (!updated.data?.length) throw new HttpError(404, "This bank connection was not found.");
+    sendJson(response, 200, { nickname });
+    return true;
+  }
+
+  const accountMatch = pathname.match(/^\/api\/plaid\/accounts\/([0-9a-f-]{36})$/i);
+  if (accountMatch && request.method === "PATCH") {
+    const { user } = await requireSession(request, response);
+    requirePlaidStorage(false);
+    const body = await readJsonBody(request);
+    const changes: { nickname?: string | null; hidden?: boolean } = {};
+    if ("nickname" in body) changes.nickname = cleanNickname(body.nickname);
+    if ("hidden" in body) {
+      if (typeof body.hidden !== "boolean") throw new HttpError(400, "Choose whether to show or hide this account.");
+      changes.hidden = body.hidden;
+    }
+    if (!Object.keys(changes).length) throw new HttpError(400, "Nothing to change.");
+    const updated = await createServiceSupabaseClient()
+      .from("Income Source")
+      .update(changes)
+      .eq("source_id", accountMatch[1])
+      .eq("user_id", user.id)
+      .not("plaid_connection_id", "is", null)
+      .select("source_id");
+    if (updated.error) throw nicknameFailure(updated.error);
+    if (!updated.data?.length) throw new HttpError(404, "This account was not found.");
+    sendJson(response, 200, changes);
     return true;
   }
 

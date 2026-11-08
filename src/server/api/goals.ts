@@ -1,11 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
 import { addMonths, isDateString, monthStart, utcDateString } from "../../shared/months.js";
 import {
   computeGoalProgress,
   isAutomaticKind,
   isGoalKind,
+  parseSteps,
+  type GoalStep,
   type MonthFacts,
 } from "../../shared/goal-progress.js";
+import { currencyOrDefault } from "../../shared/currencies.js";
+import { rateFor } from "../rates.js";
 import { requireSession } from "../auth/session.js";
 import { createServiceSupabaseClient, type SessionClient } from "../auth/supabase.js";
 import { isBuiltInCategory, isCategoryKey } from "../categorize.js";
@@ -16,7 +21,8 @@ import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 
 const pageSize = 1000;
-const goalColumns = "goal_id, goal_type, goal_name, desired_savings, amount_savings, category_key, target_date";
+const baseGoalColumns = "goal_id, goal_type, goal_name, desired_savings, amount_savings, category_key, target_date";
+const goalColumns = `${baseGoalColumns}, steps`;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** What the user has spent, earned (budget income) and budgeted so far in the current month. */
@@ -28,13 +34,17 @@ async function loadMonthFacts(admin: SessionClient, userId: string): Promise<Mon
 
   let totalCents = 0;
   const categoryCents = new Map<string, number>();
+  const hidden = await hiddenSourceIds(admin, userId);
   for (let offset = 0; ; offset += pageSize) {
-    const result = await admin
-      .from("Transaction")
-      .select("amount,category_key")
-      .eq("user_id", userId)
-      .gte("date", from)
-      .lt("date", to)
+    const result = await withoutHidden(
+      admin
+        .from("Transaction")
+        .select("amount,category_key")
+        .eq("user_id", userId)
+        .gte("date", from)
+        .lt("date", to),
+      hidden,
+    )
       .order("transaction_id", { ascending: true })
       .range(offset, offset + pageSize - 1)
       .returns<{ amount: number | null; category_key: string | null }[]>();
@@ -80,9 +90,17 @@ export async function withGoalProgress<
     amount_savings: number | string | null;
     category_key?: string | null;
     target_date?: string | null;
+    steps?: unknown;
   },
->(userId: string, rows: T[]): Promise<(T & { progress: number; automatic: boolean; note: string | null })[]> {
-  const facts = config.supabaseSecretKey ? await loadMonthFacts(createServiceSupabaseClient(), userId) : null;
+>(
+  userId: string,
+  rows: T[],
+  currency?: string,
+): Promise<(T & { progress: number; automatic: boolean; note: string | null })[]> {
+  const loaded = config.supabaseSecretKey ? await loadMonthFacts(createServiceSupabaseClient(), userId) : null;
+  // Amounts are stored in dollars; notes show them in the display currency (or dollars if no rate is known).
+  const rate = currency ? await rateFor(currency) : null;
+  const facts = loaded ? (currency && rate ? { ...loaded, currency, rate } : loaded) : null;
   return rows.map((row) => {
     const stored = Number(row.amount_savings ?? 0);
     const kind = row.goal_type ?? "";
@@ -111,6 +129,20 @@ interface GoalInput {
   category: string | null;
   deadline: string | null;
   progress: number;
+  steps: GoalStep[] | null;
+}
+
+/**
+ * Reads a user's goals. Until the checklist migration has been run there is no `steps` column,
+ * so fall back to the older columns instead of breaking every goals screen.
+ */
+async function selectGoals(client: SessionClient, userId: string) {
+  const full = await client.from("Goal").select(goalColumns).eq("user_id", userId).order("goal_id");
+  if (!full.error) return full.data;
+  if (!/steps/i.test(full.error.message ?? "")) throw supabaseFailure(full.error);
+  const base = await client.from("Goal").select(baseGoalColumns).eq("user_id", userId).order("goal_id");
+  if (base.error) throw supabaseFailure(base.error);
+  return base.data;
 }
 
 async function parseGoals(items: unknown, userId: string): Promise<GoalInput[]> {
@@ -157,8 +189,53 @@ async function parseGoals(items: unknown, userId: string): Promise<GoalInput[]> 
       }
       progress = item.progress;
     }
-    return { id: item.id, kind: item.kind, name: item.name.trim(), target: item.target, category, deadline, progress };
+
+    // A checklist goal is its steps: the target is how many there are and progress is how many are done.
+    let steps: GoalStep[] | null = null;
+    let target = item.target;
+    if (item.kind === "Checklist") {
+      steps = parseSteps(item.steps);
+      if (!steps) throw new HttpError(400, "A checklist goal needs 1 to 20 steps, each up to 80 characters.");
+      target = steps.length;
+      progress = steps.filter((step) => step.done).length;
+    }
+    return { id: item.id, kind: item.kind, name: item.name.trim(), target, category, deadline, progress, steps };
   });
+}
+
+/** Ticks steps of one checklist goal without re-saving every goal. */
+async function handleStepsPatch(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+  if (request.method !== "PATCH") throw new HttpError(405, "Method not allowed.");
+  const { client, user } = await requireSession(request, response);
+  const body = await readJsonBody(request);
+  const steps = parseSteps(body.steps);
+  if (typeof body.id !== "string" || !uuidPattern.test(body.id) || !steps) {
+    throw new HttpError(400, "Send the goal id and 1 to 20 steps.");
+  }
+  const existing = await client
+    .from("Goal")
+    .select("goal_id, goal_type")
+    .eq("goal_id", body.id)
+    .eq("user_id", user.id)
+    .maybeSingle<{ goal_id: string; goal_type: string }>();
+  if (existing.error) throw supabaseFailure(existing.error);
+  if (!existing.data || existing.data.goal_type !== "Checklist") throw new HttpError(404, "That checklist goal was not found.");
+  const updated = await client
+    .from("Goal")
+    .update({
+      steps,
+      desired_savings: steps.length,
+      amount_savings: steps.filter((step) => step.done).length,
+    })
+    .eq("goal_id", body.id)
+    .eq("user_id", user.id)
+    .select(goalColumns)
+    .single();
+  if (updated.error) throw supabaseFailure(updated.error);
+  const currency = currencyOrDefault(user.user_metadata?.currency);
+  const [goal] = await withGoalProgress(user.id, [updated.data], currency);
+  sendJson(response, 200, { goal });
+  return true;
 }
 
 export async function handleGoalsApi(
@@ -166,21 +243,23 @@ export async function handleGoalsApi(
   response: ServerResponse,
   pathname: string,
 ): Promise<boolean> {
+  if (pathname === "/api/goals/steps") return handleStepsPatch(request, response);
   if (pathname !== "/api/goals") return false;
   if (request.method !== "GET" && request.method !== "PUT") {
     throw new HttpError(405, "Method not allowed.");
   }
   const { client, user } = await requireSession(request, response);
   if (request.method === "GET") {
-    const result = await client.from("Goal").select(goalColumns).eq("user_id", user.id).order("goal_id");
-    if (result.error) throw supabaseFailure(result.error);
-    sendJson(response, 200, { goals: await withGoalProgress(user.id, result.data) });
+    const rows = await selectGoals(client, user.id);
+    const currency = currencyOrDefault(user.user_metadata?.currency);
+    sendJson(response, 200, { goals: await withGoalProgress(user.id, rows, currency) });
     return true;
   }
   const { items } = await readJsonBody(request);
   const goals = await parseGoals(items, user.id);
   const result = await client.rpc("save_user_goals", { items: goals });
   if (result.error) throw supabaseFailure(result.error);
-  sendJson(response, 200, { goals: await withGoalProgress(user.id, result.data ?? []) });
+  const currency = currencyOrDefault(user.user_metadata?.currency);
+  sendJson(response, 200, { goals: await withGoalProgress(user.id, result.data ?? [], currency) });
   return true;
 }

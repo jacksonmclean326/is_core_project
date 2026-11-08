@@ -8,7 +8,8 @@ export type LimitInput = { ok: true; value: number } | { ok: false; message: str
  * Reads a limit the user typed. Blank means "no limit" (0). Accepts "300", "$300", "1,200", "75.50".
  */
 export function parseLimit(text: string): LimitInput {
-  const cleaned = text.trim().replace(/[$,\s]/g, "");
+  // Leading currency symbols ($, €, £...), commas and spaces are ignored: "300", "$300", "€1,200".
+  const cleaned = text.trim().replace(/[,\s]/g, "").replace(/^\p{Sc}+|\p{Sc}+$/gu, "");
   if (cleaned === "") return { ok: true, value: 0 };
   if (cleaned.startsWith("-")) return { ok: false, message: "A limit cannot be negative. Leave it blank for no limit." };
   if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return { ok: false, message: "Enter a limit like 300 or 75.50, or leave it blank for no limit." };

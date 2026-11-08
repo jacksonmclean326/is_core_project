@@ -16,7 +16,7 @@ import {
 } from "../../shared/months.js";
 import { limitStatus, parseLimit } from "../../shared/limits.js";
 import { getManualTransaction, movesWholeMerchant, redrawDataPage, reloadViewedMonth, setMovesWholeMerchant, usingRealData, viewingMonth } from "../transactions/transactions.js";
-import { money, saveState, state, transactions } from "../state/state.js";
+import { displayToUsd, money, saveState, state, toInputValue, transactions } from "../state/state.js";
 import { $, closeDialog, escapeHTML, openDialog, showToast } from "./ui.js";
 
 let editingLimit: string | undefined;
@@ -49,7 +49,7 @@ export function openCategoryDetails(categoryId: string | undefined): void {
   const status = { none: "No category limit set", within: "Within category budget", close: "Close to category limit", reached: "Category limit reached" }[standing];
   const average = rows.length ? category.amount / rows.length : category.amount;
   const limitEditor = editingLimit === categoryId
-    ? `<form class="limit-form" data-limit-form="${escapeHTML(category.id)}"><label for="limit-input">Monthly limit for ${escapeHTML(category.name)}</label><div class="limit-form-row"><input id="limit-input" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="No limit" aria-describedby="limit-hint limit-feedback" value="${limit || ""}"><button class="primary-button" type="submit">Save</button><button class="text-button" type="button" data-cancel-limit>Cancel</button></div><p class="dialog-form-feedback" id="limit-hint">Leave it blank to remove the limit.</p><p class="dialog-form-feedback" id="limit-feedback" role="alert"></p></form>`
+    ? `<form class="limit-form" data-limit-form="${escapeHTML(category.id)}"><label for="limit-input">Monthly limit for ${escapeHTML(category.name)}</label><div class="limit-form-row"><input id="limit-input" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="No limit" aria-describedby="limit-hint limit-feedback" value="${limit ? toInputValue(limit) : ""}"><button class="primary-button" type="submit">Save</button><button class="text-button" type="button" data-cancel-limit>Cancel</button></div><p class="dialog-form-feedback" id="limit-hint">Leave it blank to remove the limit.</p><p class="dialog-form-feedback" id="limit-feedback" role="alert"></p></form>`
     : `<button type="button" class="text-button limit-edit" data-edit-limit="${escapeHTML(category.id)}">${limit ? "Change limit" : "Set a limit"}</button>`;
 
   openDialog(
@@ -73,10 +73,10 @@ export function openTransactionForm(existingId?: string, presetCategory?: string
   const maxDate = addDays(localDateString(), 1);
   const note = usingRealData()
     ? "Record spending your bank did not import. Manual entries count toward your totals."
-    : "Adding your first transaction replaces the sample data with your own numbers.";
+    : "Add your first transaction to start tracking your spending.";
 
   openDialog(
-    `<p class="eyebrow">${existing ? "EDIT" : "ADD"} TRANSACTION</p><h2 class="dialog-title">${existing ? "Edit transaction" : "Add a transaction"}</h2><p class="dialog-subtitle">${note}</p><form id="transaction-form" class="edit-form"><label class="field"><span>Merchant or description</span><input id="tx-name" maxlength="60" required autocomplete="off" autocapitalize="words" enterkeyhint="next" value="${escapeHTML(existing?.name ?? "")}"></label><label class="field"><span>Amount</span><input id="tx-amount" type="number" min="0.01" max="1000000" step="0.01" inputmode="decimal" enterkeyhint="next" required value="${existing ? existing.amount : ""}"></label><label class="field"><span>Date</span><input id="tx-date" type="date" required min="${minDate}" max="${maxDate}" value="${existing?.date ?? defaultEntryDate()}"></label><label class="field"><span>Category</span><select id="tx-category">${options}</select></label><p class="dialog-form-feedback" id="tx-feedback" role="alert"></p><button class="primary-button" type="submit">${existing ? "Save changes" : "Add transaction"}</button></form>`
+    `<p class="eyebrow">${existing ? "EDIT" : "ADD"} TRANSACTION</p><h2 class="dialog-title">${existing ? "Edit transaction" : "Add a transaction"}</h2><p class="dialog-subtitle">${note}</p><form id="transaction-form" class="edit-form"><label class="field"><span>Merchant or description</span><input id="tx-name" maxlength="60" required autocomplete="off" autocapitalize="words" enterkeyhint="next" value="${escapeHTML(existing?.name ?? "")}"></label><label class="field"><span>Amount</span><input id="tx-amount" type="number" min="0.01" max="1000000" step="0.01" inputmode="decimal" enterkeyhint="next" required value="${existing ? toInputValue(existing.amount) : ""}"></label><label class="field"><span>Date</span><input id="tx-date" type="date" required min="${minDate}" max="${maxDate}" value="${existing?.date ?? defaultEntryDate()}"></label><label class="field"><span>Category</span><select id="tx-category">${options}</select></label><p class="dialog-form-feedback" id="tx-feedback" role="alert"></p><button class="primary-button" type="submit">${existing ? "Save changes" : "Add transaction"}</button></form>`
   );
   $<HTMLInputElement>("#tx-name").focus();
 }
@@ -89,10 +89,62 @@ export function setCategoryLimit(categoryId: string, limit: number): void {
   redrawDataPage();
 }
 
+// Editor forms opt in with data-guard-unsaved. Closing one with edits that were not saved asks first.
+const guardedForm = "form[data-guard-unsaved]";
+
+function markDirty(target: EventTarget | null): void {
+  if (target instanceof Element) target.closest(guardedForm)?.setAttribute("data-dirty", "1");
+}
+
+function hasUnsavedChanges(dialog: HTMLDialogElement): boolean {
+  return Boolean(dialog.querySelector(`${guardedForm}[data-dirty="1"]`));
+}
+
+function showUnsavedPrompt(dialog: HTMLDialogElement): void {
+  if (dialog.querySelector(".unsaved-bar")) return;
+  const bar = document.createElement("div");
+  bar.className = "unsaved-bar";
+  bar.setAttribute("role", "alert");
+  bar.innerHTML =
+    `<p><strong>Save your changes?</strong> You have edits that have not been saved yet.</p>` +
+    `<div class="unsaved-actions"><button type="button" class="primary-button" data-unsaved="save">Save</button>` +
+    `<button type="button" class="outline-button" data-unsaved="discard">Discard</button>` +
+    `<button type="button" class="text-button" data-unsaved="keep">Keep editing</button></div>`;
+  $("#dialog-content").prepend(bar);
+  dialog.scrollTop = 0;
+  bar.querySelector<HTMLButtonElement>('[data-unsaved="save"]')?.focus();
+}
+
+document.addEventListener("input", (event) => markDirty(event.target));
+document.addEventListener("change", (event) => markDirty(event.target));
+document.querySelector<HTMLDialogElement>("#detail-dialog")?.addEventListener("cancel", (event) => {
+  const dialog = event.currentTarget as HTMLDialogElement;
+  if (!hasUnsavedChanges(dialog)) return;
+  event.preventDefault();
+  showUnsavedPrompt(dialog);
+});
+
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const dialog = document.querySelector<HTMLDialogElement>("#detail-dialog");
+
+  // Adding or removing a row inside an editor form is an edit too.
+  if (target?.closest(`${guardedForm} button[type="button"]`)) markDirty(target);
+
+  const unsaved = target?.closest<HTMLElement>("[data-unsaved]");
+  if (dialog && unsaved) {
+    const form = dialog.querySelector<HTMLFormElement>(guardedForm);
+    dialog.querySelector(".unsaved-bar")?.remove();
+    if (unsaved.dataset.unsaved === "save") form?.requestSubmit();
+    else if (unsaved.dataset.unsaved === "discard") closeDialog();
+    return;
+  }
+
   if (dialog && (target === dialog || target?.closest(".dialog-close"))) {
+    if (hasUnsavedChanges(dialog)) {
+      showUnsavedPrompt(dialog);
+      return;
+    }
     editingLimit = undefined;
     closeDialog();
     return;
@@ -109,6 +161,18 @@ document.addEventListener("click", (event) => {
     const categoryId = editingLimit;
     editingLimit = undefined;
     openCategoryDetails(categoryId);
+    return;
+  }
+
+  // A category button on an opened transaction in the list.
+  const moveButton = target?.closest<HTMLButtonElement>("[data-move-tx]");
+  if (moveButton?.dataset.moveTx && moveButton.dataset.moveCategory) {
+    if (moveButton.getAttribute("aria-pressed") === "true") return;
+    const group = [...(moveButton.parentElement?.querySelectorAll<HTMLButtonElement>("[data-move-tx]") ?? [])];
+    group.forEach((button) => (button.disabled = true));
+    moveTransactionTo(moveButton.dataset.moveTx, moveButton.dataset.merchant ?? "this transaction", moveButton.dataset.moveCategory, () =>
+      group.forEach((button) => (button.disabled = false)),
+    );
     return;
   }
 
@@ -132,26 +196,16 @@ document.addEventListener("click", (event) => {
     .catch((error: unknown) => showToast(error instanceof Error ? error.message : "Could not delete that transaction."));
 });
 
-document.addEventListener("change", (event) => {
-  const target = event.target;
-  if (target instanceof HTMLInputElement && (target.id === "apply-merchant" || target.classList.contains("apply-merchant-toggle"))) {
-    setMovesWholeMerchant(target.checked);
-    document.querySelectorAll<HTMLInputElement>("#apply-merchant, .apply-merchant-toggle").forEach((box) => {
-      box.checked = target.checked;
-    });
-    return;
-  }
-  if (!(target instanceof HTMLSelectElement) || !target.classList.contains("recategorize-select")) return;
-  const transactionId = target.dataset.transactionId;
-  if (!transactionId) return;
-  const merchant = target.dataset.merchant ?? "this transaction";
-  const previous = [...target.options].find((option) => option.defaultSelected)?.value ?? "";
-  const destination = state.categories.find((category) => category.id === target.value);
-  target.disabled = true;
+/**
+ * Moves one transaction to another category (and, for a bank transaction with the merchant option on, every
+ * transaction from the same merchant), then redraws. `onFail` puts the control back the way it was.
+ */
+function moveTransactionTo(transactionId: string, merchant: string, categoryId: string, onFail: () => void): void {
+  const destination = state.categories.find((category) => category.id === categoryId);
   const manual = getManualTransaction(transactionId);
   const move = manual
-    ? updateManualTransaction(transactionId, { category: target.value }).then(() => ({ moved: 1 }))
-    : recategorizeTransaction({ transactionId, category: target.value, applyToMerchant: movesWholeMerchant() });
+    ? updateManualTransaction(transactionId, { category: categoryId }).then(() => ({ moved: 1 }))
+    : recategorizeTransaction({ transactionId, category: categoryId, applyToMerchant: movesWholeMerchant() });
   void move
     .then(async (result) => {
       await reloadViewedMonth();
@@ -164,10 +218,29 @@ document.addEventListener("change", (event) => {
       );
     })
     .catch((error: unknown) => {
-      target.value = previous;
-      target.disabled = false;
+      onFail();
       showToast(error instanceof Error ? error.message : "Could not move that transaction.");
     });
+}
+
+document.addEventListener("change", (event) => {
+  const target = event.target;
+  if (target instanceof HTMLInputElement && (target.id === "apply-merchant" || target.classList.contains("apply-merchant-toggle"))) {
+    setMovesWholeMerchant(target.checked);
+    document.querySelectorAll<HTMLInputElement>("#apply-merchant, .apply-merchant-toggle").forEach((box) => {
+      box.checked = target.checked;
+    });
+    return;
+  }
+  if (!(target instanceof HTMLSelectElement) || !target.classList.contains("recategorize-select")) return;
+  const transactionId = target.dataset.transactionId;
+  if (!transactionId) return;
+  const previous = [...target.options].find((option) => option.defaultSelected)?.value ?? "";
+  target.disabled = true;
+  moveTransactionTo(transactionId, target.dataset.merchant ?? "this transaction", target.value, () => {
+    target.value = previous;
+    target.disabled = false;
+  });
 });
 
 document.addEventListener("submit", (event) => {
@@ -178,7 +251,8 @@ document.addEventListener("submit", (event) => {
     const submit = $<HTMLButtonElement>('button[type="submit"]', form);
     const input = {
       name: $<HTMLInputElement>("#tx-name", form).value.trim(),
-      amount: Number($<HTMLInputElement>("#tx-amount", form).value),
+      // Typed in the chosen currency, saved in dollars.
+      amount: displayToUsd(Number($<HTMLInputElement>("#tx-amount", form).value)),
       date: $<HTMLInputElement>("#tx-date", form).value,
       category: $<HTMLSelectElement>("#tx-category", form).value
     };
@@ -187,7 +261,7 @@ document.addEventListener("submit", (event) => {
       return;
     }
     if (!Number.isFinite(input.amount) || input.amount <= 0) {
-      feedback.textContent = "Enter an amount greater than $0.";
+      feedback.textContent = "Enter an amount greater than 0.";
       return;
     }
     if (!input.date) {
@@ -227,7 +301,8 @@ document.addEventListener("submit", (event) => {
     feedback.classList.add("is-error");
     return;
   }
-  setCategoryLimit(categoryId, result.value);
+  // Typed in the chosen currency, kept in dollars.
+  setCategoryLimit(categoryId, displayToUsd(result.value));
   editingLimit = undefined;
   openCategoryDetails(categoryId);
   showToast(result.value ? "Limit updated." : "Limit removed.");

@@ -1,4 +1,4 @@
-import { loadGoals, saveGoals } from "../../goals.js";
+import { loadGoals, saveGoalSteps } from "../../goals.js";
 import {
   $,
   $$,
@@ -6,24 +6,22 @@ import {
   eventElement,
   getMonthTransactions,
   loadLinkedTransactions,
+  loadSavedBudget,
   movesWholeMerchant,
   onDataChanged,
   prefetchMonth,
   primeFromSnapshot,
-  openTransactionForm,
-  openDialog,
   money,
   openCategoryDetails,
   refreshIcons,
-  saveState,
   showToast,
   state,
-  syncCustomCategories,
   totalSpent,
   usingRealData,
 } from "../../core.js";
-import { createCategory, deleteCategory, renameCategory } from "../../api.js";
-import { parseLimit, totalLimits } from "../../../shared/limits.js";
+import { initCategoriesPanel, openCategoriesPanel } from "./categories-panel.js";
+import { initGoalsPanel } from "./goals-panel.js";
+import { initAddTransaction, openAddTransaction } from "./add-transaction-panel.js";
 import {
   filterTransactions,
   renderRows,
@@ -39,6 +37,7 @@ import {
   isMonthKey,
   monthLabel,
   monthName,
+  monthRange,
   transactionHistoryMonths,
   type MonthKey,
 } from "../../../shared/months.js";
@@ -55,12 +54,25 @@ function initialMonth(): MonthKey {
 
 let selectedMonth: MonthKey = initialMonth();
 let isLinked = false;
+/** "empty" means the account has no bank and no transactions yet, so we show a prompt instead of numbers. */
+let dataMode: "loading" | "empty" | "data" = "loading";
 let goalsStatus: "loading" | "ready" | "error" = "loading";
 
 function renderPeriod() {
   const thisMonth = currentMonthKey();
   $("#period-label").textContent = monthLabel(selectedMonth).toUpperCase();
-  // Sample data has no history to browse, so only the buttons are hidden.
+  // With no data there is no history to browse, so the picker and buttons are hidden and only the label shows.
+  const select = $<HTMLSelectElement>("#month-select");
+  if (!select.options.length) {
+    select.innerHTML = monthRange(thisMonth, transactionHistoryMonths + 1)
+      .reverse()
+      .map((month) => `<option value="${month}">${monthLabel(month)}${month === thisMonth ? " (this month)" : ""}</option>`)
+      .join("");
+  }
+  select.value = selectedMonth;
+  select.hidden = !isLinked;
+  $("#period-label").hidden = isLinked;
+  $<HTMLButtonElement>("#month-current").hidden = !isLinked || selectedMonth === thisMonth;
   $<HTMLButtonElement>("#month-prev").hidden = !isLinked;
   $<HTMLButtonElement>("#month-next").hidden = !isLinked;
   $<HTMLButtonElement>("#month-prev").disabled =
@@ -77,12 +89,14 @@ async function showMonth(month: MonthKey) {
   // Show what this tab already knows about the month straight away, then refresh it.
   if (primeFromSnapshot(month) === "linked") {
     isLinked = true;
+    dataMode = "data";
     renderSummary();
   }
   renderPeriod();
   const result = await loadLinkedTransactions(month);
   if (result === "stale") return;
   isLinked = result === "linked";
+  if (result === "linked" || result === "sample") dataMode = result === "linked" ? "data" : "empty";
   if (result === "error") showToast(`Could not load ${monthLabel(month)}.`);
   renderPeriod();
   renderSummary();
@@ -93,7 +107,7 @@ async function showMonth(month: MonthKey) {
   }
 }
 
-const listView = { query: "", category: "", sort: "newest" as ListSort, shown: 100 };
+const listView = { query: "", category: "", sort: "newest" as ListSort, shown: 100, open: null as string | null };
 const pageSize = 100;
 
 function categoryLabel(key: string): string {
@@ -122,7 +136,6 @@ function renderTransactionList() {
       .join("");
   }
   sort.value = listView.sort;
-  $<HTMLInputElement>("#tx-merchant-option input").checked = movesWholeMerchant();
 
   const summary = $("#tx-summary");
   const list = $("#tx-list");
@@ -131,17 +144,14 @@ function renderTransactionList() {
 
   if (!real) {
     controls.hidden = true;
-    $("#tx-merchant-option").hidden = true;
     summary.textContent = "";
-    list.innerHTML = `<p class="tx-empty">Link a bank in Settings, or use Add above, and every transaction will be listed here.</p>`;
+    list.innerHTML = `<p class="tx-empty">Link a bank on Accounts, or choose Add transaction above, and every transaction will be listed here.</p>`;
     return;
   }
   controls.hidden = false;
-  $("#tx-merchant-option").hidden = false;
 
   if (!all.length) {
     controls.hidden = true;
-    $("#tx-merchant-option").hidden = true;
     summary.textContent = "";
     list.innerHTML = `<p class="tx-empty">No transactions in ${escapeHTML(monthText)}.</p>`;
     return;
@@ -167,6 +177,8 @@ function renderTransactionList() {
     categories: state.categories.map((category) => ({ id: category.id, name: category.name, color: category.color })),
     money,
     escape: escapeHTML,
+    openId: listView.open,
+    movesWholeMerchant: movesWholeMerchant(),
   });
   if (shownRows.length > page.length) {
     more.hidden = false;
@@ -180,6 +192,10 @@ function periodWord(): string {
 
 function renderSummary() {
   renderTransactionList();
+  const empty = dataMode === "empty";
+  $("#empty-state").hidden = !empty;
+  $("#empty-state").style.display = empty ? "" : "none";
+  document.querySelector<HTMLElement>(".spending-layout")?.style.setProperty("display", empty ? "none" : "");
   $("#summary-spent-label").textContent =
     selectedMonth === currentMonthKey() ? "Current monthly spending" : `${monthName(selectedMonth)} spending`;
   const spent = totalSpent();
@@ -230,10 +246,10 @@ function renderSummary() {
         const percent = chartSpent
           ? Math.round((category.amount / chartSpent) * 100)
           : 0;
-        return `<div class="top-category-row"><button class="top-category-name" type="button" data-category-id="${category.id}"><span class="legend-swatch" style="background:${category.color}"></span>${escapeHTML(category.name)}</button><span class="top-category-values">${money(category.amount)} <strong>${percent}%</strong></span><div class="top-category-track"><span style="width:${percent}%;background:${category.color}"></span></div></div>`;
+        return `<div class="top-category-row"><button class="top-category-name" type="button" data-category-id="${category.id}"><span class="legend-swatch" style="background:${category.color}"></span>${escapeHTML(category.name)}</button><span class="top-category-values">${money(category.amount)} <strong>${percent}%</strong><button class="row-edit" type="button" data-edit-category="${category.id}" aria-label="Edit ${escapeHTML(category.name)}" title="Rename or set a limit for ${escapeHTML(category.name)}"><i data-icon="pencil" aria-hidden="true"></i></button></span><div class="top-category-track"><span style="width:${percent}%;background:${category.color}"></span></div></div>`;
       })
       .join("") ||
-    `<p class="watch-empty">Choose a category in Edit to show it here.</p>`;
+    `<p class="watch-empty">Choose a category in Edit categories to show it here.</p>`;
   $("#goal-card-list").innerHTML = goalsStatus !== "ready"
     ? `<p class="watch-empty">${goalsStatus === "loading" ? "Loading your goals…" : "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again."}</p>`
     : state.goals.length
@@ -320,20 +336,6 @@ function categoryAtDonutPoint(event: PointerEvent) {
   );
 }
 
-function openSummaryEditor() {
-  const categoryRows = state.categories
-    .map(
-      (category) =>
-        `<div class="edit-row category-edit-row${category.custom ? " has-remove" : ""}" data-category-row="${category.id}"><input class="category-visible" type="checkbox" data-category-id="${category.id}" aria-label="Show ${escapeHTML(category.name)} in summary" ${category.visible ? "checked" : ""}><input class="category-name" data-category-id="${category.id}" aria-label="Name of ${escapeHTML(category.name)}" maxlength="24" value="${escapeHTML(category.name)}"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for ${escapeHTML(category.name)}" value="${Number(category.limit) > 0 ? Number(category.limit) : ""}"></label>${category.custom ? `<button type="button" class="remove-goal" data-remove-category aria-label="Delete ${escapeHTML(category.name)}"><i data-icon="x" aria-hidden="true"></i></button>` : ""}</div>`,
-    )
-    .join("");
-  openDialog(
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your summary</h2><p class="dialog-subtitle">Choose which categories appear in your summary.</p><form id="summary-edit-form" class="edit-form"><h3>SUMMARY CATEGORIES</h3><p class="limits-note" id="limits-note"></p>${categoryRows}<button class="add-goal-button" type="button" id="add-category-row"><i data-icon="plus" aria-hidden="true"></i> Add a category</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
-  );
-  updateLimitsNote();
-  refreshIcons();
-}
-
 /** Darkens a pale category color (like the tan "Other") so its ring still shows against the track. */
 function ringColor(hex: string): string {
   const match = /^#([0-9a-f]{6})$/i.exec(hex);
@@ -354,6 +356,7 @@ function ringColor(hex: string): string {
 function goalCardHTML(goal: (typeof state.goals)[number]): string {
   const ratio = goal.target > 0 ? goal.progress / goal.target : 0;
   const isSpending = goal.kind === "Spending";
+  const isChecklist = goal.kind === "Checklist";
   const over = isSpending && ratio > 1;
   const near = isSpending && ratio >= 0.9 && ratio <= 1;
   const done = !isSpending && ratio >= 1;
@@ -361,7 +364,11 @@ function goalCardHTML(goal: (typeof state.goals)[number]): string {
   const tone = over ? "is-over" : near ? "is-near" : done ? "is-done" : "";
   const shown = Math.round(ratio * 100);
   const percent = !isSpending && done ? "100%" : shown > 999 ? "999%+" : `${shown}%`;
-  const status = over
+  const status = isChecklist
+    ? done
+      ? "All steps done"
+      : `${left} ${left === 1 ? "step" : "steps"} left`
+    : over
     ? `${money(goal.progress - goal.target)} over your limit`
     : near
       ? `${money(left)} left · near your limit`
@@ -374,6 +381,15 @@ function goalCardHTML(goal: (typeof state.goals)[number]): string {
     ? ` · ${escapeHTML(state.categories.find((item) => item.id === goal.category)?.name ?? "Category")}`
     : "";
   const note = goal.note && !done ? `<p class="goal-note">${escapeHTML(goal.note)}</p>` : "";
+  const stepsList =
+    isChecklist && goal.steps?.length
+      ? `<ul class="goal-steps" aria-label="Steps for ${escapeHTML(goal.name)}">${goal.steps
+          .map(
+            (step, index) =>
+              `<li><label><input type="checkbox" data-goal-step data-goal-id="${escapeHTML(goal.id)}" data-step-index="${index}"${step.done ? " checked" : ""}><span>${escapeHTML(step.text)}</span></label></li>`,
+          )
+          .join("")}</ul>`
+      : "";
   const label = `${goal.name}:${percent}${isSpending ? " of limit used" : " of goal"}`;
   const arc = Math.min(100, Math.max(0, ratio * 100));
   const value =
@@ -382,242 +398,50 @@ function goalCardHTML(goal: (typeof state.goals)[number]): string {
       : "";
   const categoryColor = goal.category ? state.categories.find((item) => item.id === goal.category)?.color : undefined;
   const colorStyle = categoryColor ? ` style="--goal-color:${ringColor(categoryColor)}"` : "";
-  return `<article class="goal-card goal-ring-card ${tone}" data-kind="${escapeHTML(goal.kind)}"${colorStyle}><div class="goal-card-top"><span class="goal-kind">${escapeHTML(goal.kind)} goal${category}${goal.automatic ? " · automatic" : ""}</span><i data-icon="target" aria-hidden="true"></i></div><div class="goal-ring-body"><div class="goal-ring" role="img" aria-label="${escapeHTML(label)}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="goal-ring-track" cx="50" cy="50" r="40" />${value}</svg><span class="goal-ring-percent">${percent}</span></div><div class="goal-ring-text"><strong>${escapeHTML(goal.name)}</strong><span class="goal-ring-amount">${money(goal.progress)} of ${money(goal.target)}${isSpending ? " limit" : ""}</span><span class="goal-ring-status">${status}</span></div></div>${note}</article>`;
+  return `<article class="goal-card goal-ring-card ${tone}" data-goal-id="${escapeHTML(goal.id)}" data-kind="${escapeHTML(goal.kind)}"${colorStyle}><div class="goal-card-top"><span class="goal-kind">${escapeHTML(goal.kind)} goal${category}${goal.automatic ? " · automatic" : ""}</span><i data-icon="target" aria-hidden="true"></i></div><div class="goal-ring-body"><div class="goal-ring" role="img" aria-label="${escapeHTML(label)}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="goal-ring-track" cx="50" cy="50" r="40" />${value}</svg><span class="goal-ring-percent">${percent}</span></div><div class="goal-ring-text"><strong>${escapeHTML(goal.name)}</strong><span class="goal-ring-amount">${isChecklist ? `${goal.progress} of ${goal.target} steps` : `${money(goal.progress)} of ${money(goal.target)}${isSpending ? " limit" : ""}`}</span><span class="goal-ring-status">${status}</span></div></div>${stepsList}${note}</article>`;
 }
 
-const goalKindOptions: [string, string][] = [
-  ["Savings", "Savings (auto)"],
-  ["Spending", "Spending (auto)"],
-  ["Earnings", "Earnings"],
-  ["Investing", "Investing"],
-  ["Custom", "Custom"],
-];
-
-/** One editable goal row. Which extra fields show depends on the row's `data-kind` (see global.css). */
-function goalRowHTML(goal: (typeof state.goals)[number] | null, id: string): string {
-  const kind = goal?.kind ?? "Savings";
-  const kindOptions = goalKindOptions
-    .map(([value, label]) => `<option value="${value}"${value === kind ? " selected" : ""}>${label}</option>`)
-    .join("");
-  const categoryOptions = [
-    `<option value="">All spending</option>`,
-    ...state.categories.map(
-      (category) =>
-        `<option value="${escapeHTML(category.id)}"${goal?.category === category.id ? " selected" : ""}>${escapeHTML(category.name)}</option>`,
-    ),
-  ].join("");
-  const progress = goal && !goal.automatic ? Number(goal.progress) : "";
-  const label = goal ? goal.name : "new goal";
-  return `<div class="edit-row goal-edit-row" data-goal-row="${escapeHTML(id)}" data-kind="${escapeHTML(kind)}"><select class="goal-kind-input" aria-label="Goal type">${kindOptions}</select><input class="goal-name-input" aria-label="Goal name" maxlength="36" placeholder="Give your goal a name" value="${escapeHTML(goal?.name ?? "")}"><input class="goal-target-input" aria-label="Goal amount" type="number" min="0.01" step="0.01" placeholder="400" value="${goal ? Number(goal.target) : ""}"><button type="button" class="remove-goal" data-remove-goal="${escapeHTML(id)}" aria-label="Remove ${escapeHTML(label)}"><i data-icon="x" aria-hidden="true"></i></button><div class="goal-extra"><p class="goal-hint goal-extra-savings">Tracks this month's income minus spending. Set your income in Settings.</p><label class="goal-extra-spending">Limit applies to<select class="goal-category-input">${categoryOptions}</select></label><label class="goal-extra-manual">Saved so far<input class="goal-progress-input" type="number" min="0" step="0.01" placeholder="0" value="${progress}"></label><label class="goal-extra-manual">Deadline (optional)<input class="goal-deadline-input" type="date" value="${escapeHTML(goal?.deadline ?? "")}"></label></div></div>`;
-}
-
-function openGoalsEditor() {
-  const goalRows = state.goals.map((goal) => goalRowHTML(goal, goal.id)).join("");
-  openDialog(
-    `<p class="eyebrow">MAKE IT YOURS</p><h2 class="dialog-title">Edit your goals</h2><p class="dialog-subtitle">Savings (income minus spending) and Spending limits (all spending or one category) update automatically each month. Earnings, Investing, and Custom goals are yours to name, with an amount you update and an optional deadline.</p><form id="goals-edit-form" class="edit-form goals-edit-form"><div id="goal-editor-rows">${goalRows}</div><button class="add-goal-button" type="button" id="add-goal-row"><i data-icon="plus" aria-hidden="true"></i> Add a goal</button><p class="dialog-form-feedback" id="edit-feedback" aria-live="polite"></p><button class="primary-button" type="submit">Save changes</button></form>`
-  );
-  refreshIcons();
-}
-
-
-const maxCustomCategories = 12;
-const maxCategoryName = 24;
-
-function addCategoryEditorRow() {
-  const form = $("#summary-edit-form");
-  if ($$(".category-edit-row.has-remove", form).length >= maxCustomCategories) {
-    $("#edit-feedback").textContent = `You can add up to ${maxCustomCategories} custom categories.`;
-    return;
-  }
-  $("#add-category-row").insertAdjacentHTML(
-    "beforebegin",
-    `<div class="edit-row category-edit-row has-remove" data-new-category="1"><input class="category-visible" type="checkbox" checked aria-label="Show new category in summary"><input class="category-name" aria-label="Name of the new category" maxlength="${maxCategoryName}" placeholder="Name your category"><label class="limit-field"><span class="limit-caption">Monthly limit</span><input class="category-limit" inputmode="decimal" autocomplete="off" placeholder="No limit" aria-label="Monthly limit for the new category"></label><button type="button" class="remove-goal" data-remove-category aria-label="Remove new category"><i data-icon="x" aria-hidden="true"></i></button></div>`,
-  );
-  $$<HTMLInputElement>('[data-new-category="1"] .category-name', form).at(-1)?.focus();
-  refreshIcons();
-}
-
-function addGoalEditorRow() {
-  const id = crypto.randomUUID();
-  $("#goal-editor-rows").insertAdjacentHTML("beforeend", goalRowHTML(null, id));
-  refreshIcons();
-}
-
-async function saveGoalsEditor(event: SubmitEvent, form: HTMLFormElement) {
-  event.preventDefault();
-  const feedback = $("#edit-feedback");
-  const goalRows = $$(".goal-edit-row", form);
-  const goals = [];
-  for (const row of goalRows) {
-    const name = $<HTMLInputElement>(".goal-name-input", row).value.trim();
-    const target = Number($<HTMLInputElement>(".goal-target-input", row).value);
-    const kind = $<HTMLSelectElement>(".goal-kind-input", row).value;
-    if (!name || !Number.isFinite(target) || target <= 0) {
-      feedback.textContent =
-        "Add a name and a positive amount to every goal, or remove the empty row.";
-      return;
-    }
-    const oldGoal = state.goals.find((goal) => goal.id === row.dataset.goalRow);
-    const id = oldGoal?.id ?? row.dataset.goalRow;
-    if (!id) throw new Error("Goal editor row is missing its identifier.");
-    const manual = kind !== "Savings" && kind !== "Spending";
-    const progress = manual ? Number($<HTMLInputElement>(".goal-progress-input", row).value || 0) : 0;
-    if (!Number.isFinite(progress) || progress < 0) {
-      feedback.textContent = "Saved so far must be zero or more.";
-      return;
-    }
-    goals.push({
-      id,
-      kind,
-      name,
-      target,
-      progress,
-      category: kind === "Spending" ? $<HTMLSelectElement>(".goal-category-input", row).value || null : null,
-      deadline: manual ? $<HTMLInputElement>(".goal-deadline-input", row).value || null : null,
-    });
-  }
-  const submit = $<HTMLButtonElement>('button[type="submit"]', form);
-  if (submit.disabled) return;
-  submit.disabled = true;
-  submit.textContent = "Saving…";
-  feedback.textContent = "";
+initCategoriesPanel({ onChange: renderSummary, month: () => selectedMonth });
+initGoalsPanel({ onChange: renderSummary });
+// Ticking a step of a checklist goal saves right away and redraws just that card.
+$("#goal-card-list").addEventListener("change", async (event) => {
+  const box = (event.target as Element | null)?.closest<HTMLInputElement>("[data-goal-step]");
+  const goalId = box?.dataset.goalId;
+  const index = Number(box?.dataset.stepIndex);
+  const goal = state.goals.find((item) => item.id === goalId);
+  if (!box || !goal?.steps || !Number.isInteger(index) || !goal.steps[index]) return;
+  const previous = goal.steps.map((step) => ({ ...step }));
+  const next = previous.map((step, position) => (position === index ? { ...step, done: box.checked } : step));
+  const replaceCard = (updated: (typeof state.goals)[number]) => {
+    state.goals = state.goals.map((item) => (item.id === updated.id ? updated : item));
+    const card = $$<HTMLElement>("#goal-card-list .goal-card").find((item) => item.dataset.goalId === updated.id);
+    if (!card) return;
+    card.outerHTML = goalCardHTML(updated);
+    refreshIcons();
+    $$<HTMLInputElement>("#goal-card-list [data-goal-step]")
+      .find((item) => item.dataset.goalId === updated.id && Number(item.dataset.stepIndex) === index)
+      ?.focus();
+  };
+  // Show the change straight away, then save it; put it back if saving fails.
+  replaceCard({ ...goal, steps: next, progress: next.filter((step) => step.done).length });
   try {
-    const saved = await saveGoals(goals);
-    if (!form.isConnected) return;
-    state.goals = saved;
-    $<HTMLDialogElement>("#detail-dialog").close();
-    renderSummary();
-    showToast("Your goals are updated.");
+    replaceCard(await saveGoalSteps(goal.id, next));
   } catch (error) {
-    feedback.textContent = `Goals were not saved. ${error instanceof Error ? error.message : "Check your connection and database setup, then try again."}`;
-  } finally {
-    submit.disabled = false;
-    submit.textContent = "Save changes";
+    replaceCard({ ...goal, steps: previous, progress: previous.filter((step) => step.done).length });
+    showToast(error instanceof Error ? error.message : "Could not save that step. Try again.");
   }
-}
-
-async function saveSummaryEditor(event: SubmitEvent) {
+});
+$("#top-category-list").addEventListener("click", (event) => {
+  const edit = eventElement(event)?.closest<HTMLElement>("[data-edit-category]");
+  if (edit?.dataset.editCategory) openCategoriesPanel(edit.dataset.editCategory);
+});
+// "See every transaction" scrolls within the page. As a plain link it reloaded Details and dropped the month.
+document.querySelector<HTMLAnchorElement>(".view-all-link")?.addEventListener("click", (event) => {
   event.preventDefault();
-  const feedback = $("#edit-feedback");
-  const form = event.target as HTMLFormElement;
-  const entries = $$(".category-edit-row", form).map((row) => {
-    const id = row.dataset.categoryRow;
-    const existing = state.categories.find((category) => category.id === id);
-    const typed = $<HTMLInputElement>(".category-name", row).value.replace(/\s+/g, " ").trim();
-    return {
-      id,
-      isNew: row.dataset.newCategory === "1",
-      existing,
-      // an emptied built-in name keeps its old name, as before
-      name: typed || (existing && !existing.custom ? existing.name : ""),
-      visible: $<HTMLInputElement>(".category-visible", row).checked,
-      limitText: $<HTMLInputElement>(".category-limit", row).value,
-    };
-  });
-  const limits = new Map<(typeof entries)[number], number>();
-  for (const entry of entries) {
-    const parsed = parseLimit(entry.limitText);
-    if (!parsed.ok) {
-      feedback.textContent = `${entry.name || "New category"}: ${parsed.message}`;
-      return;
-    }
-    limits.set(entry, parsed.value);
-  }
-  const seen = new Set<string>();
-  for (const entry of entries) {
-    if (!entry.name) {
-      feedback.textContent = "Give every new category a name, or remove the empty row.";
-      return;
-    }
-    if (entry.name.length > maxCategoryName || /[<>]/.test(entry.name)) {
-      feedback.textContent = `Category names can be up to ${maxCategoryName} characters and cannot contain < or >.`;
-      return;
-    }
-    if (seen.has(entry.name.toLowerCase())) {
-      feedback.textContent = `You already have a category called "${entry.name}".`;
-      return;
-    }
-    seen.add(entry.name.toLowerCase());
-  }
-
-  const submit = $<HTMLButtonElement>('button[type="submit"]', form);
-  submit.disabled = true;
-  feedback.textContent = "Saving...";
-  try {
-    const keptIds = new Set(entries.map((entry) => entry.id));
-    for (const removed of state.categories.filter((category) => category.custom && !keptIds.has(category.id))) {
-      await deleteCategory(removed.id);
-    }
-    const customList: { key: string; name: string; color: string }[] = [];
-    const createdVisibility = new Map<string, boolean>();
-    const createdLimits = new Map<string, number>();
-    for (const entry of entries) {
-      if (entry.isNew) {
-        const { category } = await createCategory(entry.name);
-        customList.push(category);
-        createdVisibility.set(category.key, entry.visible);
-        createdLimits.set(category.key, limits.get(entry) ?? 0);
-      } else if (entry.existing?.custom) {
-        if (entry.name !== entry.existing.name) await renameCategory(entry.existing.id, entry.name);
-        customList.push({ key: entry.existing.id, name: entry.name, color: entry.existing.color });
-      }
-    }
-    syncCustomCategories(customList);
-    for (const entry of entries.filter((item) => !item.isNew && item.existing)) {
-      const category = state.categories.find((item) => item.id === entry.id);
-      if (!category) continue;
-      if (!category.custom) category.name = entry.name;
-      category.visible = entry.visible;
-      category.limit = limits.get(entry) ?? category.limit;
-    }
-    for (const [key, visible] of createdVisibility) {
-      const created = state.categories.find((category) => category.id === key);
-      if (created) {
-        created.visible = visible;
-        created.limit = createdLimits.get(key) ?? 0;
-      }
-    }
-    saveState();
-    await loadLinkedTransactions(selectedMonth); // deleted categories move their spending to Other
-    $<HTMLDialogElement>("#detail-dialog").close();
-    renderSummary();
-    showToast("Your summary is updated.");
-  } catch (error) {
-    feedback.textContent = error instanceof Error ? error.message : "Could not save your changes.";
-    submit.disabled = false;
-    void loadLinkedTransactions(selectedMonth).then(renderSummary);
-  }
-}
-
-$("#edit-summary").addEventListener("click", openSummaryEditor);
-$("#add-transaction").addEventListener("click", () => openTransactionForm());
-$("#edit-goals-link").addEventListener("click", openGoalsEditor);
-$("#detail-dialog").addEventListener("submit", (event) => {
-  const form = event.target;
-  if (!(form instanceof HTMLFormElement)) return;
-  if (form.id === "summary-edit-form") void saveSummaryEditor(event);
-  if (form.id === "goals-edit-form") void saveGoalsEditor(event, form);
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("#all-transactions").scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
 });
-$("#detail-dialog").addEventListener("change", (event) => {
-  const select = eventElement(event)?.closest<HTMLSelectElement>(".goal-kind-input");
-  const row = select?.closest<HTMLElement>(".goal-edit-row");
-  if (select && row) row.dataset.kind = select.value;
-});
-$("#detail-dialog").addEventListener("click", (event) => {
-  const target = eventElement(event);
-  if (!target) return;
-  if (target.closest("#add-goal-row")) addGoalEditorRow();
-  if (target.closest("#add-category-row")) addCategoryEditorRow();
-  const removeCategory = target.closest("[data-remove-category]");
-  if (removeCategory) {
-    const row = removeCategory.closest<HTMLElement>(".category-edit-row");
-    const name = row ? $<HTMLInputElement>(".category-name", row).value : "";
-    const isSaved = Boolean(row?.dataset.categoryRow);
-    if (!isSaved || window.confirm(`Delete "${name}"? Its transactions move to Other.`)) row?.remove();
-  }
-  const removeGoal = target.closest("[data-remove-goal]");
-  removeGoal?.closest(".goal-edit-row")?.remove();
-});
+initAddTransaction();
 $(".app-shell").addEventListener("click", (event) => {
   const categoryButton = eventElement(event)?.closest<HTMLButtonElement>(
     ".legend-row, .top-category-name",
@@ -695,11 +519,19 @@ $(".app-shell").addEventListener("focusout", (event) => {
   if (row && !(event.relatedTarget instanceof Node && row.contains(event.relatedTarget))) resetDonutPreview();
 });
 
+$("#month-select").addEventListener("change", (event) => {
+  const month = (event.target as HTMLSelectElement).value;
+  if (isMonthKey(month)) void showMonth(month);
+});
+$("#month-current").addEventListener("click", () => void showMonth(currentMonthKey()));
 $("#month-prev").addEventListener("click", () => void showMonth(addMonths(selectedMonth, -1)));
 $("#month-next").addEventListener("click", () => void showMonth(addMonths(selectedMonth, 1)));
 
 // Draw this tab's last known numbers immediately (if any), then refresh them.
-if (primeFromSnapshot(selectedMonth) === "linked") isLinked = true;
+if (primeFromSnapshot(selectedMonth) === "linked") {
+  isLinked = true;
+  dataMode = "data";
+}
 renderPeriod();
 renderSummary();
 void showMonth(selectedMonth);
@@ -720,9 +552,22 @@ void loadGoals().then((goals) => {
   goalsContainer.textContent = "Unable to load goals. Check your connection and Supabase goals setup, then refresh to try again.";
 });
 
+void loadSavedBudget().then((changed) => {
+  if (changed) renderSummary();
+});
+$("#empty-add").addEventListener("click", () => openAddTransaction());
+// Home links here with ?add=1 to start adding a transaction straight away.
+if (new URLSearchParams(window.location.search).get("add") === "1") {
+  const cleaned = new URL(window.location.href);
+  cleaned.searchParams.delete("add");
+  window.history.replaceState(null, "", cleaned);
+  openAddTransaction();
+}
+
 refreshIcons();
 onDataChanged((result) => {
   isLinked = result === "linked";
+  if (result === "linked" || result === "sample") dataMode = result === "linked" ? "data" : "empty";
   renderPeriod();
   renderSummary();
 });
@@ -742,28 +587,17 @@ $("#tx-sort").addEventListener("change", (event) => {
   listView.shown = pageSize;
   renderTransactionList();
 });
+// Tapping a transaction opens it (category buttons and actions); tapping it again closes it.
+$("#tx-list").addEventListener("click", (event) => {
+  const toggle = eventElement(event)?.closest<HTMLElement>("[data-tx-toggle]");
+  if (!toggle) return;
+  const id = toggle.dataset.txToggle ?? null;
+  listView.open = listView.open === id ? null : id;
+  renderTransactionList();
+  $$<HTMLElement>("#tx-list [data-tx-toggle]").find((button) => button.dataset.txToggle === id)?.focus();
+});
 $("#tx-more").addEventListener("click", () => {
   listView.shown += pageSize;
   renderTransactionList();
 });
 
-/** "Limits add up to $X of your $Y budget", refreshed while the user types in the Edit summary popup. */
-function updateLimitsNote() {
-  const note = document.querySelector<HTMLElement>("#limits-note");
-  if (!note) return;
-  const typed = $$<HTMLInputElement>(".category-limit", $("#summary-edit-form")).map((input) => {
-    const parsed = parseLimit(input.value);
-    return parsed.ok ? parsed.value : 0;
-  });
-  const total = totalLimits(typed);
-  const budget = Number(state.budget) || 0;
-  note.textContent = budget
-    ? `Monthly limit per category (leave blank for none). Your limits add up to ${money(total)} of your ${money(budget)} budget.`
-    : "Monthly limit per category (leave blank for none).";
-  note.classList.toggle("is-over", budget > 0 && total > budget);
-  // say it in words too, not only in red
-  if (budget > 0 && total > budget) note.textContent += " That is over your budget.";
-}
-$("#detail-dialog").addEventListener("input", (event) => {
-  if (event.target instanceof HTMLInputElement && event.target.classList.contains("category-limit")) updateLimitsNote();
-});

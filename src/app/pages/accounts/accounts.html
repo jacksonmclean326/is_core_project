@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5ef" />
+    <link rel="icon" type="image/png" href="../../assets/money-man-mascot.png">
+    <meta name="description" content="Connect and manage your bank accounts in Money Man." />
+    <title>Money Man - Accounts</title>
+    <base href="/app/pages/accounts/">
+    <link rel="stylesheet" href="../../global.css" />
+    <link rel="stylesheet" href="accounts.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/home" aria-label="Money Man home"
+          ><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt="" /><span>Money Man</span></a
+        >
+        <div class="topbar-actions">
+          <a class="icon-button settings-button" href="/settings" aria-label="Settings" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a>
+        </div>
+      </header>
+      <main id="main-content">
+        <section class="page accounts-page" aria-labelledby="accounts-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">YOUR BANKS</p>
+              <h1 id="accounts-title">Accounts</h1>
+              <p class="subheading">Connect your banks to keep your spending and balances up to date.</p>
+            </div>
+          </div>
+
+          <section class="accounts-summary" aria-label="Linked accounts summary">
+            <div>
+              <span class="accounts-summary-label">Linked accounts</span>
+              <strong id="account-count">–</strong>
+            </div>
+            <div class="accounts-summary-actions">
+              <button class="outline-button" type="button" id="refresh-banks">
+                <i data-icon="refresh-cw" aria-hidden="true"></i> Refresh balances
+              </button>
+              <button class="primary-button" type="button" id="connect-bank">
+                <i data-icon="plus" aria-hidden="true"></i> Connect an account
+              </button>
+            </div>
+          </section>
+          <p id="link-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+
+          <div class="bank-list" id="bank-list" aria-live="polite">
+            <p class="bank-empty">Loading your accounts…</p>
+          </div>
+
+          <p class="bank-disclosure">
+            Plaid Transactions is enabled for supported connections; Plaid may process
+            transaction data and fees may apply. Money Man stores linked account details,
+            cached balances, and imported transactions. Balances may not be real-time.
+            Each balance is shown in the currency its bank reports.
+          </p>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="/home" class="nav-item"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/accounts" class="nav-item is-current" aria-current="page"><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a>
+        <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script type="module" src="accounts.ts"></script>
+  </body>
+</html>

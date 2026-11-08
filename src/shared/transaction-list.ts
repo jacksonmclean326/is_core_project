@@ -113,33 +113,58 @@ export interface RenderContext {
   money: (amount: number) => string;
   /** makes text safe to put inside HTML */
   escape: (value: unknown) => string;
-}
-
-function rowHtml(item: ListTransaction, context: RenderContext): string {
-  const { escape } = context;
-  const color = context.categories.find((category) => category.id === item.category)?.color ?? "#d9d5c7";
-  const choices = context.categories
-    .map((category) => `<option value="${escape(category.id)}"${category.id === item.category ? " selected" : ""}>${escape(category.name)}</option>`)
-    .join("");
-  const where = item.manual ? "Added by hand" : `${item.account}${item.institution ? ` \u00b7 ${item.institution}` : ""}`;
-  const actions = item.manual
-    ? `<span class="row-actions"><button type="button" class="row-action" data-edit-manual="${escape(item.id)}" aria-label="Edit ${escape(item.name)}">Edit</button><button type="button" class="row-action" data-delete-manual="${escape(item.id)}" aria-label="Delete ${escape(item.name)}">Delete</button></span>`
-    : "";
-  return `<div class="tx-row"><span class="tx-swatch" style="background:${escape(color)}" aria-hidden="true"></span><span class="tx-main"><strong>${escape(item.name)}</strong><small>${escape(where)}</small></span><select class="recategorize-select" data-transaction-id="${escape(item.id)}" data-merchant="${escape(item.name)}" aria-label="Move ${escape(item.name)} to another category">${choices}</select><span class="tx-amount">${context.money(item.amount)}</span>${actions}</div>`;
+  /** id of the row that is expanded, if any */
+  openId?: string | null;
+  /** whether moving a bank transaction also moves every transaction from the same merchant */
+  movesWholeMerchant?: boolean;
 }
 
 /**
- * The rows for one page of the list. Oldest/newest are split into days with a heading for each; the size
- * sorts are a plain list, since days would be scattered.
+ * One transaction. The category is shown by a thin bar down the row's left edge and a tinted initial,
+ * with its name in the second line. Tapping the row opens it to change the category or edit it.
+ */
+function rowHtml(item: ListTransaction, context: RenderContext, showDate: boolean): string {
+  const { escape } = context;
+  const category = context.categories.find((entry) => entry.id === item.category);
+  const color = category?.color ?? "#d9d5c7";
+  const where = item.manual ? "Added by hand" : `${item.account}${item.institution ? ` \u00b7 ${item.institution}` : ""}`;
+  const meta = [showDate ? shortDateLabel(item.date) : "", category?.name ?? "Other", where].filter(Boolean).join(" \u00b7 ");
+  const initial = Array.from(item.name.trim())[0]?.toUpperCase() ?? "?";
+  const open = context.openId === item.id;
+
+  let details = "";
+  if (open) {
+    const chips = context.categories
+      .map(
+        (entry) =>
+          `<button type="button" class="tx-cat-chip" style="--c:${escape(entry.color)}" data-move-tx="${escape(item.id)}" data-move-category="${escape(entry.id)}" data-merchant="${escape(item.name)}" aria-pressed="${entry.id === item.category}">${escape(entry.name)}</button>`,
+      )
+      .join("");
+    const merchantOption = item.manual
+      ? ""
+      : `<label class="tx-merchant-opt"><input type="checkbox" class="apply-merchant-toggle"${context.movesWholeMerchant === false ? "" : " checked"}> Also apply to every ${escape(item.name)} transaction, including future ones</label>`;
+    const actions = item.manual
+      ? `<button type="button" class="row-action" data-edit-manual="${escape(item.id)}" aria-label="Edit ${escape(item.name)}">Edit</button><button type="button" class="row-action" data-delete-manual="${escape(item.id)}" aria-label="Delete ${escape(item.name)}">Delete</button>`
+      : `<span class="tx-tag">From your bank</span>`;
+    details = `<div class="tx-open"><div class="tx-chips" role="group" aria-label="Category for ${escape(item.name)}">${chips}</div>${merchantOption}<div class="tx-actions">${actions}</div></div>`;
+  }
+
+  return `<div class="tx-card-row${open ? " is-open" : ""}" style="--c:${escape(color)}"><button type="button" class="tx-line" data-tx-toggle="${escape(item.id)}" aria-expanded="${open}"><span class="tx-tile" aria-hidden="true">${escape(initial)}</span><span class="tx-main"><strong>${escape(item.name)}</strong><small>${escape(meta)}</small></span><span class="tx-amount">${context.money(item.amount)}</span></button>${details}</div>`;
+}
+
+/**
+ * The rows for one page of the list. Newest/oldest are split into one card per day, with the day's count and
+ * total in its header; the size sorts are a single card, since days would be scattered, so each row shows its date.
  */
 export function renderRows(transactions: ListTransaction[], sort: ListSort, context: RenderContext): string {
   if (sort === "newest" || sort === "oldest") {
     return groupByDate(transactions)
-      .map(
-        (group) =>
-          `<h3 class="tx-day">${context.escape(`${weekdayOf(group.date).slice(0, 3)}, ${shortDateLabel(group.date)}`)}</h3>${group.items.map((item) => rowHtml(item, context)).join("")}`,
-      )
+      .map((group) => {
+        const summary = summarizeList(group.items);
+        const label = `${weekdayOf(group.date).slice(0, 3)}, ${shortDateLabel(group.date)}`;
+        return `<section class="tx-day-card" aria-label="${context.escape(label)}"><header><strong>${context.escape(label)}</strong><span>${summary.count} \u00b7 ${context.money(summary.total)}</span></header>${group.items.map((item) => rowHtml(item, context, false)).join("")}</section>`;
+      })
       .join("");
   }
-  return transactions.map((item) => rowHtml(item, context)).join("");
+  return `<section class="tx-day-card">${transactions.map((item) => rowHtml(item, context, true)).join("")}</section>`;
 }

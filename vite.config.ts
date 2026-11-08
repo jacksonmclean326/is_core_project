@@ -16,6 +16,7 @@ export default defineConfig({
           "auth",
           "home",
           "details",
+          "accounts",
           "chat",
           "leaderboard",
           "settings",
@@ -63,7 +64,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         ...Object.fromEntries(
-          ["auth", "home", "details", "chat", "leaderboard", "settings", "privacy", "help"].map(
+          ["auth", "home", "details", "accounts", "chat", "leaderboard", "settings", "privacy", "help"].map(
             (page) => [
               page,
               resolve(process.cwd(), `src/app/pages/${page}/${page}.html`),
