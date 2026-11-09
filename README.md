@@ -13,7 +13,7 @@ College students often struggle to budget effectively due to limited time, incom
 | Month views                        | Working. Details has a month switcher; Home shows a real six-month trend.                                   |
 | Home, Details                      | Real data once a bank is linked or a transaction is added; a "No spending yet" prompt before that.          |
 | Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
-| Friends, leaderboard               | The friend code is real; friends and points are sample data.                                                |
+| Friends, leaderboard               | Real friends and goal completion rankings (requires friends/leaderboard migrations).                                                |
 | Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
 
 ## ERD:
@@ -236,7 +236,7 @@ To check spending data:
 ## Known limitations
 
 - Category limits and streaks are not saved per user, so they do not follow someone to another browser.
-- Friends and leaderboard points are sample data. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
+- Friend rankings use average goal completion, with spending limits shown separately. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
 - The monthly budget is saved for the selected month and does not automatically carry forward to a new month.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
@@ -269,3 +269,31 @@ Goal types (`src/shared/goal-progress.ts`, applied by `GET /api/goals`):
 The existing database columns map to the UI as follows: `goal_id` → ID, `goal_type` → type, `desired_savings` → target, `amount_savings` → progress. The migration adds `goal_name` → title. The save function sets `user_id` from `auth.uid()` on the database side; the browser cannot choose another owner. Existing rows without a title display their type as a fallback.
 
 App is autodeployed to AWS Beanstalk every commit to main through github actions
+
+## Friends setup
+
+Run `supabase/migrations/202611080001_friends.sql` in the Supabase SQL Editor before using Friends. It adds authenticated functions to list friends, look up a real account by friend code, and remove a friendship. No service-role key is used. Only friend IDs and display names are returned; emails and financial information stay private.
+
+Friendships are mutual: adding a code creates one link visible to both people; either person can remove it. Invalid codes, your own code, and existing friends are rejected. Concurrent reciprocal adds are serialized to avoid duplicate links. The Friends page now loads database records instead of browser sample friends. A separate leaderboard shows real aggregate goal progress after the leaderboard migration is applied.
+
+To verify with two test accounts:
+
+1. Sign in as B and copy the friend code on Friends.
+2. Sign in as A and add B's code (lowercase and surrounding spaces are accepted). Confirm B's display name appears and remains after refresh.
+3. Try the same code again, A's own code, a malformed code, and an unused valid code. Each should show an error without adding a row.
+4. Sign in as B and confirm A appears. Remove A and refresh both accounts; the friendship should be gone for both.
+5. Confirm a third account sees neither friendship and cannot remove links between other accounts. Signed-out requests to `/api/friends` must fail.
+
+## Friend leaderboard setup
+
+After the friends migration, run `supabase/migrations/202611080002_friend_leaderboard.sql` in the Supabase SQL Editor. The server needs the existing `SUPABASE_SECRET_KEY` to calculate automatic goal progress from transactions and monthly budgets. Keep that key server-only.
+
+`GET /api/leaderboard` authenticates the caller, obtains only their direct friends and themselves with `leaderboard_visibility` enabled, and computes progress using the same `withGoalProgress` function as `/api/goals`. It rechecks membership and visibility before returning. No caller-supplied user IDs are accepted, and no goal names, target amounts, checklist text, transactions, or financial balances are returned. Existing goal RLS policies stay unchanged.
+
+Score = round(average completion fraction × 1,000), from 0 to 1,000 points, for valid Savings, Earnings, Investing, Custom, and Checklist goals, each capped at 100%. Spending goals report the number of current-month limits still met and do not earn completion points. People with no completion goals show as Unranked. Rankings refresh on opening/focusing the page, every minute while visible, after friend changes, and with Refresh. This reads current database data; it does not copy or overwrite friends' goals.
+
+Verification: use two linked test accounts with visibility enabled. Set one Custom goal to 25 of 100 and one Checklist goal to one of two steps; Refresh should show 375 points. Change the Custom progress to 100; Refresh should show 750 points. Test a Savings goal against the same user's Home/Details progress. Toggle visibility off and verify the account disappears on the next refresh while remaining in the friend management list. Remove the friendship and confirm the account's leaderboard entry disappears. A third, unrelated account must not receive either friend's entry unless directly linked. Confirm signed-out `/api/leaderboard` returns an authentication error.
+
+Scoring regression tests: `node --import tsx --test tests/leaderboard.test.ts`.
+
+Leaderboard visibility in Settings hides your score from your own and friends’ rankings; it does not prevent you from viewing visible friends. Successful changes refresh other local tabs immediately; other devices pick them up on the next refresh (within a minute while visible). Failed saves restore the previous switch value. The leaderboard displays a hidden-score notice when opted out.

@@ -11,6 +11,8 @@ import { handlePlaidApi } from "./plaid.js";
 import { handleTransactionsApi } from "./transactions.js";
 import { handleChatApi } from "./chat.js";
 import { handleFeedbackApi } from "./feedback.js";
+import { handleLeaderboardApi } from "./leaderboard.js";
+import { handleFriendsApi } from "./friends.js";
 import { handleRatesApi } from "./rates.js";
 
 export async function handleApi(
@@ -26,6 +28,8 @@ export async function handleApi(
   if (await handleAuthApi(request, response, pathname)) return;
   if (await handlePlaidApi(request, response, pathname)) return;
   if (await handleGoalsApi(request, response, pathname)) return;
+  if (await handleLeaderboardApi(request, response, pathname)) return;
+  if (await handleFriendsApi(request, response, pathname)) return;
   if (await handleAccountApi(request, response, pathname)) return;
   if (await handleBudgetApi(request, response, pathname)) return;
   if (await handleCategoriesApi(request, response, pathname)) return;

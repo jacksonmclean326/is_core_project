@@ -136,7 +136,7 @@ interface GoalInput {
  * Reads a user's goals. Until the checklist migration has been run there is no `steps` column,
  * so fall back to the older columns instead of breaking every goals screen.
  */
-async function selectGoals(client: SessionClient, userId: string) {
+export async function selectGoals(client: SessionClient, userId: string) {
   const full = await client.from("Goal").select(goalColumns).eq("user_id", userId).order("goal_id");
   if (!full.error) return full.data;
   if (!/steps/i.test(full.error.message ?? "")) throw supabaseFailure(full.error);
