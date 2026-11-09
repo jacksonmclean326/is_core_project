@@ -1,3 +1,4 @@
+import { leaderboardVisibilityEvent } from "../../../shared/leaderboard.js";
 import {
   $,
   escapeHTML,
@@ -328,6 +329,18 @@ preferenceControls.forEach(([selector, key, column]) => {
       control.checked = saved[column];
       feedback.textContent = "Preference saved.";
       if (key === "reminders") checkCategoryWarnings();
+      if (key === "leaderboard") {
+        feedback.textContent = control.checked
+          ? "Your score is now visible on your and your friends' leaderboards."
+          : "Your score is now hidden from all leaderboards. You can still view your friends' scores.";
+        showToast(control.checked ? "Leaderboard visibility enabled." : "Your leaderboard score is hidden.");
+        // Other tabs refresh from the server; this event carries no profile or financial data.
+        try {
+          localStorage.setItem(leaderboardVisibilityEvent, crypto.randomUUID());
+        } catch {
+          // Storage may be blocked; focus and periodic refresh still update the leaderboard.
+        }
+      }
     } catch (error) {
       state.preferences[key] = previous;
       control.checked = previous;
@@ -338,12 +351,6 @@ preferenceControls.forEach(([selector, key, column]) => {
     } finally {
       control.disabled = false;
     }
-    if (key === "leaderboard")
-      showToast(
-        control.checked
-          ? "Your progress is visible to friends."
-          : "Your leaderboard progress is hidden.",
-      );
   });
 });
 

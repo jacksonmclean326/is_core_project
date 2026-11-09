@@ -399,3 +399,24 @@ export function sendChat(message: string): Promise<{
 export function clearChatHistory(): Promise<{ cleared: number }> {
   return request("/api/chat", { method: "DELETE" });
 }
+
+export interface FriendRecord {
+  id: string;
+  name: string;
+}
+
+export function getFriends(): Promise<{ friends: FriendRecord[] }> {
+  return request("/api/friends");
+}
+
+export function addFriend(code: string): Promise<{ ok: true }> {
+  return request("/api/friends", { method: "POST", body: JSON.stringify({ code }) });
+}
+
+export function deleteFriend(id: string): Promise<{ ok: true }> {
+  return request("/api/friends", { method: "DELETE", body: JSON.stringify({ id }) });
+}
+
+export function getLeaderboard(): Promise<{ entries: import("../shared/leaderboard.js").LeaderboardEntry[]; visible: boolean; updatedAt: string }> {
+  return request("/api/leaderboard");
+}
