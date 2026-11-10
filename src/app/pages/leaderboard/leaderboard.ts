@@ -27,7 +27,7 @@ function renderLeaderboard() {
         .join("")
         .toUpperCase(),
       points: 940,
-      streak: 16,
+      streak: state.streak,
       color: "coral",
       isYou: true,
     }] : []),

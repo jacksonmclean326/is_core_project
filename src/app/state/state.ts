@@ -51,7 +51,7 @@ export type TrendMode = "spending" | "under" | "saved";
 const initialState: AppState = {
   budget: 2200,
   income: 3200,
-  streak: 12,
+  streak: 1,
   friendSeedVersion: 1,
   categories: [
     { id: "housing", name: "Housing", amount: 690, limit: 900, color: palette[0], visible: true },
@@ -97,6 +97,7 @@ function loadState(): AppState {
     return {
       ...structuredClone(initialState),
       ...savedState,
+      streak: 1,
       friendSeedVersion: 1,
       categories: [
         ...initialState.categories,
@@ -129,8 +130,12 @@ export function loadAccountPreferences(): Promise<void> {
           reminders: user.budget_reminders !== false,
           leaderboard: user.leaderboard_visibility !== false,
         };
+        state.streak = Number.isFinite(user.streak)
+          ? Math.max(1, Math.trunc(user.streak ?? 1))
+          : 1;
       })
       .catch((error: unknown) => {
+        state.streak = 1;
         accountPreferencesPromise = null;
         throw error;
       });
@@ -165,7 +170,7 @@ export function money(amount: number): string {
 }
 
 export function saveState(): void {
-  const { accounts: _accounts, goals: _goals, ...savedState } = state;
+  const { accounts: _accounts, goals: _goals, streak: _streak, ...savedState } = state;
   const categories = savedState.categories.map(({ amount: _amount, ...category }) => category);
   localStorage.setItem(storageKey, JSON.stringify({ ...savedState, categories }));
 }

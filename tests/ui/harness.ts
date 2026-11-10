@@ -60,6 +60,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
       daily_sync: true,
       budget_reminders: true,
       leaderboard_visibility: true,
+      streak: 1,
     });
     if (path.startsWith("/api/friend-code")) return send(200, { friendCode: "ABC234" });
     if (path.startsWith("/api/account/preferences")) return send(200, {

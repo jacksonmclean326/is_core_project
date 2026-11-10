@@ -8,6 +8,7 @@ export interface ApiUser {
   daily_sync?: boolean;
   budget_reminders?: boolean;
   leaderboard_visibility?: boolean;
+  streak?: number;
 }
 
 export interface AccountPreferences {

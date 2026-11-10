@@ -60,6 +60,7 @@ test("turning leaderboard visibility off hides the user's row and podium entry",
         daily_sync: true,
         budget_reminders: true,
         leaderboard_visibility: false,
+        streak: 0,
       }],
     },
   });
