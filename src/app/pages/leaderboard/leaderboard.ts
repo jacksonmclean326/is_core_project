@@ -5,28 +5,54 @@ import { addFriend, deleteFriend, getFriendCode, getFriends, getLeaderboard, typ
 import "../../page-navigation.js";
 
 let friendCode = "";
-let friends: FriendRecord[] = [];
-let busy = false;
-let loaded = false;
 
-function setBusy(value: boolean) {
-  busy = value;
-  $<HTMLInputElement>("#friend-code-input").disabled = value || !friendCode || !loaded;
-  $<HTMLButtonElement>("#add-friend-form button[type='submit']").disabled = value || !friendCode || !loaded;
-  document.querySelectorAll<HTMLButtonElement>("[data-remove-friend]").forEach((button) => {
-    button.disabled = value;
+function renderLeaderboard() {
+  const friends: Friend[] = [
+    ...state.friends.map((friend) => ({ ...friend })),
+    ...(state.preferences.leaderboard ? [{
+      id: "you",
+      name: state.profile.name || "You",
+      initials: (state.profile.name || "You")
+        .split(/\s+/)
+        .map((part) => part[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase(),
+      points: 940,
+      streak: state.streak,
+      color: "coral",
+      isYou: true,
+    }] : []),
+  ].sort((first, second) => second.points - first.points);
+  $("#friend-list").innerHTML = friends
+    .map(
+      (friend) =>
+        `<div class="friend-row"><span class="friend-avatar avatar-${friend.color}">${escapeHTML(friend.initials)}</span><span class="friend-name">${escapeHTML(friend.name)}${friend.isYou ? " (you)" : ""}</span><span class="friend-streak">${friend.streak}-day streak</span><span class="friend-score">${friend.points}</span>${friend.isYou ? "" : `<button type="button" class="remove-friend" data-remove-friend="${escapeHTML(friend.id)}" aria-label="Remove ${escapeHTML(friend.name)}" title="Remove friend"><i data-icon="x" aria-hidden="true"></i></button>`}</div>`,
+    )
+    .join("");
+  const podium: [string, Friend | undefined][] = [
+    [".first-place", friends[0]],
+    [".second-place", friends[1]],
+    [".third-place", friends[2]],
+  ];
+  podium.forEach(([selector, friend]) => {
+    const place = $(selector);
+    if (!friend) {
+      place.hidden = true;
+      return;
+    }
+    place.hidden = false;
+    const avatar = $(".podium-avatar", place);
+    avatar.className = `podium-avatar avatar-${friend.color}`;
+    avatar.textContent = friend.initials;
+    $(".podium-name", place).textContent = friend.isYou
+      ? "You"
+      : friend.name.split(" ")[0];
+    $("strong", place).textContent = String(friend.points);
   });
-  document.querySelectorAll<HTMLElement>(".friend-settings").forEach((button) => {
-    button.setAttribute("aria-disabled", String(value));
-  });
-}
-
-function renderFriends() {
-  $("#friend-list").innerHTML = friends.length ? friends.map((friend) => {
-    const initials = friend.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
-    return `<div class="friend-row"><span class="friend-avatar avatar-sage">${escapeHTML(initials)}</span><span class="friend-name">${escapeHTML(friend.name)}</span><details class="friend-actions"><summary class="friend-settings" aria-label="Settings for ${escapeHTML(friend.name)}" title="Friend settings"><i data-icon="settings" aria-hidden="true"></i></summary><div class="friend-actions-panel"><button type="button" class="remove-friend" data-remove-friend="${escapeHTML(friend.id)}">Remove friend<span class="sr-only"> ${escapeHTML(friend.name)}</span></button></div></details></div>`;
-  }).join("") : '<p class="quiet-note">No friends yet. Add someone using their friend code below.</p>';
-  $("#friend-count").textContent = `${friends.length} ${friends.length === 1 ? "friend" : "friends"}`;
+  $("#friend-count").textContent =
+    `${friends.length} ${friends.length === 1 ? "person" : "people"}`;
+  $("#leaderboard-hidden-note").hidden = state.preferences.leaderboard;
   refreshIcons();
   setBusy(busy);
 }

@@ -11,10 +11,30 @@ const sessions = new Map<string, SessionClient>();
 // successful check briefly. The access token is still refreshed before it expires, and signing out
 // forgets it immediately.
 const verifiedUsers = new Map<string, { user: User; until: number }>();
+const activityRecordedOn = new Map<string, string>();
+const activityRetryAfter = new Map<string, number>();
 const verifiedTtlMs = 30_000;
 
 export function rememberVerifiedUser(sessionId: string, user: User): void {
   verifiedUsers.set(sessionId, { user, until: Date.now() + verifiedTtlMs });
+}
+
+async function recordDailyActivity(client: SessionClient, userId: string): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  if (activityRecordedOn.get(userId) === today) return;
+  if ((activityRetryAfter.get(userId) ?? 0) > Date.now()) return;
+
+  const result = await client.rpc("record_user_activity");
+  if (result.error || result.data === null) {
+    activityRetryAfter.set(userId, Date.now() + 60_000);
+    console.error(
+      "Daily streak update failed. Check that the daily streak Supabase migration is applied and the RPC is available.",
+      result.error ?? new Error("No user profile was updated."),
+    );
+    return;
+  }
+  activityRecordedOn.set(userId, today);
+  activityRetryAfter.delete(userId);
 }
 
 function getSessionId(request: IncomingMessage): string | null {
@@ -92,11 +112,15 @@ export async function requireSession(
   }
 
   const verified = verifiedUsers.get(sessionId);
-  if (verified && verified.until > Date.now()) return { client, user: verified.user, sessionId };
+  if (verified && verified.until > Date.now()) {
+    await recordDailyActivity(client, verified.user.id);
+    return { client, user: verified.user, sessionId };
+  }
 
   try {
     const user = await authenticatedUser(client);
     rememberVerifiedUser(sessionId, user);
+    await recordDailyActivity(client, user.id);
     return { client, user, sessionId };
   } catch (error) {
     verifiedUsers.delete(sessionId);
@@ -143,6 +167,7 @@ export async function signIn(
     const sessionId = randomBytes(32).toString("hex");
     sessions.set(sessionId, client);
     response.setHeader("Set-Cookie", cookieHeader(sessionId, request));
+    if (result.data.user) await recordDailyActivity(client, result.data.user.id);
   } else {
     response.setHeader("Set-Cookie", cookieHeader("", request));
   }

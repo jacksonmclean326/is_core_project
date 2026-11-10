@@ -20,7 +20,7 @@ export async function handleAccountApi(
     const profile = await client
       .from("User")
       .select(
-        "first_name,last_name,email_address,daily_sync,budget_reminders,leaderboard_visibility",
+        "first_name,last_name,email_address,daily_sync,budget_reminders,leaderboard_visibility,streak",
       )
       .eq("user_id", user.id)
       .maybeSingle();
@@ -33,7 +33,9 @@ export async function handleAccountApi(
       daily_sync: profile.data?.daily_sync !== false,
       budget_reminders: profile.data?.budget_reminders !== false,
       leaderboard_visibility: profile.data?.leaderboard_visibility !== false,
-      currency: currencyOrDefault(user.user_metadata?.currency),
+      streak: profile.data && Number.isFinite(profile.data.streak)
+        ? Math.max(0, Math.trunc(profile.data.streak))
+        : 1,
     });
     return true;
   }

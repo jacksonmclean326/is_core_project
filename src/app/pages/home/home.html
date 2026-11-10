@@ -21,7 +21,7 @@
         <section class="page dashboard-page" aria-labelledby="home-title">
           <div class="page-heading dashboard-heading">
             <div>
-              <div class="dashboard-meta"><p class="eyebrow" id="today-label">–</p><div class="streak-indicator" aria-label="12 day streak"><i data-icon="flame" aria-hidden="true"></i><strong id="streak-count">12</strong><span>day streak</span></div></div>
+              <div class="dashboard-meta"><p class="eyebrow" id="today-label">THURSDAY, OCTOBER 2</p><div class="streak-indicator" aria-label="1 day streak"><i data-icon="flame" aria-hidden="true"></i><strong id="streak-count">1</strong><span>day streak</span></div></div>
               <h1 id="home-title">Your money, in view.</h1>
               <p class="subheading">A little clarity goes a long way.</p>
             </div>
@@ -33,11 +33,13 @@
           </section>
           <section class="trend-section" aria-labelledby="trend-title">
             <div class="section-heading trend-heading">
-              <div><p class="eyebrow">YOUR LAST SIX MONTHS</p><h2 id="trend-title">Spending trends</h2></div>
-              <label class="select-wrap" for="trend-mode"><span class="sr-only">Choose a trend to view</span><select id="trend-mode"><option value="spending">Monthly spending</option><option value="under">Under budget</option><option value="saved">Amount saved</option></select><i data-icon="chevron-down" aria-hidden="true"></i></label>
+              <div><p class="eyebrow" id="graph-eyebrow">YOUR FINANCES</p><h2 id="trend-title">Spending by month</h2></div>
+              <button class="outline-button graph-edit-button" id="edit-graph" type="button" aria-haspopup="dialog"><i data-icon="sliders-horizontal" aria-hidden="true"></i> Edit graph</button>
             </div>
             <div class="trend-summary"><div><p class="trend-value" id="trend-value">–</p><p class="trend-caption" id="trend-caption">spent this month</p></div><span class="trend-change" id="trend-change"></span></div>
             <div class="chart-wrap" id="trend-chart" role="img" aria-label="Monthly spending trend chart"></div>
+            <div class="chart-legend" id="chart-legend" hidden></div>
+            <p class="chart-note" id="chart-note" hidden></p>
           </section>
           <section class="overview-section" aria-label="This month's budget overview">
             <div class="overview-main">
@@ -59,6 +61,56 @@
       </nav>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <dialog id="detail-dialog" class="detail-dialog"><button class="dialog-close" type="button" aria-label="Close"><i data-icon="x" aria-hidden="true"></i></button><div id="dialog-content"></div></dialog>
+      <dialog id="graph-dialog" class="detail-dialog graph-dialog" aria-labelledby="graph-dialog-title">
+        <button class="dialog-close" type="button" data-close-graph aria-label="Close graph editor"><i data-icon="x" aria-hidden="true"></i></button>
+        <div class="graph-dialog-content">
+          <p class="eyebrow">HOME DASHBOARD</p>
+          <h2 class="dialog-title" id="graph-dialog-title">Edit graph</h2>
+          <p class="dialog-subtitle">Choose what you want to explore.</p>
+          <form id="graph-form" class="graph-form">
+            <label for="graph-metric">Data to show
+              <select id="graph-metric">
+                <option value="monthly-spending">Spending by month</option>
+                <option value="category-spending">Total spending by category</option>
+                <option value="amount-saved">Amount saved (budget left)</option>
+                <option value="goal-remaining">Amount left in goals</option>
+                <option value="friend-streaks">Friend streaks (sample data)</option>
+              </select>
+            </label>
+            <fieldset class="graph-type-fieldset">
+              <legend>Chart style</legend>
+              <div class="graph-type-options">
+                <label class="graph-type-card">
+                  <input type="radio" name="graph-type" value="line">
+                  <span class="graph-type-card-content">
+                    <svg class="graph-type-preview" viewBox="0 0 64 36" aria-hidden="true"><path d="M4 29H60M5 25l14-9 12 5 14-13 14 6" /><circle cx="45" cy="8" r="2.5" /></svg>
+                    <strong>Line</strong><small>Follow a trend</small>
+                  </span>
+                </label>
+                <label class="graph-type-card">
+                  <input type="radio" name="graph-type" value="bar">
+                  <span class="graph-type-card-content">
+                    <svg class="graph-type-preview graph-type-preview-bars" viewBox="0 0 64 36" aria-hidden="true"><path d="M4 29H60" /><rect x="10" y="18" width="8" height="11" rx="4" /><rect x="25" y="11" width="8" height="18" rx="4" /><rect x="40" y="15" width="8" height="14" rx="4" /><rect x="55" y="5" width="6" height="24" rx="3" /></svg>
+                    <strong>Bars</strong><small>Compare values</small>
+                  </span>
+                </label>
+                <label class="graph-type-card">
+                  <input type="radio" name="graph-type" value="donut">
+                  <span class="graph-type-card-content">
+                    <svg class="graph-type-preview graph-type-preview-donut" viewBox="0 0 64 36" aria-hidden="true"><circle cx="32" cy="18" r="12" /><circle cx="32" cy="18" r="12" /></svg>
+                    <strong>Donut</strong><small>See proportions</small>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+            <p class="graph-editor-note" id="graph-editor-note" aria-live="polite"></p>
+            <div class="graph-form-actions">
+              <button class="text-button" type="button" data-close-graph>Cancel</button>
+              <button class="primary-button" type="submit">Save graph</button>
+            </div>
+          </form>
+        </div>
+      </dialog>
     </div>
     <script type="module" src="home.ts"></script>
   </body>
