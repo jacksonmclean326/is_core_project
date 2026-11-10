@@ -108,7 +108,7 @@ async function renderAuthenticatedProfile() {
     $<HTMLInputElement>("#sync-toggle").checked = state.preferences.sync;
     $<HTMLInputElement>("#reminder-toggle").checked = state.preferences.reminders;
     $<HTMLInputElement>("#leaderboard-toggle").checked = state.preferences.leaderboard;
-    if (setCurrency(currencyOrDefault(user.currency ?? metadata.currency))) {
+    if (setCurrency(currencyOrDefault(metadata.currency))) {
       renderCurrencyPicker();
     }
     if (!name) {

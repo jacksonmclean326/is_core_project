@@ -23,6 +23,7 @@ import {
   monthName,
 } from "../../../shared/months.js";
 import { getBankConnections } from "../../api.js";
+import { loadGoals } from "../../goals.js";
 import "../../page-navigation.js";
 
 type GraphMetric = "monthly-spending" | "category-spending" | "amount-saved" | "goal-remaining" | "friend-streaks";
@@ -363,19 +364,6 @@ function renderDashboard() {
         )
         .join("")
     : `<span class="watch-empty">Nothing near its limit right now.</span>`;
-  const goal =
-    state.goals.find((item) => item.kind === "Savings") || state.goals[0];
-  if (goal) {
-    $("#dashboard-goal-name").textContent = goal.name;
-    $("#dashboard-goal-progress").innerHTML =
-      `${money(goal.progress)} <span>of ${money(goal.target)}</span>`;
-    $("#dashboard-goal-track").style.width =
-      `${Math.min(100, (goal.progress / goal.target) * 100)}%`;
-  } else {
-    $("#dashboard-goal-name").textContent = "Add a goal to get started";
-    $("#dashboard-goal-progress").textContent = "No goal set";
-    $("#dashboard-goal-track").style.width = "0%";
-  }
   renderGraph();
 }
 
@@ -443,6 +431,5 @@ void loadGoals().then((goals) => {
   state.goals = goals;
   renderDashboard();
 }).catch(() => {
-  $("#dashboard-goal-name").textContent = "Unable to load your goals";
-  $("#dashboard-goal-progress").textContent = "Refresh to try again";
+  showToast("Could not load your goals for the home graph.");
 });
