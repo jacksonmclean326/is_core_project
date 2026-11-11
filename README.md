@@ -41,8 +41,12 @@ A small Node.js server sits between the browser and Supabase. It keeps all crede
 This combination of HTML, CSS, TypeScript, and Supabase allows us to focus on building the app without introducing an additional front-end framework.
 
 ## Diagram:
+Level 0 Diagram
+<img width="1004" height="764" alt="Sprint Review_Retrospective 1 (1)" src="https://github.com/user-attachments/assets/c2cae166-210f-4411-9e20-55d0b60028cd" />
+Level 1 Diagram
+<img width="1071" height="764" alt="Sprint Review_Retrospective 1 (2)" src="https://github.com/user-attachments/assets/3b32cc15-7183-4205-8e76-5bafb435c0e0" />
 
-<img width="4440" height="2300" alt="Blank diagram (1)" src="https://github.com/user-attachments/assets/d3f5cdbf-9d70-4ddc-8921-aa6351f06ca0" />
+
 
 ## Development Setup
 
