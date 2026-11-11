@@ -189,7 +189,7 @@ function renderGraph(): void {
   if (data.change) {
     change.innerHTML = `<i data-icon="${data.change.icon}" aria-hidden="true"></i> ${escapeHTML(data.change.text)}`;
   }
-
+// hey guys
   const total = data.items.reduce((sum, item) => sum + Math.max(0, item.value), 0);
   if (!data.items.length || (graphSettings.type === "donut" && total <= 0)) {
     chart.classList.add("is-empty");
