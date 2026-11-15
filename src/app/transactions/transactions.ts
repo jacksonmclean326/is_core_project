@@ -71,7 +71,9 @@ function applyResult(month: MonthKey, result: TransactionsResponse): LoadResult 
     totals.set(id, (totals.get(id) ?? 0) + item.amount);
     transactions[id]?.push([item.name, money(item.amount), `${shortDateLabel(item.date)} · ${item.account}`, item.id]);
   }
-  for (const category of state.categories) category.amount = Math.round(totals.get(category.id) ?? 0);
+  // Keep cents: rounding each category to whole dollars first made the total disagree with the transaction list
+  // ($168 + $16 + $5 = $189, while the real $189.63 shows as $190 elsewhere). Amounts are rounded only when shown.
+  for (const category of state.categories) category.amount = Math.round((totals.get(category.id) ?? 0) * 100) / 100;
   if (result.history) {
     monthlyHistory = result.history;
     months.splice(0, months.length, ...result.history.map((entry) => shortMonthName(entry.month)));

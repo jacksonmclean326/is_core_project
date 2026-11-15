@@ -62,12 +62,19 @@ test("turning leaderboard visibility off hides the user's row and podium entry",
         leaderboard_visibility: false,
         streak: 0,
       }],
+      // With visibility off, the server leaves the user out of the rankings and says so.
+      "/api/leaderboard": () => [200, {
+        entries: [{ id: "f1", name: "Ana Saver", isYou: false, score: 800, goalCount: 1, completed: 0, spendingCount: 0, withinLimit: 0 }],
+        visible: false,
+        updatedAt: "2026-11-14T12:00:00Z",
+      }],
+      "/api/friends": () => [200, { friends: [{ id: "f1", name: "Ana Saver" }] }],
     },
   });
 
-  assert.equal(page.$("#leaderboard-hidden-note").hidden, false);
-  assert.doesNotMatch(page.$("#friend-list").textContent, /\(you\)/);
-  assert.doesNotMatch(page.$(".podium-section").textContent, /\bYou\b/);
+  assert.equal(page.$("#leaderboard-visibility-note").hidden, false);
+  assert.doesNotMatch(page.$("#ranking-list").textContent, /\(you\)/);
+  assert.doesNotMatch(page.$("#leaderboard-podium").textContent, /\(you\)/);
 });
 
 test("budget reminders are suppressed when the saved preference is false", async () => {

@@ -24,11 +24,12 @@ import {
   localDateString,
   monthName,
 } from "../../../shared/months.js";
-import { getBankConnections } from "../../api.js";
+import { getBankConnections, getLeaderboard } from "../../api.js";
+import type { LeaderboardEntry } from "../../../shared/leaderboard.js";
 import { loadGoals } from "../../goals.js";
 import "../../page-navigation.js";
 
-type GraphMetric = "monthly-spending" | "category-spending" | "amount-saved" | "goal-remaining" | "friend-streaks";
+type GraphMetric = "monthly-spending" | "category-spending" | "amount-saved" | "goal-remaining" | "friend-points";
 type GraphType = "line" | "bar" | "donut";
 type GraphDatum = { label: string; value: number };
 type GraphData = {
@@ -48,7 +49,7 @@ const graphMetrics: GraphMetric[] = [
   "category-spending",
   "amount-saved",
   "goal-remaining",
-  "friend-streaks",
+  "friend-points",
 ];
 const graphTypes: GraphType[] = ["line", "bar", "donut"];
 const chartColors = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#747f79"];
@@ -58,6 +59,8 @@ function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
     const saved: unknown = JSON.parse(localStorage.getItem(graphStorageKey) ?? "null");
     if (typeof saved === "object" && saved !== null) {
       const value = saved as { metric?: unknown; type?: unknown };
+      // The old sample-data "friend-streaks" graph became real friends' goal points.
+      if (value.metric === "friend-streaks") value.metric = "friend-points";
       return {
         metric: graphMetrics.includes(value.metric as GraphMetric) ? value.metric as GraphMetric : "monthly-spending",
         type: graphTypes.includes(value.type as GraphType) ? value.type as GraphType : "line",
@@ -70,6 +73,20 @@ function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
 }
 
 let graphSettings = loadGraphSettings();
+
+/** Friends' leaderboard scores for the goal points graph: null until loaded. */
+let friendScores: LeaderboardEntry[] | null = null;
+let friendScoresFailed = false;
+async function loadFriendScores(): Promise<void> {
+  try {
+    friendScores = (await getLeaderboard()).entries;
+    friendScoresFailed = false;
+  } catch {
+    friendScoresFailed = true;
+  }
+  if (graphSettings.metric === "friend-points") renderGraph();
+}
+if (graphSettings.metric === "friend-points") void loadFriendScores();
 
 function formatCurrency(value: number): string {
   return `${value < 0 ? "−" : ""}${money(value)}`;
@@ -153,16 +170,19 @@ function graphData(metric: GraphMetric): GraphData {
     };
   }
 
-  const items = state.friends.map((friend) => ({ label: friend.name, value: Math.max(0, friend.streak) }));
-  if (state.preferences.leaderboard) items.unshift({ label: "You", value: Math.max(1, state.streak) });
+  // Real friends' goal points, the same numbers as the Friends leaderboard.
+  const ranked = (friendScores ?? []).filter((entry) => entry.score !== null);
+  const you = (friendScores ?? []).find((entry) => entry.isYou);
   return {
-    title: "Friend streaks",
-    summary: `${Math.max(1, state.streak)} days`,
-    caption: "your current streak",
-    items,
-    formatValue: (value) => `${Math.round(value)} days`,
-    note: "Friend streaks shown here use sample demo data, not live friend accounts or demographic data.",
-    emptyMessage: "No friend streaks to compare yet.",
+    title: "Friends' goal points",
+    summary: you?.score != null ? `${you.score.toLocaleString("en-US")} pts` : friendScores ? "Unranked" : "–",
+    caption: you?.score != null ? "your goal points (out of 1,000)" : "add goals to earn points",
+    items: ranked.map((entry) => ({ label: entry.isYou ? "You" : entry.name, value: entry.score ?? 0 })),
+    formatValue: (value) => `${Math.round(value).toLocaleString("en-US")} pts`,
+    note: "Points come from average goal progress, the same as the Friends leaderboard.",
+    emptyMessage: friendScores === null
+      ? (friendScoresFailed ? "Couldn't load your friends' scores. Try again in a moment." : "Loading your friends' scores…")
+      : "Add friends on the Friends tab to compare goal points.",
   };
 }
 
@@ -173,7 +193,7 @@ function shortLabel(label: string, maxChars = 12): string {
 
 /** "$4.3K" style amounts for axis ticks and narrow bars. */
 function compactValue(metric: GraphMetric, value: number): string {
-  if (metric === "friend-streaks") return `${Math.round(value)}d`;
+  if (metric === "friend-points") return `${Math.round(value)}`;
   const shown = usdToDisplay(value);
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -214,7 +234,6 @@ function renderGraph(): void {
   if (data.change) {
     change.innerHTML = `<i data-icon="${data.change.icon}" aria-hidden="true"></i> ${escapeHTML(data.change.text)}`;
   }
-// hey guys
   const total = data.items.reduce((sum, item) => sum + Math.max(0, item.value), 0);
   if (!data.items.length || (graphSettings.type === "donut" && total <= 0)) {
     chart.classList.add("is-empty");
@@ -331,7 +350,7 @@ if (typeof ResizeObserver !== "undefined") {
 }
 
 function graphEditorNote(metric: GraphMetric): string {
-  if (metric === "friend-streaks") return "Friend streak values are sample demo data; demographic data is not collected.";
+  if (metric === "friend-points") return "Compare goal points with your friends. Points match the Friends leaderboard.";
   if (metric === "amount-saved") return "Budget left is an estimate based on your monthly budget minus recorded spending.";
   if (metric === "goal-remaining" && !state.goals.length) return "Add a savings goal on Details to see its remaining amount.";
   return "Your graph choice is saved in this browser.";
@@ -367,6 +386,7 @@ $("#graph-form").addEventListener("submit", (event) => {
   }
   renderGraph();
   $<HTMLDialogElement>("#graph-dialog").close();
+  if (metric === "friend-points") void loadFriendScores();
 });
 
 function renderPeriodLabels() {

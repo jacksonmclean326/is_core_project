@@ -35,11 +35,19 @@ declare global {
 let bankConnections: BankConnection[] = [];
 let plaidLinkScript: Promise<void> | null = null;
 
+/** Account kinds that are abbreviations, written the way banks write them ("cd" is "CD", not "Cd"). */
+const typeAbbreviations: Record<string, string> = { cd: "CD", ira: "IRA", hsa: "HSA", cma: "CMA", "401k": "401(k)", "403b": "403(b)", "457b": "457(b)", "529": "529", ugma: "UGMA", utma: "UTMA", sep: "SEP", heloc: "HELOC" };
+
 function accountTypeLabel(account: BankAccount): string {
   return (account.subtype || account.type)
     .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+    .split(" ")
+    .map((word) => typeAbbreviations[word.toLowerCase()] ?? word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
+
+/** Credit cards and loans: a positive balance is money owed, so it is shown as negative. */
+const isOwed = (account: BankAccount) => account.type === "credit" || account.type === "loan";
 
 /**
  * A balance for display. Banks report each account in its own currency; it is converted to the chosen display
@@ -48,7 +56,7 @@ function accountTypeLabel(account: BankAccount): string {
 function accountBalance(account: BankAccount): { main: string; native: string | null } | null {
   const value = account.balance ?? account.availableBalance;
   if (value === null || !Number.isFinite(value)) return null;
-  const sign = (account.type === "credit" && value > 0) || value < 0 ? "−" : "";
+  const sign = (isOwed(account) && value > 0) || value < 0 ? "−" : "";
   const amount = Math.abs(value);
   const nativeCode = account.currencyCode?.toUpperCase();
   const validNative = nativeCode && /^[A-Z]{3}$/.test(nativeCode) ? nativeCode : null;
@@ -70,7 +78,7 @@ function accountBalance(account: BankAccount): { main: string; native: string | 
 function balanceText(account: BankAccount): { main: string; caption: string } {
   const balance = accountBalance(account);
   if (!balance) return { main: "Balance unavailable", caption: "" };
-  const kind = account.balance !== null ? "Current balance" : "Available balance";
+  const kind = isOwed(account) ? "Amount owed" : account.balance !== null ? "Current balance" : "Available balance";
   return { main: balance.main, caption: balance.native ? `${kind} · ${balance.native}` : kind };
 }
 
@@ -79,7 +87,7 @@ function formatCheckedAt(value: string | null): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "Last sync time unavailable"
-    : `Last checked ${date.toLocaleString()}`;
+    : `Last checked ${date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
 }
 
 /** Which name is being edited right now, if any. */
@@ -112,7 +120,7 @@ function renderBankConnections() {
     balance:
       account.balance === null && account.availableBalance === null
         ? 0
-        : account.type === "credit" &&
+        : isOwed(account) &&
             (account.balance ?? account.availableBalance ?? 0) > 0
           ? -(account.balance ?? account.availableBalance ?? 0)
           : account.balance ?? account.availableBalance ?? 0,
@@ -132,7 +140,7 @@ function renderBankConnections() {
         <span class="bank-info">${title}</span>
         <span class="bank-balance">
           ${escapeHTML(balanceText(account).main)}
-          <small>${escapeHTML(balanceText(account).caption)}</small>
+          ${balanceText(account).caption.split(" · ").map((line) => `<small>${escapeHTML(line)}</small>`).join("")}
         </span>
         <span class="bank-row-tools">
           ${editing ? "" : `<button class="bank-link" type="button" data-rename-account="${escapeHTML(account.id)}" aria-label="Rename ${escapeHTML(accountName(account))}">Rename</button>`}

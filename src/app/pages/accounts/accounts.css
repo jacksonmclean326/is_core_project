@@ -24,8 +24,9 @@
 .bank-info { display: grid; flex: 1; gap: 3px; min-width: 100px; }
 .bank-info strong { font-size: 0.8125rem; }
 .bank-info span { color: var(--muted); font-size: 0.75rem; }
-.bank-balance { font-size: 0.8125rem; font-weight: 700; text-align: right; }
+.bank-balance { max-width: 48%; font-size: 0.8125rem; font-weight: 700; text-align: right; }
 .bank-balance small { display: block; margin-top: 3px; color: var(--muted); font-size: 0.75rem; font-weight: 400; }
+.bank-balance small + small { margin-top: 1px; }
 @media (max-width: 720px) {
   .accounts-summary-actions { width: 100%; }
   .accounts-summary-actions button { flex: 1 1 auto; justify-content: center; }

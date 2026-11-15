@@ -23,12 +23,20 @@ test("Home displays the signed-in user's Supabase streak", async () => {
   assert.equal(page.$(".streak-indicator").getAttribute("aria-label"), "7 day streak");
 });
 
-test("the signed-in user's leaderboard row displays the Supabase streak", async () => {
+// The Friends page now ranks real goal progress from /api/leaderboard (streaks are shown on Home), and marks
+// the signed-in user's own row.
+test("the leaderboard marks the signed-in user's own ranking", async () => {
+  const entry = (id, name, isYou, score) => ({ id, name, isYou, score, goalCount: 1, completed: 0, spendingCount: 0, withinLimit: 0 });
   const page = await openPage("leaderboard", {
-    routes: { "/api/account": () => account(4) },
+    routes: {
+      "/api/account": () => account(4),
+      "/api/friends": () => [200, { friends: [{ id: "f1", name: "Ana Saver" }] }],
+      "/api/leaderboard": () => [200, { entries: [entry("f1", "Ana Saver", false, 800), entry("u1", "Demo User", true, 500)], visible: true, updatedAt: "2026-11-14T12:00:00Z" }],
+    },
   });
-  const ownRow = page.$$(".friend-row").find((row) => row.textContent.includes("(you)"));
+  const ownRow = page.$$(".ranking-row").find((row) => row.textContent.includes("(you)"));
 
   assert.ok(ownRow);
-  assert.match(ownRow.querySelector(".friend-streak").textContent, /4-day streak/);
+  assert.match(ownRow.textContent, /Demo User \(you\)/);
+  assert.match(ownRow.textContent, /500 pts/);
 });

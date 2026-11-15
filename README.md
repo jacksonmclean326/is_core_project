@@ -27,7 +27,7 @@ Notes on the spending tables:
 
 - `Transaction.category_key` holds either a built-in category id (`housing`, `food`, `transport`, `utilities`, `education`, `personal`, `other`) or a key from `Custom Category`. It is deliberately not a foreign key, so built-in categories need no rows.
 - A `Transaction` with no `plaid_transaction_id` is a manual entry the user typed in. Bank refreshes never touch those rows.
-- The older `Category` and `Budget` tables are not used by the app yet. Budgets, goals, and category limits still live in browser storage.
+- `Budget` holds each user's monthly income and budget, one row per month. The older `Category` table is not used; category limits still live in browser storage.
 - `Plaid Item` also remembers how far each bank has been synced (a cursor, the time of the last sync, whether Plaid has finished importing history, and the version of the sorting rules used), so only changes are pulled from Plaid.
 - Every table is protected by Row Level Security. The server writes to the new tables with the Supabase secret key, and signed-in users can only read their own rows.
 - `Goal Month Result` (one row per user per finished month: were their Savings and Spending goals met?), `Savings Check-in` (each user's answer to the two-month check-in) and `Team Admin` (who can open `/admin`) are new for the savings OKRs and are not in the diagram yet. Signed-in users can read only their own `Goal Month Result` rows and their own check-in; they cannot read `Team Admin` at all.
@@ -167,7 +167,7 @@ Settings has a **Display currency** picker (the list is in `src/shared/currencie
 6. Careful keyword phrases (for example "water bill", never just "water"), only when Plaid gave nothing useful.
 7. Other. A merchant we are unsure about stays here rather than landing in the wrong category.
 
-`tests/categorize.golden.test.ts` is the golden list: more than 2,000 merchant cases, including every category Plaid can return, every brand and keyword, and look-alike traps such as "Water Park", "Delta Dental", and "Rent the Runway". Add a row whenever you find a merchant that was sorted wrongly. When you change the rules, raise `categorizerVersion` in `categorize.ts`: every bank then re-sorts its saved transactions from scratch the next time it syncs (your own picks and merchant rules are kept).
+The rules were developed against a list of more than 2,000 merchant cases, including every category Plaid can return, every brand and keyword, and look-alike traps such as "Water Park", "Delta Dental", and "Rent the Runway" (that test file has since been removed from the repo). When you change the rules, raise `categorizerVersion` in `categorize.ts`: every bank then re-sorts its saved transactions from scratch the next time it syncs (your own picks and merchant rules are kept).
 
 Users can add their own categories (up to 12, names up to 24 characters), rename and hide any category, and delete their own. Deleting a custom category moves its transactions to Other. Built-in categories can be renamed and hidden but not deleted.
 
@@ -213,24 +213,14 @@ npm start
 
 `src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/` (`auth`, `account`, `plaid`, `transactions`, `manual-transactions`, `categories`, `checkin`, `admin`); authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. `src/server/categorize.ts` holds the automatic categorization rules, and `src/shared/months.ts` holds the calendar math used by both the server and the browser. The savings OKRs use `src/shared/savings-okrs.ts` (the rules for "met", "consistent" and "check-in due"), `src/server/savings-history.ts` (works each user's months out from their transactions), and `src/server/admin.ts` (who counts as an admin). Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
-Budgets, category limits, and preferences are stored in the browser. Goals, bank connections, transactions, custom categories, and merchant rules are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
+Category limits are stored in the browser. Budgets and income, preferences, goals, bank connections, transactions, custom categories, merchant rules, chat history and the savings OKR data are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
 
 Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`. Shared browser state lives in `src/app/state/state.ts`, transaction loading in `src/app/transactions/transactions.ts`, and UI helpers and dialogs in `src/app/ui/`. `src/app/core.ts` re-exports these modules.
 
 ## Tests
 
-- `npm test` runs the unit tests (the 2,000-case golden merchant list, month math, validation, summaries, sync decisions) and the interface tests in `tests/ui/`: the Details page and its popups are run in a simulated page (jsdom, no browser) against a fake API and checked with the axe accessibility engine, and the CSS and HTML are checked against contrast, text-size, touch-target and phone-layout rules. No network or database needed. The full audit, with what still needs a real device, is in `docs/ui-audit.md`.
-- `tests/savings-okrs.test.ts` checks the OKR rules (when a goal counts as met, the 3-of-4 consistency rule, when the check-in is due). `tests/ui/savings-okrs.ui.test.ts` runs the check-in popup and the Team OKRs page in the simulated page, and `tests/ui/home-chart.ui.test.ts` covers the Home graph. Run one file with `node --import tsx --test <file>`.
+- `npm test` runs every test in about 6 seconds, with no network or database needed. Unit tests: `tests/leaderboard.test.ts` (scoring and ranking), `tests/savings-okrs.test.ts` (when a goal counts as met, the 3-of-4 consistency rule, when the check-in is due) and `tests/audit-fixes.test.ts` (plain-text chat replies). Interface tests in `tests/ui/` run the real page code in a simulated page (jsdom, no browser) against a fake API, several with the axe accessibility engine: Settings and budgets, streaks and the leaderboard, the Home graph, Accounts and Details totals, and the check-in popup and Team OKRs page. Run one file with `node --import tsx --test <file>`. `docs/ui-audit.md` lists what still needs a real device.
 - `npm run typecheck` type-checks the browser and server code.
-- Integration tests use the real Plaid Sandbox and Supabase, so they need a filled-in `.env` and the server running (`npm start`). Each creates throwaway users and deletes everything it created:
-
-  ```powershell
-  node --env-file=.env --import tsx tests/e2e.integration.mts          # months, summaries, storage
-  node --env-file=.env --import tsx tests/categories.integration.mts   # custom categories, re-categorizing
-  node --env-file=.env --import tsx tests/manual.integration.mts       # manual transactions
-  $env:DEMO_EMAIL="..."; $env:DEMO_PASSWORD="..."                     # an account that already has a bank linked
-  node --env-file=.env --import tsx tests/performance.integration.mts  # speed, and fast loads match a sync exactly
-  ```
 
 ## Verifying the Vertical Slice:
 

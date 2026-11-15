@@ -4,8 +4,17 @@
 // @ts-nocheck
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { after } from "node:test";
 import { JSDOM } from "jsdom";
 import { buildSync } from "esbuild";
+
+// Pages can start timers (the Friends page refreshes every minute), which would keep the test process alive
+// forever. Close every simulated page once a test file is done.
+const openWindows = new Set();
+after(() => {
+  for (const window of openWindows) window.close();
+  openWindows.clear();
+});
 
 const require = createRequire(import.meta.url);
 const axeSource = readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
@@ -39,6 +48,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
   const html = readFileSync(new URL(`${name}/${name}.html`, pagesDirectory), "utf8").replace(/<script[\s\S]*?<\/script>/g, "");
   const dom = new JSDOM(html, { url: `http://localhost:3000/${name}${search}`, runScripts: "outside-only", pretendToBeVisual: true });
   const { window } = dom;
+  openWindows.add(window);
   const calls = [];
 
   window.fetch = async (url, init = {}) => {
