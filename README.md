@@ -197,6 +197,7 @@ All endpoints require a signed-in session (except sign-up and sign-in) and retur
 | `GET`/`POST`/`DELETE /api/chat`                                                              | Load saved chat history, send a message, or clear the signed-in user's history.                           |
 | `GET`/`POST /api/checkin`, `DELETE /api/checkin` (team only)                                 | Two-month savings check-in: whether it is due, answer it (`saved`, optional `amount`) or `later`, clear your answer. |
 | `GET /api/admin/okrs` (team only)                                                            | Savings OKR numbers and per-user results, worked out fresh from every user's current data.            |
+| `GET`/`POST`/`DELETE /api/admin/admins` (team only)                                          | List the team's admins, add one (`email` of an existing account), or remove one (not yourself).        |
 
 ### Build and run the production server
 
@@ -315,7 +316,7 @@ Leaderboard visibility in Settings hides your score from your own and friends’
 
 Objective: users are saving money using the app. **Run `supabase/migrations/20261114_savings_okrs.sql` and `supabase/migrations/20261114_team_admins.sql` once** in the Supabase SQL Editor. Admins then see **Team OKRs** under Settings → More, which opens `/admin`. Everyone else gets a "team only" error there.
 
-**Making someone an admin:** in Supabase, open **Table Editor → Team Admin → Insert row**, type their login email (case doesn't matter) and save. Delete the row to remove them. Changes apply within 30 seconds, locally and on Elastic Beanstalk, with no redeploy or restart. App users can't read or change this table: row level security is on with no policies, and signed-in users have no grants. Only the server's secret key and people signed in to the Supabase dashboard can. The server checks admin access on every request.
+**Making someone an admin:** on `/admin`, under **Team admins**, type their login email and choose **Add admin**; **Remove** takes someone off. It works right away, locally and on Elastic Beanstalk, with no redeploy or restart. Only existing admins can do this. The person must already have a Money Man account, so a typo (or an address someone could register later) can't become an admin. You can't remove yourself, so there is always at least one admin, and each row records who added it (`GET`/`POST`/`DELETE /api/admin/admins`). The very first admin is added in Supabase: **Table Editor → Team Admin → Insert row**, then their login email. Rows added or deleted there take effect within 30 seconds. App users can't read or change this table: row level security is on with no policies, and signed-in users have no grants. Only the server's secret key and people signed in to the Supabase dashboard can. The server checks admin access on every request.
 
 `ADMIN_EMAILS` (comma-separated, in `.env` or Elastic Beanstalk's environment properties) still works as an optional extra list, for example before the table exists. The page needs `SUPABASE_SECRET_KEY` on the server, which Plaid already uses.
 

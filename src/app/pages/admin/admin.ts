@@ -1,5 +1,14 @@
 import "../../page-navigation.js";
-import { clearCheckIn, getOkrReport, type OkrPerson, type OkrReport } from "../../api.js";
+import {
+  addTeamAdmin,
+  clearCheckIn,
+  getOkrReport,
+  getTeamAdmins,
+  removeTeamAdmin,
+  type OkrPerson,
+  type OkrReport,
+  type TeamAdmin,
+} from "../../api.js";
 import { openCheckIn } from "../../checkin.js";
 import { money } from "../../state/state.js";
 import { escapeHTML } from "../../ui/ui.js";
@@ -116,4 +125,85 @@ byId<HTMLButtonElement>("tool-clear").addEventListener("click", (event) =>
   }),
 );
 
+// Team admins: list, add, remove.
+const teamList = byId("team-list");
+const teamForm = byId<HTMLFormElement>("team-form");
+const teamEmail = byId<HTMLInputElement>("team-email");
+const teamStatus = byId("team-status");
+
+function setTeamStatus(message: string, isError = false): void {
+  teamStatus.textContent = message;
+  teamStatus.classList.toggle("is-error", isError);
+}
+
+function renderAdmins(admins: TeamAdmin[]): void {
+  teamList.innerHTML = admins
+    .map((entry) => {
+      const title = entry.name ? `<strong>${escapeHTML(entry.name)}</strong><small>${escapeHTML(entry.email)}</small>` : `<strong>${escapeHTML(entry.email)}</strong>`;
+      const details = [
+        entry.isYou ? "You" : "",
+        entry.source === "settings" ? "Set in server settings" : entry.note ?? "",
+        entry.addedAt ? new Date(entry.addedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "",
+        entry.hasAccount ? "" : "No account yet",
+      ].filter(Boolean);
+      const action =
+        entry.isYou || entry.source === "settings"
+          ? ""
+          : `<button class="outline-button admin-remove" type="button" data-remove-admin="${escapeHTML(entry.email)}" aria-label="Remove ${escapeHTML(entry.email)} as an admin">Remove</button>`;
+      return `<li><div class="admin-person">${title}<span class="admin-meta">${escapeHTML(details.join(" · "))}</span></div>${action}</li>`;
+    })
+    .join("");
+  byId("admin-team").hidden = false;
+}
+
+async function loadAdmins(): Promise<void> {
+  try {
+    renderAdmins((await getTeamAdmins()).admins);
+  } catch (error) {
+    byId("admin-team").hidden = false;
+    setTeamStatus(error instanceof Error ? error.message : "Could not load the admin list.", true);
+  }
+}
+
+teamForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = teamEmail.value.trim();
+  if (!email) {
+    setTeamStatus("Enter the email they sign in with.", true);
+    teamEmail.focus();
+    return;
+  }
+  const button = teamForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+  if (button) button.disabled = true;
+  setTeamStatus("Adding…");
+  try {
+    renderAdmins((await addTeamAdmin(email)).admins);
+    teamEmail.value = "";
+    setTeamStatus(`${email.toLowerCase()} is now an admin. They'll see Team OKRs in Settings.`);
+  } catch (error) {
+    setTeamStatus(error instanceof Error ? error.message : "Could not add that admin.", true);
+    teamEmail.focus();
+  } finally {
+    if (button) button.disabled = false;
+  }
+});
+
+teamList.addEventListener("click", async (event) => {
+  const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("[data-remove-admin]") : null;
+  const email = button?.dataset.removeAdmin;
+  if (!button || !email) return;
+  if (!window.confirm(`Remove ${email} as an admin? They will lose access to this page.`)) return;
+  button.disabled = true;
+  setTeamStatus("Removing…");
+  try {
+    renderAdmins((await removeTeamAdmin(email)).admins);
+    setTeamStatus(`${email} is no longer an admin.`);
+    teamEmail.focus();
+  } catch (error) {
+    button.disabled = false;
+    setTeamStatus(error instanceof Error ? error.message : "Could not remove that admin.", true);
+  }
+});
+
 void load(getOkrReport, "Loading the numbers…");
+void loadAdmins();

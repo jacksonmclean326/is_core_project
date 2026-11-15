@@ -484,3 +484,29 @@ export interface OkrReport {
 export function getOkrReport(): Promise<OkrReport> {
   return request("/api/admin/okrs");
 }
+
+export interface TeamAdmin {
+  email: string;
+  name: string | null;
+  note: string | null;
+  addedAt: string | null;
+  /** "settings" admins come from ADMIN_EMAILS on the server and can't be removed on the page. */
+  source: "table" | "settings";
+  hasAccount: boolean;
+  isYou: boolean;
+}
+
+/** Team only: everyone who can open /admin. */
+export function getTeamAdmins(): Promise<{ admins: TeamAdmin[] }> {
+  return request("/api/admin/admins");
+}
+
+/** Team only: makes an existing account an admin. Returns the updated list. */
+export function addTeamAdmin(email: string): Promise<{ admins: TeamAdmin[] }> {
+  return request("/api/admin/admins", { method: "POST", body: JSON.stringify({ email }) });
+}
+
+/** Team only: removes an admin (not yourself). Returns the updated list. */
+export function removeTeamAdmin(email: string): Promise<{ admins: TeamAdmin[] }> {
+  return request("/api/admin/admins", { method: "DELETE", body: JSON.stringify({ email }) });
+}

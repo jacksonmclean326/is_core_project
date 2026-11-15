@@ -24,6 +24,21 @@
 .admin-table .checkin-yes { color: var(--green); font-weight: 700; }
 .admin-table .checkin-due { color: #8a6116; font-weight: 700; }
 
+.admin-team { margin-bottom: 16px; }
+.admin-team .admin-status { margin: 10px 0 0; }
+.admin-list { margin: 14px 0 16px; padding: 0; list-style: none; }
+.admin-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.admin-person { display: grid; gap: 2px; min-width: 0; font-size: 0.8125rem; }
+.admin-person small, .admin-meta { color: var(--muted); font-size: 0.6875rem; overflow-wrap: anywhere; }
+.admin-meta:empty { display: none; }
+.admin-remove { flex: 0 0 auto; min-height: 36px; }
+.admin-add { display: grid; gap: 6px; }
+.admin-add label { color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+.admin-add-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-add-row input { flex: 1 1 200px; min-width: 0; min-height: 40px; padding: 9px 11px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.875rem; }
+.admin-add-row input:focus-visible { outline: 3px solid rgba(47, 104, 84, .35); outline-offset: 1px; }
+.admin-add-row .primary-button { min-height: 40px; }
+
 .admin-tool-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 10px; }
 .admin-tools .admin-status { margin: 0; }
 

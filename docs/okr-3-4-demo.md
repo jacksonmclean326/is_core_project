@@ -28,7 +28,7 @@ All `okr.sample.*` accounts share one password.
 
 ## Before you present (one-time setup)
 
-1. **Make every presenter an admin.** In Supabase, open **Table Editor → Team Admin → Insert row**, enter each presenter's login email, and save. It works within 30 seconds, with no redeploy.
+1. **Make every presenter an admin.** Sign in as an admin (for example the demo account), open **Team OKRs**, and under **Team admins** type each presenter's login email and choose **Add admin**. It works right away. They need a Money Man account first.
 2. **Make Priya old enough for the check-in.** It only appears 60 days after sign-up, and the sample accounts are new. In Supabase, open **SQL Editor** and run:
 
    ```sql
@@ -91,7 +91,7 @@ Press **Refresh** on Team OKRs. Both numbers should be back where they started. 
 
 | Problem | Fix |
 | --- | --- |
-| "This page is only for the Money Man team" | That login email isn't in the **Team Admin** table. Add it (step 1 of setup) and wait 30 seconds. |
+| "This page is only for the Money Man team" | That login email isn't an admin yet. An admin can add it under **Team admins** (step 1 of setup). |
 | No **Team OKRs** link in Settings | Same as above. Sign out and back in after adding the email. |
 | Priya's check-in doesn't pop up | Run setup step 2 again, then sign out and back in. If she already answered, run reset step 2. |
 | OKR 3 didn't change after adding the purchase | Check that the date is in **last month** (not this month; the current month isn't finished yet) and that you pressed **Refresh**. |

@@ -1,9 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { User } from "@supabase/supabase-js";
-import { requireAdmin } from "../admin.js";
+import { addAdmin, listAdmins, removeAdmin, requireAdmin } from "../admin.js";
 import { createServiceSupabaseClient, type SessionClient } from "../auth/supabase.js";
 import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
+import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { checkInTable, isMissingTable, migrationMissing, recordGoalHistory, resultsTable } from "../savings-history.js";
 import { monthStart, utcDateString, type MonthKey } from "../../shared/months.js";
@@ -183,7 +184,48 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
   };
 }
 
+const emailPattern = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
+
+/** Admins with their account names, for the Team admins list. */
+async function adminList(admin: SessionClient, youEmail: string) {
+  const [entries, users] = await Promise.all([listAdmins(), allUsers(admin)]);
+  const byEmail = new Map(users.map((user) => [(user.email ?? "").toLowerCase(), user]));
+  const you = youEmail.toLowerCase();
+  return entries.map((entry) => {
+    const account = byEmail.get(entry.email);
+    return { ...entry, name: account ? displayName(account) : null, hasAccount: Boolean(account), isYou: entry.email === you };
+  });
+}
+
+/** GET lists the admins, POST { email } adds one, DELETE { email } removes one. Admins only. */
+async function handleAdminsApi(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
+  if (!["GET", "POST", "DELETE"].includes(request.method ?? "")) throw new HttpError(405, "Method not allowed.");
+  const { user } = await requireAdmin(request, response);
+  if (!config.supabaseSecretKey) throw new HttpError(503, "The Team OKRs page needs SUPABASE_SECRET_KEY in the server settings.");
+  const admin = createServiceSupabaseClient();
+  const you = user.email ?? "";
+
+  if (request.method !== "GET") {
+    const body = await readJsonBody(request);
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (!emailPattern.test(email) || email.length > 320) throw new HttpError(400, "Enter a valid email address.");
+    if (request.method === "POST") {
+      // Only people who already have an account, so a typo (or an address someone could sign up with later) can't
+      // quietly become an admin.
+      const exists = (await allUsers(admin)).some((account) => (account.email ?? "").toLowerCase() === email);
+      if (!exists) throw new HttpError(404, `No Money Man account uses ${email}. They need to sign up first.`);
+      await addAdmin(email, you);
+    } else {
+      await removeAdmin(email, you);
+    }
+  }
+  response.setHeader("Cache-Control", "no-store");
+  sendJson(response, 200, { admins: await adminList(admin, you) });
+  return true;
+}
+
 export async function handleAdminApi(request: IncomingMessage, response: ServerResponse, pathname: string): Promise<boolean> {
+  if (pathname === "/api/admin/admins") return handleAdminsApi(request, response);
   if (pathname !== "/api/admin/okrs") return false;
   if (request.method !== "GET") throw new HttpError(405, "Method not allowed.");
   await requireAdmin(request, response);

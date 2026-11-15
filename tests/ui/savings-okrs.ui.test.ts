@@ -159,3 +159,72 @@ test("the team OKR page explains when you are not on the team", async () => {
   assert.match(page.$("#admin-status").textContent, /only for the Money Man team/);
   assert.equal(page.$("#admin-okrs").hidden, true);
 });
+
+const teamAdmins = [
+  { email: "demo@example.com", name: "Demo User", note: null, addedAt: "2026-11-14T10:00:00Z", source: "table", hasAccount: true, isYou: true },
+  { email: "ops@example.com", name: null, note: null, addedAt: null, source: "settings", hasAccount: true, isYou: false },
+  { email: "ana@example.com", name: "Ana Saver", note: "Added by demo@example.com", addedAt: "2026-11-14T11:00:00Z", source: "table", hasAccount: true, isYou: false },
+];
+
+function adminPage(handler, options = {}) {
+  return openPage("admin", {
+    ...options,
+    routes: { "/api/admin/admins": handler, "/api/admin/okrs": () => [200, report], "/api/checkin": checkIn({ due: false }) },
+  });
+}
+
+test("Team admins lists everyone, and only other table admins can be removed", async () => {
+  const page = await adminPage(() => [200, { admins: teamAdmins }]);
+  const items = page.$$("#team-list li");
+  assert.equal(items.length, 3);
+  assert.match(items[0].textContent, /Demo User.*You/s);
+  assert.equal(items[0].querySelector("[data-remove-admin]"), null, "you can't remove yourself");
+  assert.match(items[1].textContent, /Set in server settings/);
+  assert.equal(items[1].querySelector("[data-remove-admin]"), null, "ADMIN_EMAILS entries can't be removed here");
+  assert.ok(items[2].querySelector('[data-remove-admin="ana@example.com"]'));
+  assert.match(items[2].textContent, /Added by demo@example.com/);
+  assert.deepEqual(describeViolations(await page.axe(page.$("#admin-team"))), []);
+});
+
+test("adding an admin sends the email and shows the new list", async () => {
+  const page = await adminPage((path, init, body) =>
+    init.method === "POST"
+      ? [200, { admins: [...teamAdmins, { email: body.email, name: "New Person", note: "Added by demo@example.com", addedAt: null, source: "table", hasAccount: true, isYou: false }] }]
+      : [200, { admins: teamAdmins }],
+  );
+  page.$("#team-email").value = "New@Example.com ";
+  await page.submit("#team-form");
+  const post = page.calls.find((call) => call.path === "/api/admin/admins" && call.method === "POST");
+  assert.deepEqual(post.body, { email: "New@Example.com" });
+  assert.equal(page.$$("#team-list li").length, 4);
+  assert.equal(page.$("#team-email").value, "");
+  assert.match(page.$("#team-status").textContent, /new@example.com is now an admin/);
+});
+
+test("adding an email without an account shows the server's reason", async () => {
+  const page = await adminPage((path, init) =>
+    init.method === "POST" ? [404, { error: "No Money Man account uses nobody@example.com. They need to sign up first." }] : [200, { admins: teamAdmins }],
+  );
+  await page.submit("#team-form");
+  assert.match(page.$("#team-status").textContent, /Enter the email/);
+  page.$("#team-email").value = "nobody@example.com";
+  await page.submit("#team-form");
+  assert.match(page.$("#team-status").textContent, /need to sign up first/);
+  assert.ok(page.$("#team-status").classList.contains("is-error"));
+});
+
+test("removing an admin asks first, then sends the email", async () => {
+  let answer = false;
+  const page = await adminPage(
+    (path, init) => (init.method === "DELETE" ? [200, { admins: teamAdmins.slice(0, 2) }] : [200, { admins: teamAdmins }]),
+    { confirm: () => answer },
+  );
+  await page.click('[data-remove-admin="ana@example.com"]');
+  assert.equal(page.calls.some((call) => call.method === "DELETE"), false, "cancelling does nothing");
+  answer = true;
+  await page.click('[data-remove-admin="ana@example.com"]');
+  const removal = page.calls.find((call) => call.path === "/api/admin/admins" && call.method === "DELETE");
+  assert.deepEqual(removal.body, { email: "ana@example.com" });
+  assert.equal(page.$$("#team-list li").length, 2);
+  assert.match(page.$("#team-status").textContent, /ana@example.com is no longer an admin/);
+});
