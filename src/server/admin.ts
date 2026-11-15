@@ -47,7 +47,7 @@ export async function isAdminUser(user: Pick<User, "email">): Promise<boolean> {
 export async function requireAdmin(request: IncomingMessage, response: ServerResponse) {
   const session = await requireSession(request, response);
   if (!(await isAdminUser(session.user))) {
-    throw new HttpError(403, "This page is only for the Money Man team. Ask the app owner to add your email to the Team Admin table in Supabase.");
+    throw new HttpError(403, "This page is only for the Money Man team.");
   }
   return session;
 }

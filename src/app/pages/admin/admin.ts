@@ -16,25 +16,29 @@ const toolsStatus = byId("tools-status");
 const refreshButton = byId<HTMLButtonElement>("admin-refresh");
 
 const checkInLabels: Record<OkrPerson["checkIn"], string> = {
-  yes: "Saved",
+  yes: "Yes, saved",
   no: "Not yet",
-  snoozed: "Snoozed",
-  due: "Due",
-  waiting: "Under 60 days",
+  snoozed: "Chose “Not now”",
+  due: "Not answered",
+  waiting: "Not asked yet",
 };
+
+const users = (count: number) => `${count} ${count === 1 ? "user" : "users"}`;
+const joined = (days: number) => (days <= 0 ? "joined today" : days === 1 ? "joined yesterday" : `joined ${days} days ago`);
 
 function render(report: OkrReport): void {
   const { okr3, okr4 } = report;
   byId("okr3-percent").textContent = okr3.percent === null ? "No data yet" : `${okr3.percent}%`;
-  byId("okr3-detail").textContent = `${okr3.consistentUsers} of ${okr3.goalUsers} users with goal history.`;
+  byId("okr3-detail").textContent = okr3.goalUsers
+    ? `${okr3.consistentUsers} of ${users(okr3.goalUsers)} with savings or spending goals.`
+    : "No one has savings or spending goals with a finished month yet.";
   byId("okr3-rule").textContent = okr3.rule;
 
   byId("okr4-percent").textContent = okr4.percent === null ? "No answers yet" : `${okr4.percent}%`;
-  byId("okr4-detail").textContent =
-    `${okr4.reportedSavings} of ${okr4.answered} answers said yes. ` +
-    (okr4.responseRate === null
-      ? "No one is past 60 days yet."
-      : `${okr4.eligibleAnswered} of ${okr4.eligible} users past 60 days answered (${okr4.responseRate}% response rate).`);
+  const answers = okr4.answered ? `${okr4.reportedSavings} of ${users(okr4.answered)} who answered said yes.` : "No one has answered the check-in yet.";
+  // The response rate only means something once some users have been asked.
+  const responses = okr4.eligible ? ` ${okr4.eligibleAnswered} of ${users(okr4.eligible)} asked so far have answered.` : "";
+  byId("okr4-detail").textContent = answers + responses;
   byId("okr4-rule").textContent = okr4.rule;
 
   const months = [...report.months].reverse();
@@ -49,18 +53,20 @@ function render(report: OkrReport): void {
           // data-label names the column when the table turns into cards on a phone.
           const label = `data-label="${escapeHTML(shortMonthName(month.month))}"`;
           return month.met === null
-            ? `<td class="is-empty" ${label} title="No goals or no transactions">–</td>`
+            ? `<td class="is-empty" ${label} title="Nothing to check this month">–</td>`
             : `<td class="${month.met ? "is-met" : "is-missed"}" ${label} title="${month.goalsMet} of ${month.goalsCounted} goals met">${month.met ? "Met" : "Missed"}</td>`;
         })
         .join("");
-      const consistent = person.consistent === null ? "–" : person.consistent ? `Yes (${person.monthsMet}/${person.monthsTracked})` : `No (${person.monthsMet}/${person.monthsTracked})`;
+      const consistent =
+        person.consistent === null ? "–" : `${person.consistent ? "Yes" : "No"} (${person.monthsMet} of ${person.monthsTracked} met)`;
       const checkIn = checkInLabels[person.checkIn] + (person.savedAmount !== null ? ` · ${money(person.savedAmount)}` : "");
-      return `<tr><th scope="row"><strong>${escapeHTML(person.name)}</strong><small>${escapeHTML(person.email ?? "")} · ${person.daysSinceSignUp} days</small></th>${cells}<td class="is-wide" data-label="Consistent">${escapeHTML(consistent)}</td><td class="is-wide checkin-${person.checkIn}" data-label="Check-in">${escapeHTML(checkIn)}</td></tr>`;
+      return `<tr><th scope="row"><strong>${escapeHTML(person.name)}</strong><small>${escapeHTML(person.email ?? "")} · ${joined(person.daysSinceSignUp)}</small></th>${cells}<td class="is-wide" data-label="Consistent">${escapeHTML(consistent)}</td><td class="is-wide checkin-${person.checkIn}" data-label="Check-in">${escapeHTML(checkIn)}</td></tr>`;
     })
     .join("");
 
-  const notes = [`${report.totalUsers} users. Updated ${new Date(report.generatedAt).toLocaleTimeString()}.`];
-  if (report.failedUsers) notes.push(`${report.failedUsers} users could not be checked; see the server log.`);
+  const time = new Date(report.generatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const notes = [`${users(report.totalUsers)} in total. Updated at ${time}.`];
+  if (report.failedUsers) notes.push(`${users(report.failedUsers)} couldn't be included this time. Press Refresh to try again.`);
   status.textContent = notes.join(" ");
   for (const id of ["admin-okrs", "admin-people", "admin-tools"]) byId(id).hidden = false;
 }

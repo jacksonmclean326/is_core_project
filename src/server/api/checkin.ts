@@ -57,7 +57,7 @@ export async function handleCheckInApi(request: IncomingMessage, response: Serve
   }
 
   if (request.method === "DELETE") {
-    if (!admin) throw new HttpError(403, "Only the Money Man team can clear a check-in answer.");
+    if (!admin) throw new HttpError(403, "Only the Money Man team can do that.");
     const removed = await client.from(checkInTable).delete().eq("user_id", user.id);
     if (removed.error) {
       if (isMissingTable(removed.error, checkInTable)) throw migrationMissing();
@@ -68,14 +68,14 @@ export async function handleCheckInApi(request: IncomingMessage, response: Serve
   }
 
   if (days < checkInAfterDays && !admin) {
-    throw new HttpError(400, `The savings check-in opens ${checkInAfterDays} days after you sign up.`);
+    throw new HttpError(400, "This question opens two months after you sign up.");
   }
   const body = await readJsonBody(request);
   let row: Record<string, unknown>;
   if (body.later === true) {
     row = { user_id: user.id, snoozed_until: new Date(Date.now() + checkInSnoozeDays * 86_400_000).toISOString() };
   } else {
-    if (typeof body.saved !== "boolean") throw new HttpError(400, "Choose Yes or No.");
+    if (typeof body.saved !== "boolean") throw new HttpError(400, "Choose Yes or Not yet.");
     let amount: number | null = null;
     if (body.saved && body.amount !== undefined && body.amount !== null) {
       if (typeof body.amount !== "number" || !Number.isFinite(body.amount) || body.amount < 0 || body.amount >= 1e9) {

@@ -10,11 +10,11 @@ College students often struggle to budget effectively due to limited time, incom
 | Bank connections                   | Working in Plaid Sandbox: link, balances, disconnect.                                                       |
 | Transactions                       | Working. Imported from Plaid (up to 24 months) and saved to Supabase; users can also add their own by hand. |
 | Automatic categorization           | Working. Merchant rules, then Plaid's hints, then Other; users can add categories and re-categorize.        |
-| Month views                        | Working. Details has a month switcher; Home shows a real six-month trend.                                   |
+| Month views                        | Working. Details has a month switcher; Home shows a real six-month trend, drawn at the screen's real size so it stays readable on phones. |
 | Home, Details                      | Real data once a bank is linked or a transaction is added; a "No spending yet" prompt before that.          |
 | Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
 | Friends, leaderboard               | Real friends and goal completion rankings (requires friends/leaderboard migrations).                                                |
-| Savings OKRs (team page)           | `/admin` shows OKR 3 (users consistently meeting savings goals) and OKR 4 (users reporting savings after two months). Requires the savings OKR migration and `ADMIN_EMAILS`. |
+| Savings OKRs (team page)           | Working. `/admin` tracks OKR 3 (users consistently meeting savings goals) and OKR 4 (users reporting savings after two months) from real user data. Admins are rows in the `Team Admin` table (requires the savings OKR and team admin migrations). |
 | Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
 
 ## ERD:
@@ -30,6 +30,7 @@ Notes on the spending tables:
 - The older `Category` and `Budget` tables are not used by the app yet. Budgets, goals, and category limits still live in browser storage.
 - `Plaid Item` also remembers how far each bank has been synced (a cursor, the time of the last sync, whether Plaid has finished importing history, and the version of the sorting rules used), so only changes are pulled from Plaid.
 - Every table is protected by Row Level Security. The server writes to the new tables with the Supabase secret key, and signed-in users can only read their own rows.
+- `Goal Month Result` (one row per user per finished month: were their Savings and Spending goals met?), `Savings Check-in` (each user's answer to the two-month check-in) and `Team Admin` (who can open `/admin`) are new for the savings OKRs and are not in the diagram yet. Signed-in users can read only their own `Goal Month Result` rows and their own check-in; they cannot read `Team Admin` at all.
 
 ## Tech Stack:
 
@@ -124,7 +125,7 @@ In Supabase **Authentication** settings, enable email/password sign-in and add b
 
 The Node.js server is the only part of the app that connects to Supabase. It handles account creation, sign-in, session checks, sign-out, account details, friend-code lookups, bank connections, transactions, and categories through HTTP endpoints. The browser sends same-origin `/api` requests and receives an HttpOnly session cookie; it does not include Supabase credentials. Plaid connection records, encrypted access tokens, transactions, and categories are managed server-side using the Supabase secret key, so every query is filtered to the signed-in user. Keep direct table access to `Plaid Item` restricted to the server's service role; review its grants and row-level security policies before deployment.
 
-The server serves the pages at `/auth`, `/home`, `/details`, `/accounts`, `/chat`, `/leaderboard`, `/settings`, `/privacy`, and `/help`. Bank accounts live on **Accounts** (its own tab in the bottom nav); **Settings** (the gear icon in the top bar) holds the profile, budget and income, display currency, and preferences. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`. The Details page also accepts `?month=YYYY-MM`.
+The server serves the pages at `/auth`, `/home`, `/details`, `/accounts`, `/chat`, `/leaderboard`, `/settings`, `/privacy`, `/help`, and the team-only `/admin` (Team OKRs; see **Savings OKRs**). Bank accounts live on **Accounts** (its own tab in the bottom nav); **Settings** (the gear icon in the top bar) holds the profile, budget and income, display currency, and preferences. These are regular GET routes with no hash fragments; signed-out visitors are redirected to `/auth`. The Details page also accepts `?month=YYYY-MM`.
 
 For the Friends page's dynamic friend code, the Supabase project must have a `public."User"` profile row whose `user_id` matches the Auth user ID and whose `friend_code` is a unique six-character code. The table's Row Level Security policy must allow authenticated users to select their own profile row (for example, `auth.uid() = user_id`). The sign-up form sends `first_name`, `last_name`, and `full_name` as Auth user metadata; configure the Auth-to-profile trigger to copy the names and generate the friend code in the database.
 
@@ -209,7 +210,7 @@ npm start
 
 ### Server-side code
 
-`src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/` (`auth`, `account`, `plaid`, `transactions`, `manual-transactions`, `categories`); authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. `src/server/categorize.ts` holds the automatic categorization rules, and `src/shared/months.ts` holds the calendar math used by both the server and the browser. Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
+`src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/` (`auth`, `account`, `plaid`, `transactions`, `manual-transactions`, `categories`, `checkin`, `admin`); authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. `src/server/categorize.ts` holds the automatic categorization rules, and `src/shared/months.ts` holds the calendar math used by both the server and the browser. The savings OKRs use `src/shared/savings-okrs.ts` (the rules for "met", "consistent" and "check-in due"), `src/server/savings-history.ts` (works each user's months out from their transactions), and `src/server/admin.ts` (who counts as an admin). Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
 Budgets, category limits, and preferences are stored in the browser. Goals, bank connections, transactions, custom categories, and merchant rules are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
 
@@ -218,6 +219,7 @@ Each app page lives in its own folder under `src/app/pages/` and keeps its HTML,
 ## Tests
 
 - `npm test` runs the unit tests (the 2,000-case golden merchant list, month math, validation, summaries, sync decisions) and the interface tests in `tests/ui/`: the Details page and its popups are run in a simulated page (jsdom, no browser) against a fake API and checked with the axe accessibility engine, and the CSS and HTML are checked against contrast, text-size, touch-target and phone-layout rules. No network or database needed. The full audit, with what still needs a real device, is in `docs/ui-audit.md`.
+- `tests/savings-okrs.test.ts` checks the OKR rules (when a goal counts as met, the 3-of-4 consistency rule, when the check-in is due). `tests/ui/savings-okrs.ui.test.ts` runs the check-in popup and the Team OKRs page in the simulated page, and `tests/ui/home-chart.ui.test.ts` covers the Home graph. Run one file with `node --import tsx --test <file>`.
 - `npm run typecheck` type-checks the browser and server code.
 - Integration tests use the real Plaid Sandbox and Supabase, so they need a filled-in `.env` and the server running (`npm start`). Each creates throwaway users and deletes everything it created:
 
@@ -249,6 +251,9 @@ To check spending data:
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
 - Plaid takes several seconds to prepare a newly linked bank (about 7 seconds in the Sandbox), so the very first load after linking cannot be instant. Every load after that is.
+- OKR 3 checks past months against each user's current goals, because goals do not record when they were created. A month with no transactions is not counted.
+- The OKR 4 check-in only appears 60 days after sign-up, so brand-new accounts do not see it. The team can show it at any time from `/admin` for demos.
+- The Team OKRs page recalculates every user's months on each load. That takes a few seconds with tens of users and would need caching for thousands.
 
 ## Supabase goals setup
 
@@ -317,5 +322,9 @@ Objective: users are saving money using the app. **Run `supabase/migrations/2026
 - **OKR 3, % of users who consistently meet their savings goals.** Each finished month, a user's Savings and Spending goals are checked against that month's spending and income (`src/shared/savings-okrs.ts`). A Savings goal is met when income (or budget) minus spending reaches the target; a Spending goal is met when spending stayed at or under the limit. A month counts as met when every goal that could be checked was met, and is saved to `Goal Month Result`. Up to 12 past months are worked out from saved transactions (using that month's income, or the nearest one saved). Last month is recorded the first time each day someone opens their goals. Every time the team opens or refreshes `/admin`, all months are worked out again from current data, so the Key Result follows what users actually do: adding a transaction, changing a goal or fixing their income shows up on the next refresh. Months with no transactions are not counted. A user is **consistent** when they met their goals in at least 3 of their last 4 finished months. The percentage only includes users with at least one recorded month.
 - **OKR 4, % of users who reported savings after two months.** 60 days after sign-up, a check-in asks "Have you saved money since you started using Money Man?" (Yes / Not yet, plus an optional amount) on whatever page the person opens (`src/app/checkin.ts`). Answers go to `Savings Check-in`. "Not now" or closing it hides it for 7 days. The percentage is Yes answers out of all answers; the page also shows the response rate among users past 60 days.
 - **Test tools** on `/admin` (team only): show the check-in right away (closing it there never snoozes), and clear your own answer.
+
+On a phone, the per-user table turns into one card per user. Both `/admin` and `/home` score 100 for accessibility in Lighthouse (mobile).
+
+Verification and demo: step-by-step instructions for showing both Key Results change live (the accounts to use, what to click, what to say, and how to reset afterwards) are in [`docs/okr-3-4-demo.md`](docs/okr-3-4-demo.md).
 
 Logic tests: `node --import tsx --test tests/savings-okrs.test.ts`.

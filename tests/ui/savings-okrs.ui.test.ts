@@ -106,11 +106,14 @@ test("the team OKR page shows both percentages and the per-user table", async ()
   assert.equal(page.$("#okr3-percent").textContent, "50%");
   assert.match(page.$("#okr3-detail").textContent, /1 of 2 users/);
   assert.equal(page.$("#okr4-percent").textContent, "50%");
-  assert.match(page.$("#okr4-detail").textContent, /2 of 3 users past 60 days answered \(67% response rate\)/);
+  assert.equal(page.$("#okr4-detail").textContent, "1 of 2 users who answered said yes. 2 of 3 users asked so far have answered.");
 
   const rows = page.$$("#people-body tr");
   assert.equal(rows.length, 2);
-  assert.deepEqual([...rows[0].querySelectorAll("td")].map((cell) => cell.textContent), ["Met", "Met", "Missed", "Met", "Yes (3/4)", "Saved · $300"]);
+  assert.deepEqual([...rows[0].querySelectorAll("td")].map((cell) => cell.textContent), ["Met", "Met", "Missed", "Met", "Yes (3 of 4 met)", "Yes, saved · $300"]);
+  assert.match(rows[0].querySelector("th small").textContent, /joined 136 days ago/);
+  assert.match(rows[1].querySelector("th small").textContent, /joined 13 days ago/);
+  assert.match(rows[1].textContent, /Not asked yet/);
   assert.equal(rows[1].querySelector("th strong").textContent, "<b>Ben</b>", "names are shown as text, not HTML");
   assert.equal(page.calls.some((call) => call.path === "/api/checkin"), false, "the check-in does not pop up by itself on /admin");
   assert.deepEqual(describeViolations(await page.axe()), []);
@@ -133,6 +136,22 @@ test("the demo check-in does not snooze, and Refresh reloads fresh numbers", asy
   await page.click("#admin-refresh");
   await page.flush(120);
   assert.equal(page.$("#okr3-percent").textContent, "25%");
+});
+
+test("before anyone has been asked, the OKR cards show plain sentences, not internal status", async () => {
+  const empty = {
+    ...report,
+    totalUsers: 1,
+    okr3: { ...report.okr3, consistentUsers: 0, goalUsers: 0, percent: null },
+    okr4: { ...report.okr4, reportedSavings: 0, answered: 0, percent: null, eligible: 0, eligibleAnswered: 0, responseRate: null },
+    people: [report.people[1]],
+  };
+  const page = await openPage("admin", { routes: { "/api/admin/okrs": () => [200, empty], "/api/checkin": checkIn({ due: false }) } });
+  assert.equal(page.$("#okr3-percent").textContent, "No data yet");
+  assert.equal(page.$("#okr3-detail").textContent, "No one has savings or spending goals with a finished month yet.");
+  assert.equal(page.$("#okr4-detail").textContent, "No one has answered the check-in yet.");
+  assert.doesNotMatch(page.$("main").textContent, /60 days|past 60|response rate|0 of 0/);
+  assert.match(page.$("#admin-status").textContent, /^1 user in total\. Updated at \d{1,2}:\d{2}/);
 });
 
 test("the team OKR page explains when you are not on the team", async () => {

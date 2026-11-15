@@ -168,7 +168,7 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
       consistentUsers,
       goalUsers,
       percent: percent(consistentUsers, goalUsers),
-      rule: `Met every Savings and Spending goal in at least ${consistencyNeeded} of the last ${consistencyWindow} finished months.`,
+      rule: `Counts as consistent: met all of their Savings and Spending goals in at least ${consistencyNeeded} of the last ${consistencyWindow} months.`,
     },
     okr4: {
       reportedSavings,
@@ -177,7 +177,7 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
       eligible: eligibleForCheckIn,
       eligibleAnswered,
       responseRate: percent(eligibleAnswered, eligibleForCheckIn),
-      rule: `Answered "Yes" to the savings check-in shown ${checkInAfterDays} days after sign-up.`,
+      rule: `Users are asked once, two months after signing up, whether they have saved money using the app.`,
     },
     people: people.sort((a, b) => a.name.localeCompare(b.name)),
   };
@@ -187,7 +187,7 @@ export async function handleAdminApi(request: IncomingMessage, response: ServerR
   if (pathname !== "/api/admin/okrs") return false;
   if (request.method !== "GET") throw new HttpError(405, "Method not allowed.");
   await requireAdmin(request, response);
-  if (!config.supabaseSecretKey) throw new HttpError(503, "The OKR page needs SUPABASE_SECRET_KEY on the server.");
+  if (!config.supabaseSecretKey) throw new HttpError(503, "The Team OKRs page needs SUPABASE_SECRET_KEY in the server settings.");
 
   const admin = createServiceSupabaseClient();
   const users = await allUsers(admin);

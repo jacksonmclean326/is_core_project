@@ -1,6 +1,7 @@
 import { getCheckIn, sendCheckIn } from "./api.js";
 import { displayToUsd, shownCurrency } from "./state/state.js";
 import { refreshIcons } from "./ui/ui.js";
+import { currencySymbol } from "../shared/currencies.js";
 
 /**
  * OKR 4: the two-month savings check-in. 60 days after sign-up, one question appears on whichever page the person
@@ -31,8 +32,8 @@ function formHtml(): string {
         <label class="fb-kind"><input type="radio" name="saved" value="yes"><span>Yes, I have</span></label>
         <label class="fb-kind"><input type="radio" name="saved" value="no"><span>Not yet</span></label>
       </fieldset>
-      <label class="fb-field checkin-amount" for="checkin-amount" hidden><span>About how much, in ${shownCurrency()}? (optional)</span>
-        <input id="checkin-amount" type="number" inputmode="decimal" min="0" step="any" placeholder="For example, 250" />
+      <label class="fb-field checkin-amount" for="checkin-amount" hidden><span>About how much have you saved? (optional)</span>
+        <input id="checkin-amount" type="number" inputmode="decimal" min="0" step="any" placeholder="${currencySymbol(shownCurrency())}250" />
       </label>
       <p class="dialog-form-feedback" id="checkin-error" role="alert"></p>
       <div class="fb-actions">
