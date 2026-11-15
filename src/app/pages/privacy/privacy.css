@@ -44,3 +44,7 @@
   .privacy-document { max-width: none; }
   .privacy-document section { break-inside: avoid; }
 }
+/* Touch screens of any size (tablets too): contents links tall enough to tap. */
+@media (pointer: coarse) {
+  .privacy-toc a { display: block; padding: 8px 0; }
+}

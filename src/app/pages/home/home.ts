@@ -413,11 +413,11 @@ function renderDashboard() {
     "aria-label",
     `${state.streak || 0} day streak`,
   );
-  $("#budget-total").textContent = budget ? money(budget) : "NO BUDGET";
+  $("#budget-total").textContent = budget ? money(budget) : "Not set";
   $("#spent-total").textContent = money(spent);
   $("#remaining-total").textContent = budget
-    ? `${remaining < 0 ? "-" : ""}${money(remaining)}`
-    : "NO BUDGET";
+    ? `${remaining < 0 ? "−" : ""}${money(remaining)}`
+    : "–";
   const used = budget ? Math.min(100, (spent / budget) * 100) : 0;
   $("#budget-progress").style.width = `${used}%`;
   $(".budget-track").setAttribute(

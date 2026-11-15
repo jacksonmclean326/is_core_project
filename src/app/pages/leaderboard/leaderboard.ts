@@ -69,7 +69,7 @@ async function refreshLeaderboard() {
     renderPodium(result.entries);
     $("#leaderboard-visibility-note").hidden = result.visible;
     $("#ranking-list").innerHTML = result.entries.map((entry) => {
-      const detail = entry.goalCount ? `${entry.completed} of ${entry.goalCount} goals reached` : "No completion goals yet";
+      const detail = entry.goalCount ? `${entry.completed} of ${entry.goalCount} goals reached` : "No goals yet";
       const spending = entry.spendingCount ? ` · ${entry.withinLimit} of ${entry.spendingCount} spending limits met so far this month` : "";
       return `<li class="ranking-row"><div><strong>${escapeHTML(entry.name)}${entry.isYou ? " (you)" : ""}</strong><p>${detail}${spending}</p></div><span class="ranking-score">${entry.score === null ? "Unranked" : `${entry.score.toLocaleString()} pts`}</span></li>`;
     }).join("");

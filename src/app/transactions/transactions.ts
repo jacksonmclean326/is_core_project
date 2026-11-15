@@ -113,7 +113,8 @@ export async function loadLinkedTransactions(
     const result = await getTransactions(month, history);
     if (requestId !== latestTransactionRequest) return "stale";
     const outcome = applyResult(month, result);
-    if (outcome === "linked") checkCategoryWarnings();
+    // Budget reminders are about this month; looking back at a past month should not pop one up.
+    if (outcome === "linked" && month === currentMonthKey()) checkCategoryWarnings();
     if (outcome === "linked") saveSnapshot(month, history, result);
     if (result.warning && result.warning !== lastWarning) showToast(result.warning);
     lastWarning = result.warning ?? "";

@@ -54,3 +54,12 @@ test("Details shows the same spending total at the top as in the transaction lis
   assert.match(page.$("#tx-summary").textContent, /\$190\b/);
   assert.match(page.$(".spending-available").textContent, /Left to spend/);
 });
+
+test("without a budget, Home and Details use plain words instead of 'NO BUDGET'", async () => {
+  const home = await openPage("home");
+  assert.equal(home.$("#budget-total").textContent, "Not set");
+  assert.equal(home.$("#remaining-total").textContent, "–");
+  const details = await openPage("details");
+  assert.equal(details.$(".current-budget-note").textContent, "No monthly budget yet");
+  for (const page of [home, details]) assert.doesNotMatch(page.$("main").textContent, /NO BUDGET/);
+});

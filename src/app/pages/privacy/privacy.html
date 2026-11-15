@@ -7,6 +7,7 @@
     <meta name="description" content="Money Man privacy notice and information about your data." />
     <title>Money Man - Privacy &amp; Data</title>
     <base href="/app/pages/privacy/">
+    <link rel="icon" type="image/png" href="../../assets/money-man-mascot.png">
     <link rel="stylesheet" href="../../global.css" />
     <link rel="stylesheet" href="privacy.css" />
   </head>
@@ -32,7 +33,7 @@
             <a class="primary-button page-return-button privacy-back" href="/settings">Back to Settings</a>
           </div>
 
-          <p class="privacy-updated">Privacy notice · Last updated November 7, 2026</p>
+          <p class="privacy-updated">Privacy notice · Last updated November 15, 2026</p>
 
           <div class="privacy-document-layout">
             <nav class="privacy-toc" aria-label="Privacy notice contents">
@@ -93,9 +94,21 @@
                   changes how amounts are shown, using daily exchange rates the server fetches from a
                   public rate service (Frankfurter, European Central Bank data) that receives no
                   information about you. Names you give your banks and accounts, and which accounts
-                  you hide, are stored with your account too. Category limits, streaks, and some app
-                  display settings remain in this browser, along with a cached copy of your display
-                  currency and the exchange rates.
+                  you hide, are stored with your account too, as are your category limits and daily
+                  streak. Some app display settings, such as which graph Home shows, remain in this
+                  browser, along with cached copies of your display currency, category limits, and the
+                  exchange rates.
+                </p>
+                <h3>Savings check-in and goal results</h3>
+                <p>
+                  Two months after you sign up, the app asks once whether you have saved money since you
+                  started using it. Your answer (yes or not yet), the optional amount you enter, and when
+                  you answered are stored with your account. For each finished month, the app also stores
+                  whether you met your Savings and Spending goals, worked out from your transactions,
+                  income, and goals. These records show your savings record on Home and let the team
+                  measure whether Money Man is helping people save. Members of Team Money Man who are
+                  signed in as team admins can see each user's name, email, monthly goal results, and
+                  check-in answer on a team-only page.
                 </p>
                 <h3>Feedback you send</h3>
                 <p>
@@ -127,6 +140,7 @@
                   <li>To organize transactions, apply your category choices and merchant rules, and show spending summaries.</li>
                   <li>To provide the AI chat responses you request, using your saved conversation and budgeting context.</li>
                   <li>To calculate progress on your savings and spending goals from your recorded transactions and monthly income.</li>
+                  <li>To show your savings record, and to measure whether Money Man is helping people save (the share of users who meet their goals consistently and who report saving after two months).</li>
                   <li>To save your account preferences and apply sync, reminder, leaderboard, and currency settings.</li>
                   <li>To diagnose service errors, protect the service, respond to requests, and meet legal obligations.</li>
                 </ul>
@@ -181,9 +195,10 @@
               <section id="storage" aria-labelledby="storage-title">
                 <h2 id="storage-title">6. Storage and retention</h2>
                 <p>
-                  Account, linked-account, category, transaction, budget, goal, preference, and chat
-                  history records are stored in the operator's Supabase project. Category limits,
-                  streaks, and some app settings are stored locally in the browser. A short-lived
+                  Account, linked-account, category, category limit, transaction, budget, goal,
+                  preference, streak, savings check-in, monthly goal result, and chat history records are
+                  stored in the operator's Supabase project. Some app display settings are stored locally
+                  in the browser. A short-lived
                   transaction snapshot may be kept in the current browser tab to make
                   recently viewed data load faster.
                 </p>
@@ -203,8 +218,8 @@
                 <p>
                   Money Man uses an essential, HttpOnly session cookie to keep you signed in. It is
                   configured as SameSite=Lax and is set as Secure in production; its lifetime is seven
-                  days. The app also uses browser local storage for category limits, your cached display
-                  currency, and other app settings, and session storage for temporary transaction
+                  days. The app also uses browser local storage for display settings and cached copies of
+                  your category limits and display currency, and session storage for temporary transaction
                   snapshots. These technologies are used for
                   the service rather than advertising. You can clear browser storage through your
                   browser, though doing so may remove locally saved app information or end your session.

@@ -9,7 +9,7 @@ import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { withGoalProgress } from "./goals.js";
-import { currencyOrDefault } from "../../shared/currencies.js";
+import { createMoneyFormatter, currencyOrDefault } from "../../shared/currencies.js";
 import { rateFor } from "../rates.js";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -293,22 +293,9 @@ export async function handleChatApi(
   const userMessage = requiredString(body.message, "message", 1000);
   const turns = await readChatTurns(client, user.id);
   const context = await loadSpendingContext(user.id, currencyOrDefault(user.user_metadata?.currency));
-  let result: Response;
-  try {
-    result = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.groqKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        max_completion_tokens: 240,
-        messages: [
-          {
-            role: "system",
-            content: `You are Mr. Moneyman, a practical, careful budgeting assistant. Answer the user's actual question first.
+  const amountExample = createMoneyFormatter(context.currency, 2).format(1912.5);
+  const messages = [
+    { role: "system", content: `You are Mr. Moneyman, a practical, careful budgeting assistant. Answer the user's actual question first.
 
 Use only facts in the conversation and account context. "This month" is thisMonth in the context and is not finished yet; "last month" always means lastMonth, the month before it. Use each month's label to tell them apart, and name the month in your answer. The context contains saved records, not a complete picture of the user's finances. A zero transaction count means no transactions are recorded for that month; never claim the user spent nothing or guess why records are missing. Spending may be incomplete if bank activity has not synced. Goal progress is the amount tracked in this app, not a verified bank balance or proof of how much the user has saved.
 
@@ -318,43 +305,54 @@ Never invent amounts, months, categories, savings progress, causes, budgets, cap
 
 ${appGuide}
 
+Write amounts the way the app shows them, with the currency symbol and thousands separators (for example ${amountExample}), never as a bare number followed by a currency code; write percentages like 90%.
+
 Write plain text only: no Markdown, tables, headings, bullets, images, or decorative separators. Usually answer in 1–3 short sentences (under 70 words). If a detail is needed to avoid a guess, ask one clear follow-up question. Be warm without overpraising.
 
-Account context (${context.currency}; amounts are shown in this currency, not converted):\n${JSON.stringify(context)}`,
-          },
-          ...modelHistory(turns),
-          { role: "user", content: userMessage },
-        ],
-      }),
-      signal: AbortSignal.timeout(25_000),
-    });
-  } catch {
-    throw new HttpError(502, "Groq could not be reached. Please try again.");
-  }
+Account context (${context.currency}; amounts are shown in this currency, not converted):\n${JSON.stringify(context)}` },
+    ...modelHistory(turns),
+    { role: "user", content: userMessage },
+  ];
 
-  if (!result.ok) {
+  // gpt-oss "thinks" before answering and that thinking counts toward the token limit. With a small limit, a
+  // question that needed more thought came back empty, so keep thinking short, allow room, and retry once.
+  const ask = async (lowEffort: boolean): Promise<{ status: number; text: string | null }> => {
+    let result: Response;
+    try {
+      result = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${config.groqKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          temperature: 0.2,
+          max_completion_tokens: 1200,
+          ...(lowEffort ? { reasoning_effort: "low" } : {}),
+          messages,
+        }),
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch {
+      throw new HttpError(502, "Groq could not be reached. Please try again.");
+    }
+    if (!result.ok) return { status: result.status, text: null };
+    const completion: unknown = await result.json().catch(() => null);
+    const choices = completion && typeof completion === "object" ? (completion as { choices?: unknown }).choices : null;
+    const first = Array.isArray(choices) ? choices[0] : null;
+    const content = first && typeof first === "object" ? (first as { message?: { content?: unknown } }).message?.content : null;
+    return { status: 200, text: typeof content === "string" && content.trim() ? content : null };
+  };
+
+  let answer = await ask(true);
+  // If the reasoning setting is ever refused, ask again without it rather than failing.
+  if (answer.status === 400) answer = await ask(false);
+  if (answer.status === 200 && answer.text === null) answer = await ask(true);
+  if (answer.status !== 200) {
     // Keep provider response bodies and request credentials out of client errors and server logs.
-    throw new HttpError(
-      502,
-      "Groq could not complete that reply. Please try again.",
-    );
+    throw new HttpError(502, "Groq could not complete that reply. Please try again.");
   }
-  const completion: unknown = await result.json().catch(() => null);
-  if (!completion || typeof completion !== "object") {
-    throw new HttpError(
-      502,
-      "Groq returned an invalid reply. Please try again.",
-    );
-  }
-  const choices = (completion as { choices?: unknown }).choices;
-  const first = Array.isArray(choices) ? choices[0] : null;
-  const completionMessage =
-    first && typeof first === "object"
-      ? (first as { message?: { content?: unknown } }).message
-      : null;
-  const reply = completionMessage?.content;
-  if (typeof reply !== "string" || !reply.trim()) {
-    throw new HttpError(502, "Groq returned an empty reply. Please try again.");
+  const reply = answer.text;
+  if (reply === null) {
+    throw new HttpError(502, "Mr. Moneyman couldn't come up with an answer that time. Please try asking again.");
   }
   const cleanReply = plainText(reply);
   if (!cleanReply) throw new HttpError(502, "Groq returned an empty reply. Please try again.");

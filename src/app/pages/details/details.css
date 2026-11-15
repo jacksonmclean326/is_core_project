@@ -110,7 +110,12 @@
 .month-switcher { flex-wrap: wrap; gap: 8px; }
 .month-switcher .small-action { width: 40px; height: 40px; }
 .month-select {
-  min-width: 190px;
+  /* Shrinks on narrow phones so the next-month arrow stays on the same line (it wrapped at 360px). */
+  /* Starts from zero width and grows (a wrapping row moves items down before it lets them shrink). */
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 260px;
+  text-overflow: ellipsis;
   padding: 9px 12px;
   border: 1px solid var(--field-border);
   border-radius: 6px;
@@ -121,6 +126,7 @@
 }
 .month-select:focus-visible { outline: 3px solid rgba(47, 104, 84, .45); outline-offset: 2px; }
 .month-current { padding: 6px 4px; font-size: 0.75rem; }
+@media (max-width: 560px) { .month-switcher .month-current { flex: 0 0 100%; justify-content: flex-start; } }
 .section-note { margin: 4px 0 0; max-width: 56ch; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .row-edit { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-left: 6px; padding: 0; border: 1px solid transparent; border-radius: 5px; color: var(--muted); background: transparent; vertical-align: middle; cursor: pointer; }
 .row-edit:hover, .row-edit:focus-visible { border-color: var(--line); color: var(--green-dark); background: var(--white); }

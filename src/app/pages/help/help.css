@@ -47,3 +47,7 @@
   .help-faq:not([open]) > :not(summary) { display: block; }
   .help-document section { break-inside: avoid; }
 }
+/* Touch screens of any size (tablets too): contents links tall enough to tap. */
+@media (pointer: coarse) {
+  .help-toc a { display: block; padding: 8px 0; }
+}

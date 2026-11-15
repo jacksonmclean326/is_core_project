@@ -206,7 +206,11 @@ function renderSummary() {
   );
   const budget = Number(state.budget) || 0;
   $("#summary-spent").textContent = money(spent);
-  $("#summary-budget").textContent = budget ? money(budget) : "NO BUDGET";
+  // "of $4,500 budget", or a plain sentence when no budget is set (it used to read "of NO BUDGET budget").
+  const budgetNote = document.querySelector<HTMLElement>(".current-budget-note");
+  if (budgetNote) {
+    budgetNote.innerHTML = budget ? `of <span id="summary-budget">${escapeHTML(money(budget))}</span> budget` : "No monthly budget yet";
+  }
   $("#summary-available").textContent = budget
     ? money(Math.max(0, budget - spent))
     : "Set a budget";

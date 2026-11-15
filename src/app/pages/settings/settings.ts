@@ -220,7 +220,7 @@ $("#budget-form").addEventListener("submit", async (event) => {
     saveState();
     feedback.textContent = budget
       ? "Saved to your account."
-      : "Budget cleared. Your dashboard will show NO BUDGET.";
+      : "Budget cleared. Home and Details will show your spending without a budget.";
     checkCategoryWarnings();
   } catch (error) {
     feedback.textContent = error instanceof Error
