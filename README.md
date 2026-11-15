@@ -12,7 +12,7 @@ College students often struggle to budget effectively due to limited time, incom
 | Automatic categorization           | Working. Merchant rules, then Plaid's hints, then Other; users can add categories and re-categorize.        |
 | Month views                        | Working. Details has a month switcher; Home shows a real six-month trend, drawn at the screen's real size so it stays readable on phones. |
 | Home, Details                      | Real data once a bank is linked or a transaction is added; a "No spending yet" prompt before that.          |
-| Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
+| Budget, goals, preferences, streak | Monthly budgets (carried forward to a new month until changed), goals, preferences, category limits and the daily streak are saved per user. Home shows each user's own savings record. |
 | Friends, leaderboard               | Real friends and goal completion rankings (requires friends/leaderboard migrations).                                                |
 | Savings OKRs (team page)           | Working. `/admin` tracks OKR 3 (users consistently meeting savings goals) and OKR 4 (users reporting savings after two months) from real user data. Admins are rows in the `Team Admin` table (requires the savings OKR and team admin migrations). |
 | Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
@@ -27,7 +27,7 @@ Notes on the spending tables:
 
 - `Transaction.category_key` holds either a built-in category id (`housing`, `food`, `transport`, `utilities`, `education`, `personal`, `other`) or a key from `Custom Category`. It is deliberately not a foreign key, so built-in categories need no rows.
 - A `Transaction` with no `plaid_transaction_id` is a manual entry the user typed in. Bank refreshes never touch those rows.
-- `Budget` holds each user's monthly income and budget, one row per month. The older `Category` table is not used; category limits still live in browser storage.
+- `Budget` holds each user's monthly income and budget, one row per month. The older `Category` table is not used; category limits are saved in the account's Supabase Auth metadata (`user_metadata.category_limits`).
 - `Plaid Item` also remembers how far each bank has been synced (a cursor, the time of the last sync, whether Plaid has finished importing history, and the version of the sorting rules used), so only changes are pulled from Plaid.
 - Every table is protected by Row Level Security. The server writes to the new tables with the Supabase secret key, and signed-in users can only read their own rows.
 - `Goal Month Result` (one row per user per finished month: were their Savings and Spending goals met?), `Savings Check-in` (each user's answer to the two-month check-in) and `Team Admin` (who can open `/admin`) are new for the savings OKRs and are not in the diagram yet. Signed-in users can read only their own `Goal Month Result` rows and their own check-in; they cannot read `Team Admin` at all.
@@ -171,7 +171,7 @@ The rules were developed against a list of more than 2,000 merchant cases, inclu
 
 Users can add their own categories (up to 12, names up to 24 characters), rename and hide any category, and delete their own. Deleting a custom category moves its transactions to Other. Built-in categories can be renamed and hidden but not deleted.
 
-**Category limits.** Each category can have a monthly limit (blank means none). Set them on Details with **Edit** (a limit box on every category, with a running total against your budget), or open a category and choose **Set a limit**. Spending near a limit (90%) shows a warning, and Home lists the categories closest to theirs. Changing the monthly budget in Settings scales the limits in proportion; saving the same budget leaves them untouched. Limits are still stored in the browser only (see Known limitations).
+**Category limits.** Each category can have a monthly limit (blank means none). Set them on Details with **Edit** (a limit box on every category, with a running total against your budget), or open a category and choose **Set a limit**. Spending near a limit (90%) shows a warning, and Home lists the categories closest to theirs. Changing the monthly budget in Settings scales the limits in proportion; saving the same budget leaves them untouched. Limits are saved to the account (`PUT /api/account/category-limits`, a moment after each change), so they follow the user to every device. The browser keeps a copy so pages draw straight away, and the account's copy wins when it loads. Limits a browser had before this was added move to the account the first time.
 
 **All transactions.** Below the charts, Details lists every transaction in the month you are viewing (bank and manual together), newest first and grouped by day. You can search by merchant, amount, account, bank, or category, show one category, sort by date or size, and see the count and total for what is showing. Transactions are grouped into one card per day (with the day's count and total), and each row carries its category as a thin colored bar on its left edge. Tap a row to open it: category buttons re-categorize it (a bank transaction also has an "Also apply to every ... transaction" option), and manual entries have Edit and Delete. The search, sort, and row-building code is in `src/shared/transaction-list.ts` and is unit-tested (including that merchant names cannot inject HTML).
 
@@ -197,6 +197,8 @@ All endpoints require a signed-in session (except sign-up and sign-in) and retur
 | `GET`/`POST`/`DELETE /api/chat`                                                              | Load saved chat history, send a message, or clear the signed-in user's history.                           |
 | `GET`/`POST /api/checkin`, `DELETE /api/checkin` (team only)                                 | Two-month savings check-in: whether it is due, answer it (`saved`, optional `amount`) or `later`, clear your answer. |
 | `GET /api/admin/okrs` (team only)                                                            | Savings OKR numbers and per-user results, worked out fresh from every user's current data.            |
+| `PUT /api/account/category-limits`                                                           | Save every category's monthly limit (`limits`: `{ key: dollars }`, 0 = none) to the account.          |
+| `GET /api/savings-record`                                                                    | The signed-in user's own savings record for the last 4 months (Home card).                            |
 | `GET`/`POST`/`DELETE /api/admin/admins` (team only)                                          | List the team's admins, add one (`email` of an existing account), or remove one (not yourself).        |
 
 ### Build and run the production server
@@ -213,7 +215,7 @@ npm start
 
 `src/server/index.ts` starts the backend, and `src/server/router.ts` connects HTTP requests to the API and web handlers. API routes are grouped under `src/server/api/` (`auth`, `account`, `plaid`, `transactions`, `manual-transactions`, `categories`, `checkin`, `admin`); authentication, Plaid, HTTP helpers, and static/page serving each have their own modules. `src/server/categorize.ts` holds the automatic categorization rules, and `src/shared/months.ts` holds the calendar math used by both the server and the browser. The savings OKRs use `src/shared/savings-okrs.ts` (the rules for "met", "consistent" and "check-in due"), `src/server/savings-history.ts` (works each user's months out from their transactions), and `src/server/admin.ts` (who counts as an admin). Browser code in `src/app/` calls the API. Development runs the TypeScript backend directly with `tsx` and requires the separate backend and Vite terminals described above. Production rebuilds and then runs the compiled server from `dist/server/` whenever you run `npm start`. Server-side sessions are held in memory, so restarting the backend signs users out; use a shared session store before running multiple backend instances.
 
-Category limits are stored in the browser. Budgets and income, preferences, goals, bank connections, transactions, custom categories, merchant rules, chat history and the savings OKR data are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
+Budgets and income, category limits, preferences, goals, bank connections, transactions, custom categories, merchant rules, chat history and the savings OKR data are stored per user in Supabase. Client-side route guards are for navigation only and are not data security.
 
 Each app page lives in its own folder under `src/app/pages/` and keeps its HTML, CSS, and TypeScript together, named after the folder. Shared styles are in `src/app/global.css`. Shared browser state lives in `src/app/state/state.ts`, transaction loading in `src/app/transactions/transactions.ts`, and UI helpers and dialogs in `src/app/ui/`. `src/app/core.ts` re-exports these modules.
 
@@ -236,9 +238,8 @@ To check spending data:
 
 ## Known limitations
 
-- Category limits and streaks are not saved per user, so they do not follow someone to another browser.
 - Friend rankings use average goal completion, with spending limits shown separately. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
-- The monthly budget is saved for the selected month and does not automatically carry forward to a new month.
+- A new month uses the most recent earlier budget until the user saves one for that month (Settings says where it came from). Past months with no budget of their own use the most recent earlier one too.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
 - Plaid takes several seconds to prepare a newly linked bank (about 7 seconds in the Sandbox), so the very first load after linking cannot be instant. Every load after that is.

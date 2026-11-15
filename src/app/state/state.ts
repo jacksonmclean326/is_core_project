@@ -3,7 +3,7 @@ import { createMoneyFormatter, currencyOrDefault, defaultCurrency } from "../../
 import { currentMonthKey } from "../../shared/months.js";
 import type { GoalStep } from "../../shared/goal-progress.js";
 import { showToast } from "../ui/ui.js";
-import { getAccount, getBudget, getRates } from "../api.js";
+import { getAccount, getBudget, getRates, saveCategoryLimits } from "../api.js";
 
 const palette = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#d9d5c7"];
 
@@ -146,6 +146,7 @@ export function loadAccountPreferences(): Promise<void> {
         state.streak = Number.isFinite(user.streak)
           ? Math.max(1, Math.trunc(user.streak ?? 1))
           : 1;
+        applySavedLimits(user.category_limits ?? null);
       })
       .catch((error: unknown) => {
         state.streak = 1;
@@ -342,7 +343,51 @@ export function money(amount: number): string {
 export function saveState(): void {
   const { accounts: _accounts, goals: _goals, streak: _streak, ...savedState } = state;
   const categories = savedState.categories.map(({ amount: _amount, ...category }) => category);
-  localStorage.setItem(storageKey, JSON.stringify({ ...savedState, categories }));
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({ ...savedState, categories }));
+  } catch {
+    // Storage can be full or blocked; the account still keeps the limits below.
+  }
+  scheduleLimitSync();
+}
+
+// Category limits are saved on the account so they follow the user to every device. This browser keeps a copy so
+// pages can draw straight away; the account's copy wins when it loads.
+let limitsReady = false;
+/** What the account has saved, so only real differences are sent. */
+let syncedLimits: Record<string, number> = {};
+let limitSyncTimer: ReturnType<typeof setTimeout> | undefined;
+
+function currentLimits(): Record<string, number> {
+  return Object.fromEntries(state.categories.map((category) => [category.id, Math.max(0, Number(category.limit) || 0)]));
+}
+
+/** Uses the limits saved on the account. An account with none yet takes this browser's limits. */
+function applySavedLimits(saved: Record<string, number> | null): void {
+  if (saved) {
+    for (const category of state.categories) {
+      if (typeof saved[category.id] === "number") category.limit = saved[category.id] as number;
+    }
+    syncedLimits = { ...saved };
+  }
+  limitsReady = true;
+  saveState();
+}
+
+/** Saves changed limits to the account shortly after they change (several quick edits become one save). */
+function scheduleLimitSync(): void {
+  if (!limitsReady) return;
+  clearTimeout(limitSyncTimer);
+  limitSyncTimer = setTimeout(() => {
+    const limits = currentLimits();
+    // A category the account has no entry for counts as "no limit" (0).
+    if (Object.entries(limits).every(([key, value]) => (syncedLimits[key] ?? 0) === value)) return;
+    saveCategoryLimits(limits)
+      .then(() => {
+        syncedLimits = limits;
+      })
+      .catch((error: unknown) => console.error("Could not save category limits to the account.", error));
+  }, 600);
 }
 
 export function updateCategoryBudgets(totalBudget: number): void {

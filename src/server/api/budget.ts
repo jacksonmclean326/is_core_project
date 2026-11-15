@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { requireSession } from "../auth/session.js";
+import type { SessionClient } from "../auth/supabase.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
@@ -18,15 +19,37 @@ function monthStart(value: unknown): string {
   return `${monthKey}-01`;
 }
 
-function publicBudget(row: BudgetRow | null) {
+function publicBudget(row: BudgetRow | null, carriedFrom: string | null = null) {
   return row
     ? {
         budgetId: row.budget_id,
         monthlyBudget: row.monthly_budget || null,
         monthlyIncome: row.monthly_income,
         month: row.month,
+        // Set when this month has no budget of its own yet and the most recent earlier one is used.
+        carriedFrom,
       }
     : null;
+}
+
+/**
+ * The budget for a month: that month's own row, or else the most recent earlier one, so a new month starts with
+ * last month's income and budget instead of blank. `carriedFrom` is the month it came from (YYYY-MM), if carried.
+ */
+export async function budgetForMonth(
+  client: SessionClient,
+  userId: string,
+  monthStartDate: string,
+): Promise<{ row: BudgetRow | null; carriedFrom: string | null }> {
+  const select = "budget_id,monthly_budget,monthly_income,month";
+  const own = await client.from("Budget").select(select).eq("user_id", userId).eq("month", monthStartDate)
+    .order("budget_id", { ascending: true }).limit(1).maybeSingle<BudgetRow>();
+  if (own.error) throw supabaseFailure(own.error);
+  if (own.data) return { row: own.data, carriedFrom: null };
+  const earlier = await client.from("Budget").select(select).eq("user_id", userId).lt("month", monthStartDate)
+    .order("month", { ascending: false }).limit(1).maybeSingle<BudgetRow>();
+  if (earlier.error) throw supabaseFailure(earlier.error);
+  return { row: earlier.data, carriedFrom: earlier.data?.month ? earlier.data.month.slice(0, 7) : null };
 }
 
 export async function handleBudgetApi(
@@ -41,16 +64,8 @@ export async function handleBudgetApi(
   if (request.method === "GET") {
     const url = new URL(request.url ?? pathname, "http://localhost");
     const month = monthStart(url.searchParams.get("month") ?? undefined);
-    const result = await client
-      .from("Budget")
-      .select("budget_id,monthly_budget,monthly_income,month")
-      .eq("user_id", user.id)
-      .eq("month", month)
-      .order("budget_id", { ascending: true })
-      .limit(1)
-      .maybeSingle<BudgetRow>();
-    if (result.error) throw supabaseFailure(result.error);
-    sendJson(response, 200, { budget: publicBudget(result.data) });
+    const { row, carriedFrom } = await budgetForMonth(client, user.id, month);
+    sendJson(response, 200, { budget: publicBudget(row, carriedFrom) });
     return true;
   }
 

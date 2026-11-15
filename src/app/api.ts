@@ -9,6 +9,8 @@ export interface ApiUser {
   budget_reminders?: boolean;
   leaderboard_visibility?: boolean;
   streak?: number;
+  /** Category limits saved on the account ({ categoryKey: dollars }), or null if none were saved yet. */
+  category_limits?: Record<string, number> | null;
   /** True for the team's admins (Team Admin table or ADMIN_EMAILS; sent by /api/auth/session). */
   isAdmin?: boolean;
 }
@@ -24,6 +26,8 @@ export interface BudgetRecord {
   monthlyBudget: number | null;
   monthlyIncome: number;
   month: string | null;
+  /** YYYY-MM the budget was carried over from, when this month has none of its own yet. */
+  carriedFrom?: string | null;
 }
 
 export function getBudget(month: string): Promise<{ budget: BudgetRecord | null }> {
@@ -181,6 +185,11 @@ export function getSession(): Promise<{ user: ApiUser | null }> {
 
 export function getAccount(): Promise<ApiUser> {
   return request("/api/account");
+}
+
+/** Saves every category's monthly limit (dollars, 0 = none) to the account, so it follows the user. */
+export function saveCategoryLimits(limits: Record<string, number>): Promise<{ limits: Record<string, number> }> {
+  return request("/api/account/category-limits", { method: "PUT", body: JSON.stringify({ limits }) });
 }
 
 export function updateAccountPreference(
@@ -509,4 +518,20 @@ export function addTeamAdmin(email: string): Promise<{ admins: TeamAdmin[] }> {
 /** Team only: removes an admin (not yourself). Returns the updated list. */
 export function removeTeamAdmin(email: string): Promise<{ admins: TeamAdmin[] }> {
   return request("/api/admin/admins", { method: "DELETE", body: JSON.stringify({ email }) });
+}
+
+export interface SavingsRecord {
+  hasGoals: boolean;
+  needed: number;
+  window: number;
+  /** Oldest first. `met` is null when there was nothing to check that month. */
+  months: { month: string; met: boolean | null; goalsMet: number; goalsCounted: number }[];
+  tracked: number;
+  met: number;
+  consistent: boolean;
+}
+
+/** The signed-in user's own month-by-month savings record (the same results OKR 3 uses). */
+export function getSavingsRecord(): Promise<SavingsRecord> {
+  return request("/api/savings-record");
 }

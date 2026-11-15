@@ -30,7 +30,7 @@ import {
   type AccountPreferences,
 } from "../../api.js";
 import { currencies, currencyOrDefault, currencySymbol } from "../../../shared/currencies.js";
-import { currentMonthKey, shortDateLabel } from "../../../shared/months.js";
+import { currentMonthKey, monthName, shortDateLabel } from "../../../shared/months.js";
 import "../../page-navigation.js";
 
 let accountFirstName = "";
@@ -178,6 +178,10 @@ async function loadSavedBudget() {
       ? toInputValue(budget.monthlyBudget)
       : "";
     $<HTMLInputElement>("#monthly-income").value = toInputValue(budget.monthlyIncome);
+    if (budget.carriedFrom) {
+      // A new month without its own budget uses the most recent one; saving makes it this month's.
+      $("#budget-feedback").textContent = `Carried over from ${monthName(budget.carriedFrom)}. Change it and press Save to set a new amount for ${monthName(currentMonthKey())}.`;
+    }
     saveState();
   } catch (error) {
     console.error("Unable to load the saved budget.", error);

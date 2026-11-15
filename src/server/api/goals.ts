@@ -19,6 +19,7 @@ import { config } from "../config.js";
 import { HttpError, isRecord, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
+import { budgetForMonth } from "./budget.js";
 import { recordGoalHistoryInBackground } from "../savings-history.js";
 
 const pageSize = 1000;
@@ -61,15 +62,8 @@ async function loadMonthFacts(admin: SessionClient, userId: string): Promise<Mon
     if (rows.length < pageSize) break;
   }
 
-  const budget = await admin
-    .from("Budget")
-    .select("monthly_budget,monthly_income")
-    .eq("user_id", userId)
-    .eq("month", monthStart(month))
-    .order("budget_id", { ascending: true })
-    .limit(1)
-    .maybeSingle<{ monthly_budget: number | null; monthly_income: number | null }>();
-  if (budget.error) throw supabaseFailure(budget.error);
+  // This month's budget, or last month's carried forward, so Savings goals keep working in a new month.
+  const budget = { data: (await budgetForMonth(admin, userId, monthStart(month))).row };
 
   return {
     today,

@@ -16,6 +16,7 @@ import { handleFriendsApi } from "./friends.js";
 import { handleRatesApi } from "./rates.js";
 import { handleCheckInApi } from "./checkin.js";
 import { handleAdminApi } from "./admin.js";
+import { handleSavingsRecordApi } from "./savings-record.js";
 
 export async function handleApi(
   request: IncomingMessage,
@@ -42,6 +43,7 @@ export async function handleApi(
   if (await handleRatesApi(request, response, pathname)) return;
   if (await handleCheckInApi(request, response, pathname)) return;
   if (await handleAdminApi(request, response, pathname)) return;
+  if (await handleSavingsRecordApi(request, response, pathname)) return;
 
   if (pathname.startsWith("/api/")) {
     sendJson(response, 404, { error: "API endpoint not found." });

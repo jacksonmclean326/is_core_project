@@ -10,6 +10,20 @@ import { sendJson } from "../http/response.js";
 import { currencyOrDefault, isCurrencyCode } from "../../shared/currencies.js";
 import { rateFor } from "../rates.js";
 
+/** Reads { categoryKey: dollars } from untrusted JSON: built-in keys or custom "c-xxxxxxxx" keys, 0 to 10 million. */
+export function parseCategoryLimits(value: unknown): Record<string, number> | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length > 40) return null;
+  const limits: Record<string, number> = {};
+  for (const [key, amount] of entries) {
+    if (!/^([a-z]{2,20}|c-[0-9a-f]{8})$/.test(key)) return null;
+    if (typeof amount !== "number" || !Number.isFinite(amount) || amount < 0 || amount > 10_000_000) return null;
+    limits[key] = Math.round(amount * 100) / 100;
+  }
+  return limits;
+}
+
 export async function handleAccountApi(
   request: IncomingMessage,
   response: ServerResponse,
@@ -36,7 +50,24 @@ export async function handleAccountApi(
       streak: profile.data && Number.isFinite(profile.data.streak)
         ? Math.max(0, Math.trunc(profile.data.streak))
         : 1,
+      category_limits: parseCategoryLimits(user.user_metadata?.category_limits),
     });
+    return true;
+  }
+
+  // Category limits are saved in the account's metadata too, so they follow the user to every device.
+  // Amounts are in US dollars, like everything else stored; 0 means no limit.
+  if (pathname === "/api/account/category-limits" && request.method === "PUT") {
+    const { client, user, sessionId } = await requireSession(request, response);
+    const body = await readJsonBody(request);
+    const limits = parseCategoryLimits(body.limits);
+    if (!limits) throw new HttpError(400, "Category limits must be amounts of zero or more for up to 40 categories.");
+    const update = await client.auth.updateUser({
+      data: { ...(user.user_metadata ?? {}), category_limits: limits },
+    });
+    if (update.error) throw supabaseFailure(update.error, 400);
+    rememberVerifiedUser(sessionId, update.data.user);
+    sendJson(response, 200, { limits });
     return true;
   }
 

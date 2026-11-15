@@ -23,8 +23,9 @@ import {
   fullDateEyebrow,
   localDateString,
   monthName,
+  shortMonthName,
 } from "../../../shared/months.js";
-import { getBankConnections, getLeaderboard } from "../../api.js";
+import { getBankConnections, getLeaderboard, getSavingsRecord, type SavingsRecord } from "../../api.js";
 import type { LeaderboardEntry } from "../../../shared/leaderboard.js";
 import { loadGoals } from "../../goals.js";
 import "../../page-navigation.js";
@@ -511,3 +512,42 @@ void loadGoals().then((goals) => {
 }).catch(() => {
   showToast("Could not load your goals for the home graph.");
 });
+
+// The user's own savings record: did they meet their Savings and Spending goals each of the last 4 months?
+async function loadSavingsRecord(): Promise<void> {
+  const card = $("#savings-record");
+  let record: SavingsRecord;
+  try {
+    record = await getSavingsRecord();
+  } catch {
+    card.hidden = true; // not set up on this server yet, or offline: leave the card out
+    return;
+  }
+  const plural = (count: number) => (count === 1 ? "month" : "months");
+  $("#record-months").innerHTML = record.months
+    .map((month) => {
+      const status = month.met === null ? "is-empty" : month.met ? "is-met" : "is-missed";
+      const text = month.met === null ? "–" : month.met ? "Met" : "Missed";
+      const detail = month.met === null ? "nothing to check" : `${month.goalsMet} of ${month.goalsCounted} goals met`;
+      return `<li class="record-month ${status}" aria-label="${escapeHTML(`${monthName(month.month)}: ${text === "–" ? "nothing to check" : text}, ${detail}`)}"><span>${escapeHTML(shortMonthName(month.month))}</span><strong>${text}</strong></li>`;
+    })
+    .join("");
+  let title: string;
+  let note: string;
+  if (!record.hasGoals) {
+    title = "Start your savings record";
+    note = "Add a Savings or Spending goal on Details to see how you do each month.";
+  } else if (!record.tracked) {
+    title = "Your record starts soon";
+    note = "Each finished month with goals and spending is added here.";
+  } else {
+    title = `Met your goals ${record.met} of the last ${record.tracked} ${plural(record.tracked)}`;
+    note = record.consistent
+      ? "That's consistent saving. Keep it up!"
+      : `Meet your goals in ${record.needed} of the last ${record.window} months to be a consistent saver.`;
+  }
+  $("#record-title").textContent = title;
+  $("#record-note").textContent = note;
+  card.hidden = false;
+}
+void loadSavingsRecord();
