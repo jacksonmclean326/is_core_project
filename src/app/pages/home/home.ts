@@ -12,9 +12,11 @@ import {
   openCategoryDetails,
   refreshIcons,
   showToast,
+  shownCurrency,
   state,
   totalSpent,
   trendValues,
+  usdToDisplay,
 } from "../../core.js";
 import {
   currentMonthKey,
@@ -164,19 +166,42 @@ function graphData(metric: GraphMetric): GraphData {
   };
 }
 
-function shortLabel(label: string): string {
-  return label.length > 12 ? `${label.slice(0, 11)}…` : label;
+function shortLabel(label: string, maxChars = 12): string {
+  const limit = Math.max(3, maxChars);
+  return label.length > limit ? `${label.slice(0, limit - 1)}…` : label;
+}
+
+/** "$4.3K" style amounts for axis ticks and narrow bars. */
+function compactValue(metric: GraphMetric, value: number): string {
+  if (metric === "friend-streaks") return `${Math.round(value)}d`;
+  const shown = usdToDisplay(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: shownCurrency(),
+    notation: "compact",
+    maximumFractionDigits: Math.abs(shown) >= 1000 ? 1 : 0,
+  }).format(shown);
+}
+
+/** Rough width of chart text in pixels (12-13px system font), so labels can be shortened or skipped before they collide. */
+const textWidth = (text: string) => text.length * 7;
+
+/** A round top for the y axis (and its three steps), so gridlines land on numbers like 1,500 instead of 1,437. */
+function niceScale(maxValue: number): { max: number; step: number } {
+  const raw = Math.max(maxValue, 1) / 3;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const step = ([1, 2, 2.5, 5, 10].find((factor) => factor * magnitude >= raw) ?? 10) * magnitude;
+  return { max: step * 3, step };
 }
 
 function renderGraph(): void {
   const data = graphData(graphSettings.metric);
-  const width = 850;
-  const height = 220;
-  const left = 38;
-  const right = 818;
-  const top = 18;
-  const bottom = 174;
   const chart = $("#trend-chart");
+  // Draw at the chart's real size. Stretching a fixed drawing to fit squashed the text, dots and bars on
+  // narrow screens; drawing 1:1 keeps them true at every width.
+  const width = Math.max(240, Math.round(chart.clientWidth) || 850);
+  const height = Math.max(140, Math.round(chart.clientHeight) || 220);
+  lastChartWidth = chart.clientWidth;
   const legend = $("#chart-legend");
   const change = $("#trend-change");
   $("#graph-eyebrow").textContent = graphSettings.metric === "monthly-spending" ? "YOUR LAST SIX MONTHS" : "YOUR FINANCES";
@@ -204,20 +229,37 @@ function renderGraph(): void {
 
   chart.classList.remove("is-empty", "is-donut");
   chart.setAttribute("aria-label", `${data.title}, ${graphSettings.type} chart`);
-  const grid = [0, 1, 2, 3]
-    .map((step) => {
-      const y = top + ((bottom - top) * step) / 3;
-      return `<line class="chart-grid" x1="${left}" y1="${y}" x2="${right}" y2="${y}" />`;
+  const values = data.items.map((item) => Math.max(0, item.value));
+  // Leave headroom above the tallest point for its value label, then round the axis up to a tidy number.
+  const scale = niceScale(Math.max(...values, 0) * 1.08);
+  const ticks = [0, 1, 2, 3].map((step) => step * scale.step);
+  const tickLabels = ticks.map((tick) => compactValue(graphSettings.metric, tick));
+  const left = Math.max(...tickLabels.map(textWidth)) + 14;
+  const right = width - 12;
+  const top = 16;
+  const bottom = height - 30;
+  const labelY = height - 9;
+  const yFor = (value: number) => bottom - (value / scale.max) * (bottom - top);
+  const grid = ticks
+    .map((tick, index) => {
+      const y = yFor(tick);
+      return `<line class="chart-grid" x1="${left}" y1="${y}" x2="${right}" y2="${y}" /><text class="chart-axis" x="${left - 8}" y="${y + 4}" text-anchor="end">${escapeHTML(tickLabels[index] ?? "")}</text>`;
     })
     .join("");
-  const values = data.items.map((item) => Math.max(0, item.value));
-  const maxValue = Math.max(1, ...values) * 1.12;
-  const yFor = (value: number) => bottom - (value / maxValue) * (bottom - top);
+  const slot = (right - left) / data.items.length;
+  // Bottom labels: shorten them to the space each one has, and if even short ones would touch, show every few.
+  const maxChars = Math.floor((slot - 6) / 7);
+  const labelEvery = maxChars >= 3 ? 1 : Math.ceil(28 / Math.max(slot, 1));
+  const bottomLabel = (x: number, index: number) =>
+    index % labelEvery === 0 || index === data.items.length - 1
+      ? `<text class="chart-label" x="${x}" y="${labelY}" text-anchor="middle">${escapeHTML(shortLabel(data.items[index]?.label ?? "", Math.min(12, Math.max(maxChars, Math.floor((slot * labelEvery - 6) / 7)))))}</text>`
+      : "";
   let chartMarkup = "";
 
   if (graphSettings.type === "line") {
+    const inset = Math.min(24, slot / 2);
     const points = data.items.map((item, index) => ({
-      x: data.items.length === 1 ? (left + right) / 2 : left + ((right - left) * index) / (data.items.length - 1),
+      x: data.items.length === 1 ? (left + right) / 2 : left + inset + ((right - left - inset * 2) * index) / (data.items.length - 1),
       y: yFor(item.value),
     }));
     const path = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
@@ -225,21 +267,25 @@ function renderGraph(): void {
     const dots = points.map((point, index) =>
       `<circle class="chart-dot${index === points.length - 1 ? " current" : ""}" cx="${point.x}" cy="${point.y}" r="${index === points.length - 1 ? 5 : 4}" />`,
     ).join("");
-    const labels = points.map((point, index) =>
-      `<text class="chart-label" x="${point.x}" y="205" text-anchor="middle">${escapeHTML(shortLabel(data.items[index]?.label ?? ""))}</text>`,
-    ).join("");
+    const labels = points.map((point, index) => bottomLabel(point.x, index)).join("");
     chartMarkup = `<defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8eaa96" stop-opacity=".32"/><stop offset="100%" stop-color="#8eaa96" stop-opacity=".015"/></linearGradient></defs>${grid}<path class="chart-area" d="${area}"/><path class="chart-line" d="${path}"/>${dots}${labels}`;
     legend.innerHTML = "";
     legend.hidden = true;
   } else if (graphSettings.type === "bar") {
-    const slot = (right - left) / data.items.length;
-    const barWidth = Math.min(48, slot * 0.52);
+    const barWidth = Math.max(4, Math.min(44, slot * 0.58));
     const bars = data.items.map((item, index) => {
       const x = left + slot * index + (slot - barWidth) / 2;
       const y = yFor(item.value);
       const labelX = x + barWidth / 2;
-      const valueY = Math.max(top + 12, y - 8);
-      return `<rect class="chart-bar-track" x="${x}" y="${top}" width="${barWidth}" height="${bottom - top}" rx="${barWidth / 2}"/><rect class="chart-bar${index === data.items.length - 1 ? " is-last" : ""}" x="${x}" y="${y}" width="${barWidth}" height="${Math.max(0, bottom - y)}" rx="${barWidth / 2}"/><text class="chart-value" x="${labelX}" y="${valueY}" text-anchor="middle">${escapeHTML(data.formatValue(item.value))}</text><text class="chart-label" x="${labelX}" y="205" text-anchor="middle">${escapeHTML(shortLabel(item.label))}</text>`;
+      const valueY = Math.max(top + 10, y - 7);
+      // The full amount if it fits over the bar, "$4.3K" if that fits, otherwise nothing (the axis still reads it).
+      const full = data.formatValue(item.value);
+      const compact = compactValue(graphSettings.metric, item.value);
+      const valueText = textWidth(full) <= slot - 4 ? full : textWidth(compact) <= slot - 2 ? compact : "";
+      const radius = Math.min(barWidth / 2, 10);
+      return `<rect class="chart-bar-track" x="${x}" y="${top}" width="${barWidth}" height="${bottom - top}" rx="${radius}"/><rect class="chart-bar${index === data.items.length - 1 ? " is-last" : ""}" x="${x}" y="${y}" width="${barWidth}" height="${Math.max(0, bottom - y)}" rx="${radius}"/>${
+        valueText ? `<text class="chart-value" x="${labelX}" y="${valueY}" text-anchor="middle">${escapeHTML(valueText)}</text>` : ""
+      }${bottomLabel(labelX, index)}`;
     }).join("");
     chartMarkup = `<defs><linearGradient id="chart-bar-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#6f9a7f"/><stop offset="100%" stop-color="#2f6854"/></linearGradient><linearGradient id="chart-bar-current" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#f09a78"/><stop offset="100%" stop-color="#e7745a"/></linearGradient></defs>${grid}${bars}`;
     legend.innerHTML = "";
@@ -268,8 +314,20 @@ function renderGraph(): void {
     return;
   }
 
-  chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">${chartMarkup}</svg>`;
+  chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">${chartMarkup}</svg>`;
   refreshIcons();
+}
+
+// Redraw when the chart's width changes (window resize, rotating a phone), since it is drawn at its real size.
+let lastChartWidth = 0;
+let resizeFrame = 0;
+if (typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(() => {
+    const chart = document.getElementById("trend-chart");
+    if (!chart || Math.abs(chart.clientWidth - lastChartWidth) < 2) return;
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(renderGraph);
+  }).observe($("#trend-chart"));
 }
 
 function graphEditorNote(metric: GraphMetric): string {

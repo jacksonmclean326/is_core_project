@@ -25,6 +25,7 @@
 .chart-label { fill: #818b84; font: 0.8125rem var(--font-body); }
 .chart-guide { stroke: #aeb8b0; stroke-width: 1; stroke-dasharray: 3 5; }
 .chart-value { fill: #737e76; font: 600 0.75rem var(--font-body); }
+.chart-axis { fill: #818b84; font: 0.6875rem var(--font-body); font-variant-numeric: tabular-nums; }
 .chart-bar-track { fill: #eef1eb; }
 .chart-bar { fill: url(#chart-bar-fill); }
 .chart-bar.is-last { fill: url(#chart-bar-current); }
