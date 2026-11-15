@@ -1,0 +1,45 @@
+/* Team-only savings OKR page (/admin). */
+.admin-status { margin: 0 0 18px; color: var(--muted); font-size: 0.8125rem; }
+.admin-status:empty { display: none; }
+.admin-status.is-error { color: #a33f30; }
+
+.admin-okrs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.admin-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); }
+.admin-card h2 { font-size: 1rem; }
+.admin-big { margin: 14px 0 4px; color: var(--green); font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; line-height: 1; }
+.admin-detail { margin: 0 0 10px; color: var(--ink); font-size: 0.875rem; }
+.admin-rule { margin: 6px 0 0; color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
+
+.admin-people, .admin-tools { margin-bottom: 16px; }
+.admin-table-wrap { margin-top: 14px; overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.admin-table th, .admin-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.admin-table thead th { color: var(--muted); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
+.admin-table tbody th { font-weight: 400; }
+.admin-table tbody th strong, .admin-table tbody th small { display: block; }
+.admin-table tbody th small { color: var(--muted); font-size: 0.6875rem; }
+.admin-table .is-met { color: var(--green); font-weight: 700; }
+.admin-table .is-missed { color: #a33f30; font-weight: 700; }
+.admin-table .is-empty { color: var(--muted); }
+.admin-table .checkin-yes { color: var(--green); font-weight: 700; }
+.admin-table .checkin-due { color: #8a6116; font-weight: 700; }
+
+.admin-tool-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 10px; }
+.admin-tools .admin-status { margin: 0; }
+
+@media (max-width: 560px) {
+  .admin-card { padding: 16px; }
+  .admin-big { font-size: 2rem; }
+
+  /* On a phone each user becomes a small card: name on top, the four months in a row, then the two results. */
+  .admin-table-wrap { overflow-x: visible; }
+  .admin-table, .admin-table tbody { display: block; }
+  .admin-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .admin-table tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .admin-table th, .admin-table td { padding: 0; border: 0; white-space: normal; }
+  .admin-table tbody th { grid-column: 1 / -1; }
+  .admin-table tbody th small { overflow-wrap: anywhere; }
+  .admin-table td { display: grid; gap: 1px; }
+  .admin-table td::before { content: attr(data-label); color: var(--muted); font-size: 0.625rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+  .admin-table td.is-wide { grid-column: span 2; }
+}

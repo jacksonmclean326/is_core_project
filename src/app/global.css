@@ -1176,6 +1176,11 @@ html {
 .feedback-form .dialog-form-feedback:empty { display: none; }
 .feedback-form .dialog-form-feedback.is-error { color: #a33f30; }
 .feedback-form .dialog-form-feedback a { color: inherit; text-decoration: underline; }
+/* Two-month savings check-in (built by checkin.ts); it reuses the feedback dialog styles. */
+.checkin-dialog .dialog-title { padding-right: 28px; }
+.checkin-amount[hidden] { display: none; }
+.checkin-amount input { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid var(--field-border); border-radius: 6px; background: var(--white); color: var(--ink); font: inherit; font-size: 0.875rem; }
+.checkin-amount input:focus-visible { outline: 3px solid rgba(47, 104, 84, .35); outline-offset: 1px; }
 .fb-thanks { display: grid; justify-items: start; gap: 8px; padding: 6px 0 2px; }
 .fb-thanks .icon { width: 30px; height: 30px; color: var(--green); }
 .fb-thanks p { margin: 0 0 6px; color: var(--muted); font-size: 0.875rem; }

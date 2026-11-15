@@ -9,6 +9,8 @@ export interface ApiUser {
   budget_reminders?: boolean;
   leaderboard_visibility?: boolean;
   streak?: number;
+  /** True for the team's admins (Team Admin table or ADMIN_EMAILS; sent by /api/auth/session). */
+  isAdmin?: boolean;
 }
 
 export interface AccountPreferences {
@@ -419,4 +421,66 @@ export function deleteFriend(id: string): Promise<{ ok: true }> {
 
 export function getLeaderboard(): Promise<{ entries: import("../shared/leaderboard.js").LeaderboardEntry[]; visible: boolean; updatedAt: string }> {
   return request("/api/leaderboard");
+}
+
+export interface CheckInStatus {
+  available: boolean;
+  due: boolean;
+  answered?: boolean;
+  saved?: boolean | null;
+  amount?: number | null;
+  daysSinceSignUp?: number;
+  isAdmin: boolean;
+}
+
+/** OKR 4: whether the two-month savings check-in should be shown. */
+export function getCheckIn(): Promise<CheckInStatus> {
+  return request("/api/checkin");
+}
+
+/** Answers the savings check-in (amount in dollars), or hides it for a week with `{ later: true }`. */
+export function sendCheckIn(input: { saved: boolean; amount: number | null } | { later: true }): Promise<{ ok: true }> {
+  return request("/api/checkin", { method: "POST", body: JSON.stringify(input) });
+}
+
+/** Team only: forgets your own check-in answer so it can be shown again. */
+export function clearCheckIn(): Promise<{ ok: true }> {
+  return request("/api/checkin", { method: "DELETE" });
+}
+
+export interface OkrPerson {
+  name: string;
+  email: string | null;
+  signedUpAt: string;
+  daysSinceSignUp: number;
+  months: { month: string; met: boolean | null; goalsMet: number; goalsCounted: number }[];
+  monthsTracked: number;
+  monthsMet: number;
+  consistent: boolean | null;
+  checkIn: "yes" | "no" | "snoozed" | "due" | "waiting";
+  savedAmount: number | null;
+}
+
+export interface OkrReport {
+  generatedAt: string;
+  totalUsers: number;
+  failedUsers: number;
+  monthsWritten: number;
+  months: string[];
+  okr3: { consistentUsers: number; goalUsers: number; percent: number | null; rule: string };
+  okr4: {
+    reportedSavings: number;
+    answered: number;
+    percent: number | null;
+    eligible: number;
+    eligibleAnswered: number;
+    responseRate: number | null;
+    rule: string;
+  };
+  people: OkrPerson[];
+}
+
+/** Team only: the savings OKR numbers, worked out fresh from current data. */
+export function getOkrReport(): Promise<OkrReport> {
+  return request("/api/admin/okrs");
 }

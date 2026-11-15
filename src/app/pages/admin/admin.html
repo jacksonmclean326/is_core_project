@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5ef" />
+    <meta name="robots" content="noindex" />
+    <meta name="description" content="Team-only savings OKR numbers for Money Man." />
+    <title>Money Man - Team OKRs</title>
+    <base href="/app/pages/admin/">
+    <link rel="stylesheet" href="../../global.css" />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/home" aria-label="Money Man home">
+          <img class="brand-mascot" src="../../assets/money-man-mascot.png" alt="" />
+          <span>Money Man</span>
+        </a>
+        <div class="topbar-actions">
+          <a class="icon-button settings-button" href="/settings" aria-label="Settings" title="Settings"><i data-icon="settings" aria-hidden="true"></i></a>
+        </div>
+      </header>
+      <main id="main-content">
+        <section class="page admin-page" aria-labelledby="admin-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">TEAM ONLY</p>
+              <h1 id="admin-title">Savings OKRs</h1>
+              <p class="subheading">Objective: users are saving money using the app.</p>
+            </div>
+            <button class="outline-button" type="button" id="admin-refresh"><i data-icon="refresh-cw" aria-hidden="true"></i>Refresh</button>
+          </div>
+
+          <p class="admin-status" id="admin-status" role="status" aria-live="polite">Loading the numbers…</p>
+
+          <div class="admin-okrs" id="admin-okrs" hidden>
+            <article class="admin-card" aria-labelledby="okr3-title">
+              <p class="eyebrow">OKR 3</p>
+              <h2 id="okr3-title">Users who consistently meet their savings goals</h2>
+              <p class="admin-big" id="okr3-percent">–</p>
+              <p class="admin-detail" id="okr3-detail"></p>
+              <p class="admin-rule" id="okr3-rule"></p>
+            </article>
+            <article class="admin-card" aria-labelledby="okr4-title">
+              <p class="eyebrow">OKR 4</p>
+              <h2 id="okr4-title">Users who reported savings after two months</h2>
+              <p class="admin-big" id="okr4-percent">–</p>
+              <p class="admin-detail" id="okr4-detail"></p>
+              <p class="admin-rule" id="okr4-rule"></p>
+            </article>
+          </div>
+
+          <section class="admin-card admin-people" id="admin-people" aria-labelledby="people-title" hidden>
+            <h2 id="people-title">By user</h2>
+            <p class="admin-rule">Each month shows whether every Savings and Spending goal was met. A dash means no goals or no transactions that month.</p>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead id="people-head"></thead>
+                <tbody id="people-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-card admin-tools" id="admin-tools" aria-labelledby="tools-title" hidden>
+            <h2 id="tools-title">Test tools</h2>
+            <p class="admin-rule">For demos. These only change your own check-in answer. The numbers above are worked out fresh from everyone's data each time you press Refresh.</p>
+            <div class="admin-tool-row">
+              <button class="primary-button" type="button" id="tool-checkin">Show the check-in now</button>
+              <button class="outline-button" type="button" id="tool-clear">Clear my check-in answer</button>
+            </div>
+            <p class="admin-status" id="tools-status" role="status" aria-live="polite"></p>
+          </section>
+        </section>
+      </main>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="/home" class="nav-item"><i data-icon="house" aria-hidden="true"></i><span>Home</span></a>
+        <a href="/details" class="nav-item"><i data-icon="circle-dollar-sign" aria-hidden="true"></i><span>Details</span></a>
+        <a href="/accounts" class="nav-item"><i data-icon="landmark" aria-hidden="true"></i><span>Accounts</span></a>
+        <a href="/chat" class="nav-item"><i data-icon="message-circle" aria-hidden="true"></i><span>Ask</span></a>
+        <a href="/leaderboard" class="nav-item"><i data-icon="trophy" aria-hidden="true"></i><span>Friends</span></a>
+      </nav>
+    </div>
+    <script type="module" src="admin.ts"></script>
+  </body>
+</html>

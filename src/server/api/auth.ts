@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpError } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { cookieHeader, sendJson } from "../http/response.js";
+import { isAdminUser } from "../admin.js";
 import { publicUser, requireSession, signIn, signOut } from "../auth/session.js";
 
 export async function handleAuthApi(
@@ -12,7 +13,7 @@ export async function handleAuthApi(
   if (pathname === "/api/auth/session" && request.method === "GET") {
     try {
       const { user } = await requireSession(request, response);
-      sendJson(response, 200, { user: publicUser(user) });
+      sendJson(response, 200, { user: { ...publicUser(user), isAdmin: await isAdminUser(user) } });
     } catch (error) {
       if (error instanceof HttpError && error.status === 401) {
         sendJson(response, 200, { user: null });

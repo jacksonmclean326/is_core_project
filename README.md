@@ -14,6 +14,7 @@ College students often struggle to budget effectively due to limited time, incom
 | Home, Details                      | Real data once a bank is linked or a transaction is added; a "No spending yet" prompt before that.          |
 | Budget, goals, preferences, streak | Monthly budgets, goals, and preferences are saved per user; category limits and streak remain browser-only. |
 | Friends, leaderboard               | Real friends and goal completion rankings (requires friends/leaderboard migrations).                                                |
+| Savings OKRs (team page)           | `/admin` shows OKR 3 (users consistently meeting savings goals) and OKR 4 (users reporting savings after two months). Requires the savings OKR migration and `ADMIN_EMAILS`. |
 | Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
 
 ## ERD:
@@ -90,6 +91,7 @@ If either command is not found, install Node.js LTS as described above, then reo
    | `PLAID_MODE`                 | `sandbox` (the default) or `production`.                                |
    | `PLAID_TOKEN_ENCRYPTION_KEY` | A 32-byte key, generated with the command below.                        |
    | `GROQ_KEY`                  | GroqCloud API key. Server only; required for AI chat.                    |
+   | `ADMIN_EMAILS`               | Optional. Extra admin emails for `/admin`, comma separated. Normally admins are rows in the Supabase `Team Admin` table. |
    | `SUPABASE_JWKS_URL`          | Not used by the app. Leave it blank.                                    |
 
    Generate the encryption key with:
@@ -192,6 +194,8 @@ All endpoints require a signed-in session (except sign-up and sign-in) and retur
 | `GET`/`POST /api/categories`, `PATCH`/`DELETE /api/categories/:key`                          | List, create, rename, delete custom categories.                                                          |
 | `POST /api/feedback`                                                                         | Send feedback (`kind`, `message`, `page`, `contactOk`).                                                  |
 | `GET`/`POST`/`DELETE /api/chat`                                                              | Load saved chat history, send a message, or clear the signed-in user's history.                           |
+| `GET`/`POST /api/checkin`, `DELETE /api/checkin` (team only)                                 | Two-month savings check-in: whether it is due, answer it (`saved`, optional `amount`) or `later`, clear your answer. |
+| `GET /api/admin/okrs` (team only)                                                            | Savings OKR numbers and per-user results, worked out fresh from every user's current data.            |
 
 ### Build and run the production server
 
@@ -301,3 +305,17 @@ Verification: use two linked test accounts with visibility enabled. Set one Cust
 Scoring regression tests: `node --import tsx --test tests/leaderboard.test.ts`.
 
 Leaderboard visibility in Settings hides your score from your own and friends’ rankings; it does not prevent you from viewing visible friends. Successful changes refresh other local tabs immediately; other devices pick them up on the next refresh (within a minute while visible). Failed saves restore the previous switch value. The leaderboard displays a hidden-score notice when opted out.
+
+## Savings OKRs
+
+Objective: users are saving money using the app. **Run `supabase/migrations/20261114_savings_okrs.sql` and `supabase/migrations/20261114_team_admins.sql` once** in the Supabase SQL Editor. Admins then see **Team OKRs** under Settings → More, which opens `/admin`. Everyone else gets a "team only" error there.
+
+**Making someone an admin:** in Supabase, open **Table Editor → Team Admin → Insert row**, type their login email (case doesn't matter) and save. Delete the row to remove them. Changes apply within 30 seconds, locally and on Elastic Beanstalk, with no redeploy or restart. App users can't read or change this table: row level security is on with no policies, and signed-in users have no grants. Only the server's secret key and people signed in to the Supabase dashboard can. The server checks admin access on every request.
+
+`ADMIN_EMAILS` (comma-separated, in `.env` or Elastic Beanstalk's environment properties) still works as an optional extra list, for example before the table exists. The page needs `SUPABASE_SECRET_KEY` on the server, which Plaid already uses.
+
+- **OKR 3, % of users who consistently meet their savings goals.** Each finished month, a user's Savings and Spending goals are checked against that month's spending and income (`src/shared/savings-okrs.ts`). A Savings goal is met when income (or budget) minus spending reaches the target; a Spending goal is met when spending stayed at or under the limit. A month counts as met when every goal that could be checked was met, and is saved to `Goal Month Result`. Up to 12 past months are worked out from saved transactions (using that month's income, or the nearest one saved). Last month is recorded the first time each day someone opens their goals. Every time the team opens or refreshes `/admin`, all months are worked out again from current data, so the Key Result follows what users actually do: adding a transaction, changing a goal or fixing their income shows up on the next refresh. Months with no transactions are not counted. A user is **consistent** when they met their goals in at least 3 of their last 4 finished months. The percentage only includes users with at least one recorded month.
+- **OKR 4, % of users who reported savings after two months.** 60 days after sign-up, a check-in asks "Have you saved money since you started using Money Man?" (Yes / Not yet, plus an optional amount) on whatever page the person opens (`src/app/checkin.ts`). Answers go to `Savings Check-in`. "Not now" or closing it hides it for 7 days. The percentage is Yes answers out of all answers; the page also shows the response rate among users past 60 days.
+- **Test tools** on `/admin` (team only): show the check-in right away (closing it there never snoozes), and clear your own answer.
+
+Logic tests: `node --import tsx --test tests/savings-okrs.test.ts`.

@@ -19,6 +19,7 @@ import { config } from "../config.js";
 import { HttpError, isRecord, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
+import { recordGoalHistoryInBackground } from "../savings-history.js";
 
 const pageSize = 1000;
 const baseGoalColumns = "goal_id, goal_type, goal_name, desired_savings, amount_savings, category_key, target_date";
@@ -251,6 +252,8 @@ export async function handleGoalsApi(
   const { client, user } = await requireSession(request, response);
   if (request.method === "GET") {
     const rows = await selectGoals(client, user.id);
+    // OKR 3: save how last month's Savings and Spending goals went (once a day, in the background).
+    if (config.supabaseSecretKey) recordGoalHistoryInBackground(createServiceSupabaseClient(), user.id);
     const currency = currencyOrDefault(user.user_metadata?.currency);
     sendJson(response, 200, { goals: await withGoalProgress(user.id, rows, currency) });
     return true;

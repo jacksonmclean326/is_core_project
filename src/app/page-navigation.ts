@@ -1,13 +1,15 @@
 import { getSession, signOut } from "./api.js";
-import { setProfileInitials } from "./ui/ui.js";
+import { refreshIcons, setProfileInitials } from "./ui/ui.js";
 import { ensureRates, setCurrency } from "./state/state.js";
 import { currencyOrDefault } from "../shared/currencies.js";
 import "./feedback.js";
+import { maybeShowCheckIn } from "./checkin.js";
 
 const publicRoute = "/auth";
 
 async function initializeNavigation() {
   const isPublicPage = window.location.pathname === publicRoute;
+  let isAdmin = false;
 
   try {
     const { user } = await getSession();
@@ -20,6 +22,7 @@ async function initializeNavigation() {
       return;
     }
     if (user) {
+      isAdmin = user.isAdmin === true;
       const metadata = user.user_metadata || {};
       // The saved currency lives on the account. This browser caches it so pages paint in the right
       // currency straight away; if the account has a different one (new device, changed elsewhere), reload once.
@@ -48,6 +51,10 @@ async function initializeNavigation() {
 
   if (isPublicPage) return;
 
+  if (isAdmin) addAdminLink();
+  // OKR 4: the two-month savings check-in (the team opens it from /admin instead).
+  if (window.location.pathname !== "/admin") void maybeShowCheckIn();
+
   const actions = document.querySelector<HTMLElement>(".topbar-actions");
   if (!actions || actions.querySelector("[data-sign-out]")) return;
 
@@ -68,6 +75,16 @@ async function initializeNavigation() {
     }
   });
   actions.append(button);
+}
+
+/** Settings > More gets a link to the team-only OKR page for the team's admins. */
+function addAdminLink() {
+  const list = document.querySelector<HTMLElement>(".settings-link-list");
+  if (!list || list.querySelector("[data-admin-link]")) return;
+  const item = document.createElement("li");
+  item.innerHTML = `<a href="/admin" data-admin-link><span><strong>Team OKRs</strong><small>Savings goal and check-in numbers (team only)</small></span><i data-icon="chevron-right" aria-hidden="true"></i></a>`;
+  list.append(item);
+  refreshIcons();
 }
 
 void initializeNavigation();

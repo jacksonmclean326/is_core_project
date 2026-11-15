@@ -44,6 +44,16 @@ export const config = {
   plaidMode,
   plaidTokenEncryptionKey: process.env.PLAID_TOKEN_ENCRYPTION_KEY?.trim() || "",
   groqKey: process.env.GROQ_KEY?.trim() || "",
+  // Optional extra admins for the team-only /admin page, comma separated. Normally admins are rows in the
+  // "Team Admin" table instead (see src/server/admin.ts). Quotes are ignored, because
+  // the Elastic Beanstalk console keeps them as part of the value while .env files strip them.
+  adminEmails: new Set(
+    (process.env.ADMIN_EMAILS ?? "")
+      .replace(/["']/g, "")
+      .split(/[,;\s]+/)
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean),
+  ),
   port: readPort(),
   distributionDirectory: resolve(process.cwd(), "dist"),
 };

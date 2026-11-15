@@ -78,6 +78,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
       return send(200, monthResponse(transactions, history));
     }
     if (path.startsWith("/api/plaid/accounts")) return send(200, { connections: [] });
+    if (path.startsWith("/api/checkin")) return send(200, { available: true, due: false, isAdmin: false });
     return send(404, { error: "not in the fake API" });
   };
 

@@ -15,7 +15,8 @@ export type PageRoute =
   | "leaderboard"
   | "settings"
   | "privacy"
-  | "help";
+  | "help"
+  | "admin";
 
 export const pageFiles = new Map<string, PageRoute>([
   ["/auth", "auth"],
@@ -27,6 +28,7 @@ export const pageFiles = new Map<string, PageRoute>([
   ["/settings", "settings"],
   ["/privacy", "privacy"],
   ["/help", "help"],
+  ["/admin", "admin"],
 ]);
 
 export async function servePage(
