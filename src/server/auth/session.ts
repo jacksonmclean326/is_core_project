@@ -136,7 +136,12 @@ export async function signIn(
   request: IncomingMessage,
   response: ServerResponse,
   input: { email: string; password: string },
-  signUpDetails?: { firstName: string; lastName: string; fullName: string },
+  signUpDetails?: {
+    firstName: string;
+    lastName: string;
+    fullName: string;
+    referralCode?: string | null;
+  },
 ): Promise<{
   authenticated: boolean;
   user: ReturnType<typeof publicUser> | null;
@@ -151,6 +156,10 @@ export async function signIn(
             first_name: signUpDetails.firstName,
             last_name: signUpDetails.lastName,
             full_name: signUpDetails.fullName,
+            onboarding_complete: false,
+            ...(signUpDetails.referralCode
+              ? { pending_friend_code: signUpDetails.referralCode }
+              : {}),
           },
         },
       })

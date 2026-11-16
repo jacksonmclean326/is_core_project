@@ -8,6 +8,7 @@ import { sendRedirect } from "../http/response.js";
 
 export type PageRoute =
   | "auth"
+  | "onboarding"
   | "home"
   | "details"
   | "accounts"
@@ -20,6 +21,7 @@ export type PageRoute =
 
 export const pageFiles = new Map<string, PageRoute>([
   ["/auth", "auth"],
+  ["/onboarding", "onboarding"],
   ["/home", "home"],
   ["/details", "details"],
   ["/accounts", "accounts"],
@@ -48,11 +50,21 @@ export async function servePage(
   }
 
   if (route === "root") {
-    sendRedirect(response, user ? "/home" : "/auth");
+    sendRedirect(
+      response,
+      user
+        ? user.user_metadata?.onboarding_complete === false
+          ? "/onboarding"
+          : "/home"
+        : "/auth",
+    );
     return;
   }
   if (route === "auth" && user) {
-    sendRedirect(response, "/home");
+    sendRedirect(
+      response,
+      user.user_metadata?.onboarding_complete === false ? "/onboarding" : "/home",
+    );
     return;
   }
   if (route !== "auth" && !user) {
@@ -64,6 +76,18 @@ export async function servePage(
         : {}),
     });
     response.end();
+    return;
+  }
+  if (route === "onboarding" && user?.user_metadata?.onboarding_complete !== false) {
+    sendRedirect(response, "/home");
+    return;
+  }
+  if (
+    route !== "auth" &&
+    route !== "onboarding" &&
+    user?.user_metadata?.onboarding_complete === false
+  ) {
+    sendRedirect(response, "/onboarding");
     return;
   }
 

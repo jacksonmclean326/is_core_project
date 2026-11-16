@@ -44,10 +44,11 @@ export function monthResponse(transactions = sampleTransactions, history = 0) {
   };
 }
 
-export async function openPage(name, { search = "", routes = {}, transactions = sampleTransactions, runScript = true, confirm = () => true } = {}) {
+export async function openPage(name, { search = "", routes = {}, transactions = sampleTransactions, runScript = true, confirm = () => true, storage = {} } = {}) {
   const html = readFileSync(new URL(`${name}/${name}.html`, pagesDirectory), "utf8").replace(/<script[\s\S]*?<\/script>/g, "");
   const dom = new JSDOM(html, { url: `http://localhost:3000/${name}${search}`, runScripts: "outside-only", pretendToBeVisual: true });
   const { window } = dom;
+  for (const [key, value] of Object.entries(storage)) window.localStorage.setItem(key, value);
   openWindows.add(window);
   const calls = [];
 
@@ -59,7 +60,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
     for (const [prefix, handler] of Object.entries(routes)) {
       if (path.startsWith(prefix)) return send(...handler(path, init, body));
     }
-    if (path.startsWith("/api/auth/session")) return send(200, { user: { id: "u1", email: "demo@example.com" } });
+    if (path.startsWith("/api/auth/session")) return send(200, { user: { id: "u1", email: "demo@example.com", dark_mode: false } });
     if (path === "/api/account") return send(200, {
       id: "u1",
       email: "demo@example.com",
@@ -70,6 +71,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
       daily_sync: true,
       budget_reminders: true,
       leaderboard_visibility: true,
+      dark_mode: false,
       streak: 1,
     });
     if (path.startsWith("/api/friend-code")) return send(200, { friendCode: "ABC234" });
@@ -77,6 +79,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
       daily_sync: body?.preference === "daily_sync" ? body.enabled : true,
       budget_reminders: body?.preference === "budget_reminders" ? body.enabled : true,
       leaderboard_visibility: body?.preference === "leaderboard_visibility" ? body.enabled : true,
+      dark_mode: body?.preference === "dark_mode" ? body.enabled : false,
     });
     if (path.startsWith("/api/budget")) return send(200, {
       budget: init.method === "POST"
@@ -90,6 +93,7 @@ export async function openPage(name, { search = "", routes = {}, transactions = 
     if (path.startsWith("/api/plaid/accounts")) return send(200, { connections: [] });
     if (path.startsWith("/api/checkin")) return send(200, { available: true, due: false, isAdmin: false });
     if (path.startsWith("/api/account/category-limits")) return send(200, { limits: body?.limits ?? {} });
+    if (path.startsWith("/api/account/category-preferences")) return send(200, { preferences: body?.preferences ?? {} });
     return send(404, { error: "not in the fake API" });
   };
 

@@ -31,6 +31,7 @@ import {
 } from "../../api.js";
 import { currencies, currencyOrDefault, currencySymbol } from "../../../shared/currencies.js";
 import { currentMonthKey, monthName, shortDateLabel } from "../../../shared/months.js";
+import { getTheme, setTheme } from "../../theme.js";
 import "../../page-navigation.js";
 
 let accountFirstName = "";
@@ -108,6 +109,8 @@ async function renderAuthenticatedProfile() {
     $<HTMLInputElement>("#sync-toggle").checked = state.preferences.sync;
     $<HTMLInputElement>("#reminder-toggle").checked = state.preferences.reminders;
     $<HTMLInputElement>("#leaderboard-toggle").checked = state.preferences.leaderboard;
+    setTheme(user.dark_mode === true ? "dark" : "light");
+    $<HTMLInputElement>("#theme-toggle").checked = user.dark_mode === true;
     if (setCurrency(currencyOrDefault(metadata.currency))) {
       renderCurrencyPicker();
     }
@@ -164,6 +167,7 @@ function renderSettings() {
   $<HTMLInputElement>("#sync-toggle").checked = state.preferences.sync;
   $<HTMLInputElement>("#reminder-toggle").checked = state.preferences.reminders;
   $<HTMLInputElement>("#leaderboard-toggle").checked = state.preferences.leaderboard;
+  $<HTMLInputElement>("#theme-toggle").checked = getTheme() === "dark";
   renderCurrencyPicker();
   refreshIcons();
 }
@@ -259,6 +263,34 @@ $("#currency-select").addEventListener("change", async (event) => {
     select.disabled = false;
   }
 });
+
+$<HTMLInputElement>("#theme-toggle").addEventListener("change", (event) => {
+  const control = event.currentTarget as HTMLInputElement;
+  const previous = getTheme();
+  const next = control.checked ? "dark" : "light";
+  const feedback = $("#theme-feedback");
+  control.disabled = true;
+  feedback.classList.remove("is-error");
+  feedback.textContent = "Saving theme preference…";
+  void updateAccountPreference("dark_mode", next === "dark")
+    .then((saved) => {
+      const savedTheme = saved.dark_mode ? "dark" : "light";
+      setTheme(savedTheme);
+      control.checked = saved.dark_mode;
+      feedback.textContent = `Dark mode ${saved.dark_mode ? "enabled" : "disabled"} for your account.`;
+    })
+    .catch((error: unknown) => {
+      control.checked = previous === "dark";
+      feedback.textContent = error instanceof Error
+        ? error.message
+        : "Could not save your theme preference. Please try again.";
+      feedback.classList.add("is-error");
+    })
+    .finally(() => {
+      control.disabled = false;
+    });
+});
+
 $("#edit-account").addEventListener("click", showAccountEditDialog);
 $("#dialog-content").addEventListener("click", (event) => {
   if (eventElement(event)?.closest("[data-cancel-account-edit]")) {

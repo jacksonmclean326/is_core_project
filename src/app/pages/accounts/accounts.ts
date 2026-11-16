@@ -1,8 +1,6 @@
 import { $, convertToDisplay, escapeHTML, eventElement, money, refreshIcons, shownCurrency, state } from "../../core.js";
 import {
-  createPlaidLinkToken,
   disconnectPlaidItem,
-  exchangePlaidPublicToken,
   getBankConnections,
   refreshBankConnections,
   renameBankConnection,
@@ -10,30 +8,10 @@ import {
   type BankAccount,
   type BankConnection,
 } from "../../api.js";
+import { openPlaidLink } from "../../plaid-link.js";
 import "../../page-navigation.js";
 
-declare global {
-  interface Window {
-    Plaid?: {
-      create(configuration: {
-        token: string;
-        onSuccess(
-          publicToken: string,
-          metadata: {
-            institution?: {
-              institution_id: string | null;
-              name: string;
-            } | null;
-          },
-        ): void;
-        onExit(error: { error_message?: string } | null, metadata: unknown): void;
-      }): { open(): void };
-    };
-  }
-}
-
 let bankConnections: BankConnection[] = [];
-let plaidLinkScript: Promise<void> | null = null;
 
 /** Account kinds that are abbreviations, written the way banks write them ("cd" is "CD", not "Cd"). */
 const typeAbbreviations: Record<string, string> = { cd: "CD", ira: "IRA", hsa: "HSA", cma: "CMA", "401k": "401(k)", "403b": "403(b)", "457b": "457(b)", "529": "529", ugma: "UGMA", utma: "UTMA", sep: "SEP", heloc: "HELOC" };
@@ -175,24 +153,6 @@ function renderBankConnections() {
     : '<p class="bank-empty">No bank accounts connected yet. Choose “Connect an account” to add one.</p>';
   refreshIcons();
 }
-async function loadPlaidLinkSdk(): Promise<void> {
-  if (window.Plaid) return;
-  if (!plaidLinkScript) {
-    plaidLinkScript = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
-      script.async = true;
-      script.onload = () => {
-        if (window.Plaid) resolve();
-        else reject(new Error("Plaid Link did not initialize."));
-      };
-      script.onerror = () => reject(new Error("Plaid Link could not be loaded."));
-      document.head.append(script);
-    });
-  }
-  await plaidLinkScript;
-}
-
 async function loadBankConnections(refresh: boolean): Promise<void> {
   const feedback = $("#link-feedback");
   const cached = await getBankConnections();
@@ -242,55 +202,22 @@ $("#connect-bank").addEventListener("click", async () => {
   feedback.classList.remove("is-error");
   feedback.textContent = "Opening secure bank connection…";
   try {
-    await loadPlaidLinkSdk();
-    const { linkToken } = await createPlaidLinkToken();
-    if (!window.Plaid) throw new Error("Plaid Link did not initialize.");
-
-    let successReceived = false;
-    const handler = window.Plaid.create({
-      token: linkToken,
-      onSuccess: async (publicToken, metadata) => {
-        successReceived = true;
-        feedback.textContent = "Saving your bank connection…";
-        try {
-          await exchangePlaidPublicToken({
-            publicToken,
-            institutionId: metadata.institution?.institution_id ?? null,
-            institutionName: metadata.institution?.name ?? null,
-          });
-          feedback.textContent = "Connected. Loading your saved accounts…";
-          try {
-            await loadBankConnections(false);
-            feedback.textContent = "Your bank account is connected.";
-          } catch (error) {
-            console.error("Unable to reload connected bank accounts.", error);
-            feedback.textContent =
-              "Your bank connection was saved, but the account list could not be refreshed.";
-            feedback.classList.add("is-error");
-          }
-        } catch (error) {
-          console.error("Unable to save the Plaid bank connection.", error);
-          feedback.textContent =
-            error instanceof Error
-              ? error.message
-              : "Could not save your bank connection. Please try again.";
-          feedback.classList.add("is-error");
-        } finally {
-          button.disabled = false;
-        }
-      },
-      onExit: (error) => {
-        if (error) {
-          feedback.textContent =
-            "Plaid could not complete the connection. Please try again.";
-          feedback.classList.add("is-error");
-        } else if (!successReceived) {
-          feedback.textContent = "";
-        }
-        if (!successReceived) button.disabled = false;
-      },
+    const connected = await openPlaidLink((status) => {
+      feedback.textContent = status;
     });
-    handler.open();
+    if (connected) {
+      feedback.textContent = "Connected. Loading your saved accounts…";
+      try {
+        await loadBankConnections(false);
+        feedback.textContent = "Your bank account is connected.";
+      } catch (error) {
+        console.error("Unable to reload connected bank accounts.", error);
+        feedback.textContent = "Your bank connection was saved, but the account list could not be refreshed.";
+        feedback.classList.add("is-error");
+      }
+    } else {
+      feedback.textContent = "";
+    }
   } catch (error) {
     console.error("Unable to start the Plaid bank connection.", error);
     feedback.textContent =
@@ -298,6 +225,7 @@ $("#connect-bank").addEventListener("click", async () => {
         ? error.message
         : "Could not start a bank connection. Please try again.";
     feedback.classList.add("is-error");
+  } finally {
     button.disabled = false;
   }
 });

@@ -44,8 +44,8 @@ test("the savings record explains what to do when there is nothing to show yet",
   assert.equal(page.$("#savings-record").hidden, true, "the card stays out of the way if the server can't provide it");
 });
 
-const accountWith = (limits) => () => [200, {
-  id: "u1", email: "demo@example.com", user_metadata: null, daily_sync: true, budget_reminders: true, leaderboard_visibility: true, streak: 1, category_limits: limits,
+const accountWith = (limits, categoryPreferences = null) => () => [200, {
+  id: "u1", email: "demo@example.com", user_metadata: null, daily_sync: true, budget_reminders: true, leaderboard_visibility: true, streak: 1, category_limits: limits, category_preferences: categoryPreferences,
 }];
 const savedLimits = (page) => Object.fromEntries(JSON.parse(page.window.localStorage.getItem("money-man-prototype")).categories.map((c) => [c.id, c.limit]));
 
@@ -74,6 +74,52 @@ test("an account without saved limits takes this browser's limits, and later cha
   const first = page.calls.filter((call) => call.path === "/api/account/category-limits" && call.method === "PUT");
   assert.equal(first.length, 1);
   assert.equal(first[0].body.limits.food, 300, "the browser's existing food limit moves to the account");
+});
+
+test("category names and chart visibility load and save with the signed-in account", async () => {
+  const saved = { food: { name: "Dining", visible: false } };
+  const page = await openPage("details", { routes: {
+    "/api/account/category-preferences": (_path, _init, body) => [200, { preferences: body.preferences }],
+    "/api/account": accountWith(null, saved),
+  } });
+  await page.flush(800);
+  await page.click("#edit-summary");
+
+  const row = page.$('[data-category="food"]');
+  assert.equal(row.querySelector(".cat-name").value, "Dining");
+  assert.equal(row.querySelector(".cat-visible").checked, false);
+
+  const visibility = row.querySelector(".cat-visible");
+  visibility.checked = true;
+  visibility.dispatchEvent(new page.window.Event("change", { bubbles: true }));
+  await page.flush(100);
+  const visibilitySave = page.calls.find((call) => call.path === "/api/account/category-preferences");
+  assert.equal(visibilitySave.body.preferences.food.visible, true);
+
+  const name = row.querySelector(".cat-name");
+  name.value = "Meals";
+  name.dispatchEvent(new page.window.Event("change", { bubbles: true }));
+  await page.flush(100);
+  const nameSaves = page.calls.filter((call) => call.path === "/api/account/category-preferences");
+  assert.equal(nameSaves.at(-1).body.preferences.food.name, "Meals");
+  assert.equal(JSON.parse(page.window.localStorage.getItem("money-man-prototype")).categories.find((category) => category.id === "food").name, "Meals");
+});
+
+test("a failed category preference save restores the chart setting and reports the error", async () => {
+  const page = await openPage("details", { routes: {
+    "/api/account/category-preferences": () => [503, { error: "Category settings are unavailable." }],
+    "/api/account": accountWith(null),
+  } });
+  await page.flush(800);
+  await page.click("#edit-summary");
+  const row = page.$('[data-category="food"]');
+  const visibility = row.querySelector(".cat-visible");
+  visibility.checked = false;
+  visibility.dispatchEvent(new page.window.Event("change", { bubbles: true }));
+  await page.flush(100);
+
+  assert.equal(visibility.checked, true);
+  assert.match(row.querySelector(".cat-message").textContent, /Category settings are unavailable/);
 });
 
 test("Settings says when this month's budget was carried over from last month", async () => {

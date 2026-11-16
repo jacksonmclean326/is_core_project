@@ -8,17 +8,28 @@ export interface ApiUser {
   daily_sync?: boolean;
   budget_reminders?: boolean;
   leaderboard_visibility?: boolean;
+  dark_mode?: boolean;
   streak?: number;
   /** Category limits saved on the account ({ categoryKey: dollars }), or null if none were saved yet. */
   category_limits?: Record<string, number> | null;
+  /** Per-account category labels and chart visibility, or null before the first edit. */
+  category_preferences?: CategoryPreferences | null;
   /** True for the team's admins (Team Admin table or ADMIN_EMAILS; sent by /api/auth/session). */
   isAdmin?: boolean;
+}
+
+export interface CategoryPreferences {
+  [categoryKey: string]: {
+    name?: string;
+    visible?: boolean;
+  };
 }
 
 export interface AccountPreferences {
   daily_sync: boolean;
   budget_reminders: boolean;
   leaderboard_visibility: boolean;
+  dark_mode: boolean;
 }
 
 export interface BudgetRecord {
@@ -166,11 +177,12 @@ export function signUp(
   password: string,
   firstName: string,
   lastName: string,
-  fullName: string
+  fullName: string,
+  referralCode?: string,
 ): Promise<AuthResult> {
   return request("/api/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password, firstName, lastName, fullName })
+    body: JSON.stringify({ email, password, firstName, lastName, fullName, referralCode })
   });
 }
 
@@ -187,9 +199,26 @@ export function getAccount(): Promise<ApiUser> {
   return request("/api/account");
 }
 
+export function completeOnboarding(reason: string, entryMode: "plaid" | "manual"): Promise<{ ok: true }> {
+  return request("/api/account/onboarding", {
+    method: "PUT",
+    body: JSON.stringify({ reason, entryMode }),
+  });
+}
+
 /** Saves every category's monthly limit (dollars, 0 = none) to the account, so it follows the user. */
 export function saveCategoryLimits(limits: Record<string, number>): Promise<{ limits: Record<string, number> }> {
   return request("/api/account/category-limits", { method: "PUT", body: JSON.stringify({ limits }) });
+}
+
+/** Saves category labels and chart visibility to the signed-in user's account. */
+export function saveCategoryPreferences(
+  preferences: CategoryPreferences,
+): Promise<{ preferences: CategoryPreferences }> {
+  return request("/api/account/category-preferences", {
+    method: "PUT",
+    body: JSON.stringify({ preferences }),
+  });
 }
 
 export function updateAccountPreference(
@@ -428,7 +457,7 @@ export function deleteFriend(id: string): Promise<{ ok: true }> {
   return request("/api/friends", { method: "DELETE", body: JSON.stringify({ id }) });
 }
 
-export function getLeaderboard(): Promise<{ entries: import("../shared/leaderboard.js").LeaderboardEntry[]; visible: boolean; updatedAt: string }> {
+export function getLeaderboard(): Promise<import("../shared/leaderboard.js").LeaderboardResponse> {
   return request("/api/leaderboard");
 }
 

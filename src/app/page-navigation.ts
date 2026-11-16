@@ -4,8 +4,10 @@ import { ensureRates, setCurrency } from "./state/state.js";
 import { currencyOrDefault } from "../shared/currencies.js";
 import "./feedback.js";
 import { maybeShowCheckIn } from "./checkin.js";
+import { initializeTheme, setTheme } from "./theme.js";
 
 const publicRoute = "/auth";
+initializeTheme();
 
 async function initializeNavigation() {
   const isPublicPage = window.location.pathname === publicRoute;
@@ -22,6 +24,9 @@ async function initializeNavigation() {
       return;
     }
     if (user) {
+      if (typeof user.dark_mode === "boolean") {
+        setTheme(user.dark_mode ? "dark" : "light");
+      }
       isAdmin = user.isAdmin === true;
       const metadata = user.user_metadata || {};
       // The saved currency lives on the account. This browser caches it so pages paint in the right

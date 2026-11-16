@@ -8,6 +8,8 @@ import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { currencyOrDefault, isCurrencyCode } from "../../shared/currencies.js";
+import { onboardingReasons } from "../../shared/onboarding.js";
+import { parseCategoryPreferences } from "./category-preferences.js";
 import { rateFor } from "../rates.js";
 
 /** Reads { categoryKey: dollars } from untrusted JSON: built-in keys or custom "c-xxxxxxxx" keys, 0 to 10 million. */
@@ -29,6 +31,30 @@ export async function handleAccountApi(
   response: ServerResponse,
   pathname: string,
 ): Promise<boolean> {
+  if (pathname === "/api/account/onboarding" && request.method === "PUT") {
+    const { client, user, sessionId } = await requireSession(request, response);
+    const body = await readJsonBody(request);
+    if (!onboardingReasons.includes(body.reason as (typeof onboardingReasons)[number])) {
+      throw new HttpError(400, "Choose why you want to use Money Man.");
+    }
+    if (body.entryMode !== "plaid" && body.entryMode !== "manual") {
+      throw new HttpError(400, "Choose how you want to add transactions.");
+    }
+    const update = await client.auth.updateUser({
+      data: {
+        ...(user.user_metadata ?? {}),
+        onboarding_reason: body.reason,
+        onboarding_entry_mode: body.entryMode,
+        onboarding_complete: true,
+        pending_friend_code: null,
+      },
+    });
+    if (update.error) throw supabaseFailure(update.error, 400);
+    rememberVerifiedUser(sessionId, update.data.user);
+    sendJson(response, 200, { ok: true });
+    return true;
+  }
+
   if (pathname === "/api/account" && request.method === "GET") {
     const { client, user } = await requireSession(request, response);
     const profile = await client
@@ -47,11 +73,29 @@ export async function handleAccountApi(
       daily_sync: profile.data?.daily_sync !== false,
       budget_reminders: profile.data?.budget_reminders !== false,
       leaderboard_visibility: profile.data?.leaderboard_visibility !== false,
+      dark_mode: user.user_metadata?.dark_mode === true,
       streak: profile.data && Number.isFinite(profile.data.streak)
         ? Math.max(0, Math.trunc(profile.data.streak))
         : 1,
       category_limits: parseCategoryLimits(user.user_metadata?.category_limits),
+      category_preferences: parseCategoryPreferences(user.user_metadata?.category_preferences),
     });
+    return true;
+  }
+
+  if (pathname === "/api/account/category-preferences" && request.method === "PUT") {
+    const { client, user, sessionId } = await requireSession(request, response);
+    const body = await readJsonBody(request);
+    const preferences = parseCategoryPreferences(body.preferences);
+    if (!preferences) {
+      throw new HttpError(400, "Category preferences must include valid names or visibility settings for up to 40 categories.");
+    }
+    const update = await client.auth.updateUser({
+      data: { ...(user.user_metadata ?? {}), category_preferences: preferences },
+    });
+    if (update.error) throw supabaseFailure(update.error, 400);
+    rememberVerifiedUser(sessionId, update.data.user);
+    sendJson(response, 200, { preferences });
     return true;
   }
 
@@ -92,7 +136,7 @@ export async function handleAccountApi(
   }
 
   if (pathname === "/api/account/preferences" && request.method === "PATCH") {
-    const { client, user } = await requireSession(request, response);
+    const { client, user, sessionId } = await requireSession(request, response);
     const body = await readJsonBody(request);
     const preference = body.preference;
     const columns = {
@@ -102,11 +146,37 @@ export async function handleAccountApi(
     } as const;
     if (
       typeof preference !== "string" ||
-      !Object.hasOwn(columns, preference) ||
+      (!Object.hasOwn(columns, preference) && preference !== "dark_mode") ||
       typeof body.enabled !== "boolean"
     ) {
       throw new HttpError(400, "Choose a valid preference and enabled value.");
     }
+    let darkMode = user.user_metadata?.dark_mode === true;
+    if (preference === "dark_mode") {
+      const update = await client.auth.updateUser({
+        data: { ...(user.user_metadata ?? {}), dark_mode: body.enabled },
+      });
+      if (update.error) throw supabaseFailure(update.error, 400);
+      rememberVerifiedUser(sessionId, update.data.user);
+      darkMode = update.data.user.user_metadata?.dark_mode === true;
+    }
+
+    if (preference === "dark_mode") {
+      const current = await client
+        .from("User")
+        .select("daily_sync,budget_reminders,leaderboard_visibility")
+        .eq("user_id", user.id)
+        .single();
+      if (current.error) throw supabaseFailure(current.error);
+      sendJson(response, 200, {
+        daily_sync: current.data.daily_sync !== false,
+        budget_reminders: current.data.budget_reminders !== false,
+        leaderboard_visibility: current.data.leaderboard_visibility !== false,
+        dark_mode: darkMode,
+      });
+      return true;
+    }
+
     const column = columns[preference as keyof typeof columns];
     const result = await client
       .from("User")
@@ -119,6 +189,7 @@ export async function handleAccountApi(
       daily_sync: result.data.daily_sync !== false,
       budget_reminders: result.data.budget_reminders !== false,
       leaderboard_visibility: result.data.leaderboard_visibility !== false,
+      dark_mode: darkMode,
     });
     return true;
   }
@@ -148,6 +219,7 @@ export async function handleAccountApi(
         ? { password }
         : {}),
       data: {
+        ...(user.user_metadata ?? {}),
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`,

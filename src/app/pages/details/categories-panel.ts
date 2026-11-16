@@ -5,6 +5,7 @@ import {
   eventElement,
   loadLinkedTransactions,
   money,
+  persistCategoryPreferences,
   refreshIcons,
   saveState,
   shownCurrency,
@@ -134,6 +135,20 @@ function say(row: HTMLElement, text: string, isError = false): void {
   if (!isError) messageTimer = setTimeout(() => (message.textContent = ""), 2200);
 }
 
+async function saveAccountCategoryPreferences(): Promise<unknown | null> {
+  const inputs = [...panel().querySelectorAll<HTMLInputElement>("input")];
+  const disabledStates = inputs.map((input) => input.disabled);
+  inputs.forEach((input) => (input.disabled = true));
+  try {
+    await persistCategoryPreferences();
+    return null;
+  } catch (error) {
+    return error;
+  } finally {
+    inputs.forEach((input, index) => (input.disabled = disabledStates[index] ?? false));
+  }
+}
+
 async function commitName(row: HTMLElement, input: HTMLInputElement): Promise<void> {
   const category = categoryOf(row);
   if (!category) return;
@@ -150,15 +165,23 @@ async function commitName(row: HTMLElement, input: HTMLInputElement): Promise<vo
     input.value = category.name;
     return;
   }
+  const previousName = category.name;
   try {
     if (category.custom) await renameCategory(category.id, name);
     category.name = name;
+    if (!category.custom) {
+      const error = await saveAccountCategoryPreferences();
+      if (error) throw error;
+    }
     input.value = name;
     saveState();
     options?.onChange();
     say(row, "Saved");
   } catch (error) {
-    input.value = category.name;
+    category.name = previousName;
+    input.value = previousName;
+    saveState();
+    options?.onChange();
     say(row, error instanceof Error ? error.message : "Could not rename that. Please try again.", true);
   }
 }
@@ -273,10 +296,23 @@ export function initCategoriesPanel(settings: Options): void {
     if (target.classList.contains("cat-visible")) {
       const category = categoryOf(row);
       if (!category) return;
+      const previousVisibility = category.visible;
+      const requestedVisibility = target.checked;
       category.visible = target.checked;
       saveState();
       options?.onChange();
-      say(row, target.checked ? "Shown on the chart" : "Hidden from the chart");
+      void (async () => {
+        const error = await saveAccountCategoryPreferences();
+        if (error) {
+          category.visible = previousVisibility;
+          target.checked = previousVisibility;
+          saveState();
+          options?.onChange();
+          say(row, error instanceof Error ? error.message : "Could not save this chart setting. Please try again.", true);
+          return;
+        }
+        say(row, requestedVisibility ? "Shown on the chart" : "Hidden from the chart");
+      })();
     } else if (target.classList.contains("cat-name")) {
       void commitName(row, target);
     } else if (target.classList.contains("cat-limit-input")) {

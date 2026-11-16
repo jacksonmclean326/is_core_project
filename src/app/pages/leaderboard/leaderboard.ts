@@ -1,7 +1,8 @@
-import type { LeaderboardEntry } from "../../../shared/leaderboard.js";
+import type { LeaderboardEntry, LeaderboardStatus } from "../../../shared/leaderboard.js";
 import { leaderboardVisibilityEvent } from "../../../shared/leaderboard.js";
 import { $, escapeHTML, eventElement, refreshIcons, showToast } from "../../core.js";
 import { addFriend, deleteFriend, getFriendCode, getFriends, getLeaderboard, type FriendRecord } from "../../api.js";
+import { shareFriendInvite } from "../../friend-invite.js";
 import "../../page-navigation.js";
 
 let friendCode = "";
@@ -14,6 +15,7 @@ function setBusy(value: boolean) {
   $<HTMLInputElement>("#friend-code-input").disabled = busy || !loaded;
   $<HTMLButtonElement>('#add-friend-form button[type="submit"]').disabled = busy || !loaded;
   $<HTMLButtonElement>("#copy-code").disabled = busy || !friendCode;
+  $<HTMLButtonElement>("#share-invite").disabled = busy || !friendCode;
   document.querySelectorAll<HTMLButtonElement>("[data-remove-friend]").forEach((button) => {
     button.disabled = busy;
   });
@@ -25,7 +27,7 @@ function renderFriends() {
       const initials = friend.name.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
       return `<div class="friend-row"><span class="friend-avatar" aria-hidden="true">${escapeHTML(initials)}</span><span class="friend-name">${escapeHTML(friend.name)}</span><button type="button" class="remove-friend" data-remove-friend="${escapeHTML(friend.id)}" aria-label="Remove ${escapeHTML(friend.name)}" title="Remove friend"><i data-icon="x" aria-hidden="true"></i></button></div>`;
     }).join("")
-    : "<p class=\"quiet-note\">No friends added yet. Invite someone with their friend code.</p>";
+    : '<p class="quiet-note">No friends yet. Add your first friend with a code, or invite someone to join Money Man.</p><button class="copy-code first-friend-button" type="button" data-focus-friend>Add your first friend</button>';
   $("#friend-count").textContent = `${friends.length} ${friends.length === 1 ? "person" : "people"}`;
   refreshIcons();
   setBusy(busy);
@@ -44,7 +46,7 @@ async function loadFriends() {
 
 function renderPodium(entries: LeaderboardEntry[]) {
   const podium = $("#leaderboard-podium");
-  const leaders = entries.filter((entry) => entry.score !== null).slice(0, 3);
+  const leaders = entries.slice(0, 3);
   const positions = ["first-place", "second-place", "third-place"];
   podium.hidden = leaders.length === 0;
   podium.innerHTML = leaders.map((entry, index) => {
@@ -52,26 +54,64 @@ function renderPodium(entries: LeaderboardEntry[]) {
     return `<div class="podium-person ${positions[index]}${entry.isYou ? " podium-you" : ""}">
       <span class="podium-avatar" aria-hidden="true">${escapeHTML(initials)}</span>
       <span class="podium-name">${escapeHTML(entry.name)}${entry.isYou ? " (you)" : ""}</span>
-      <strong>${entry.score!.toLocaleString()} pts</strong>
+      <strong>${formatScore(entry.score)}</strong>
       <div class="podium-block"><span class="sr-only">Place </span>${index + 1}</div>
     </div>`;
   }).join("");
+}
+
+function formatScore(score: number): string {
+  return `${Math.floor(Math.max(0, Math.min(100, score)))}%`;
+}
+
+function statusLabel(status: LeaderboardStatus): string {
+  switch (status) {
+    case "completed": return "Target reached";
+    case "in-progress": return "In progress";
+    case "on-track": return "On track";
+    case "cap-reached": return "Allowance used";
+  }
+}
+
+function formatMonth(month: string): { label: string; endDate: string } {
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  const monthDate = new Date(Date.UTC(year, monthIndex, 1));
+  const lastDay = new Date(Date.UTC(year, monthIndex + 1, 0));
+  return {
+    label: `${new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(monthDate)} ${year} challenge`,
+    endDate: `Ends ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(lastDay)}`,
+  };
 }
 
 let rankingRequest = 0;
 async function refreshLeaderboard() {
   const request = ++rankingRequest;
   const status = $("#ranking-status");
-  status.textContent = "Updating goal progress…";
+  status.textContent = "Updating this month's challenge…";
   try {
     const result = await getLeaderboard();
     if (request !== rankingRequest) return;
+    $("#challenge-title").textContent = result.challenge.title;
+    $("#challenge-description").textContent = result.challenge.description;
+    const month = formatMonth(result.challenge.month);
+    $("#challenge-month").textContent = month.label;
+    $("#challenge-days").textContent = String(result.challenge.daysRemaining);
+    $("#challenge-end-date").textContent = month.endDate;
+    $(".monthly-challenge-card").setAttribute("data-challenge", result.challenge.id);
     renderPodium(result.entries);
     $("#leaderboard-visibility-note").hidden = result.visible;
     $("#ranking-list").innerHTML = result.entries.map((entry) => {
-      const detail = entry.goalCount ? `${entry.completed} of ${entry.goalCount} goals reached` : "No goals yet";
-      const spending = entry.spendingCount ? ` · ${entry.withinLimit} of ${entry.spendingCount} spending limits met so far this month` : "";
-      return `<li class="ranking-row"><div><strong>${escapeHTML(entry.name)}${entry.isYou ? " (you)" : ""}</strong><p>${detail}${spending}</p></div><span class="ranking-score">${entry.score === null ? "Unranked" : `${entry.score.toLocaleString()} pts`}</span></li>`;
+      const score = Math.max(0, Math.min(100, entry.score));
+      const label = formatScore(score);
+      return `<li class="ranking-row">
+        <div class="ranking-person"><strong>${escapeHTML(entry.name)}${entry.isYou ? " (you)" : ""}</strong><span class="challenge-status">${statusLabel(entry.status)}</span></div>
+        <span class="ranking-score">${label}</span>
+        <div class="challenge-progress${result.challenge.id === "eating-out" ? " health-progress" : ""}" role="progressbar" aria-label="${escapeHTML(entry.name)} challenge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${score}">
+          <span style="width:${score}%"></span>
+        </div>
+      </li>`;
     }).join("");
     status.textContent = result.entries.length
       ? `Updated ${new Date(result.updatedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Refreshes every minute while this page is visible.`
@@ -118,7 +158,13 @@ document.addEventListener("keydown", (event) => {
 });
 
 $("#friend-list").addEventListener("click", async (event) => {
-  const button = eventElement(event)?.closest<HTMLButtonElement>("[data-remove-friend]");
+  const target = eventElement(event);
+  if (target?.closest("[data-focus-friend]")) {
+    $("#invite-section").scrollIntoView({ behavior: "smooth", block: "center" });
+    $("#friend-code-input").focus();
+    return;
+  }
+  const button = target?.closest<HTMLButtonElement>("[data-remove-friend]");
   const id = button?.dataset.removeFriend;
   if (!id || busy) return;
   setBusy(true);
@@ -185,6 +231,25 @@ $("#copy-code").addEventListener("click", async () => {
   }
 });
 
+$<HTMLButtonElement>("#share-invite").addEventListener("click", async () => {
+  if (!friendCode) return;
+  const feedback = $("#friend-code-feedback");
+  try {
+    const result = await shareFriendInvite(friendCode);
+    feedback.textContent = result === "shared"
+      ? "Invite link shared."
+      : result === "copied"
+        ? "Invite link copied. Your friend can create an account and be added to your circle."
+        : result === "cancelled"
+          ? "Invite sharing cancelled."
+          : `Copy this invite link: ${result}`;
+    feedback.classList.remove("is-error");
+  } catch (error) {
+    feedback.textContent = message(error);
+    feedback.classList.add("is-error");
+  }
+});
+
 async function initialize() {
   $("#friend-list").textContent = "Loading friends…";
   $("#friend-count").textContent = "";
@@ -194,6 +259,7 @@ async function initialize() {
         friendCode = (await getFriendCode()).friendCode;
         $("#friend-code").textContent = friendCode;
         $<HTMLButtonElement>("#copy-code").disabled = false;
+        $<HTMLButtonElement>("#share-invite").disabled = false;
       } catch (error) {
         $("#friend-code").textContent = "Unavailable";
         $("#friend-code-feedback").textContent = message(error);

@@ -218,6 +218,7 @@
 .categories-panel { margin: 4px 0 8px; padding: 18px 20px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); scroll-margin-top: 16px; }
 .categories-panel[hidden] { display: none; }
 .categories-panel .section-heading { margin-bottom: 8px; }
+.goals-done-button { flex: 0 0 auto; white-space: nowrap; }
 .categories-panel .limits-note { margin: 0 0 10px; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .categories-panel .limits-note:empty { display: none; }
 .categories-panel .limits-note.is-over { color: #b3451f; }

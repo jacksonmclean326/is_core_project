@@ -12,6 +12,8 @@
 .bank-connection { padding: 14px 0; border-bottom: 1px solid var(--line); }
 .bank-connection-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .bank-connection-heading > strong { font-size: 0.875rem; }
+.bank-security-note { margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--green); border-radius: 4px; background: var(--green-soft); font-size: 0.8125rem; line-height: 1.55; }
+.bank-security-note strong { display: block; margin-bottom: 3px; }
 .bank-connection-meta, .bank-empty, .bank-disclosure { color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .bank-connection-meta { margin: 4px 0 6px; }
 .bank-empty { margin: 14px 0; }
