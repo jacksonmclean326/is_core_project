@@ -124,3 +124,25 @@ export function isCheckInDue(signedUpAt: string, record: CheckInRecord | null, n
 export function percent(part: number, whole: number): number | null {
   return whole > 0 ? Math.round((part / whole) * 100) : null;
 }
+
+/** Current UTC daily streak: yesterday remains active until today ends. */
+export function currentDailyStreak(streak: number | null, lastActive: string | null, now: Date = new Date()): number {
+  if (!lastActive || streak === null || !Number.isSafeInteger(streak) || streak < 1) return 0;
+  // User.last_active is a UTC timestamp without a timezone in Postgres.
+  const date = lastActive.slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
+  const yesterday = new Date(now.getTime() - 86_400_000).toISOString().slice(0, 10);
+  return date === today || date === yesterday ? streak : 0;
+}
+
+/** Each registered user counts once, on either side of a mutual friendship. */
+export function usersWithFriends(userIds: string[], friendships: { user1_id: string; user2_id: string }[]): number {
+  const registered = new Set(userIds);
+  const connected = new Set<string>();
+  for (const { user1_id, user2_id } of friendships) {
+    if (user1_id === user2_id || !registered.has(user1_id) || !registered.has(user2_id)) continue;
+    connected.add(user1_id);
+    connected.add(user2_id);
+  }
+  return connected.size;
+}

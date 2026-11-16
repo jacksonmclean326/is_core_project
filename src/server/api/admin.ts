@@ -10,6 +10,7 @@ import { checkInTable, isMissingTable, migrationMissing, recordGoalHistory, resu
 import { monthStart, utcDateString, type MonthKey } from "../../shared/months.js";
 import {
   checkInAfterDays,
+  currentDailyStreak,
   consistencyNeeded,
   consistencyWindow,
   daysSince,
@@ -17,6 +18,7 @@ import {
   isCheckInDue,
   percent,
   userConsistency,
+  usersWithFriends,
 } from "../../shared/savings-okrs.js";
 
 /** The team-only OKR numbers behind /admin. Only admins (see ../admin.ts) can use it, and it needs SUPABASE_SECRET_KEY. */
@@ -94,12 +96,14 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
   const now = new Date();
   const current: MonthKey = utcDateString(now).slice(0, 7);
   const months = finishedMonths(current, consistencyWindow);
-  const [results, checkIns] = await Promise.all([
+  const [results, checkIns, profiles, friendships] = await Promise.all([
     allRows<ResultRow>(admin, resultsTable, "user_id,month,met,goals_met,goals_counted", {
       column: "month",
       value: monthStart(months[months.length - 1]),
     }),
     allRows<CheckInRow>(admin, checkInTable, "user_id,saved,amount,answered_at,snoozed_until"),
+    allRows<{ user_id: string; streak: number | null; last_active: string | null }>(admin, "User", "user_id,streak,last_active"),
+    allRows<{ user1_id: string; user2_id: string }>(admin, "Friend", "user1_id,user2_id"),
   ]);
 
   const resultsByUser = new Map<string, Map<MonthKey, ResultRow>>();
@@ -110,6 +114,9 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
   }
   const checkInByUser = new Map(checkIns.map((row) => [row.user_id, row]));
 
+  const friendUsers = usersWithFriends(users.map((user) => user.id), friendships);
+  const profilesByUser = new Map(profiles.map((row) => [row.user_id, row]));
+  let streakUsers = 0;
   let goalUsers = 0;
   let consistentUsers = 0;
   let eligibleForCheckIn = 0;
@@ -118,6 +125,9 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
   let reportedSavings = 0;
 
   const people = users.map((user) => {
+    const profile = profilesByUser.get(user.id);
+    const streak = currentDailyStreak(profile?.streak ?? null, profile?.last_active ?? null, now);
+    if (streak >= 7) streakUsers++;
     const byMonth = resultsByUser.get(user.id) ?? new Map<MonthKey, ResultRow>();
     const consistency = userConsistency(new Map([...byMonth].map(([month, row]) => [month, row.met])), current);
     if (consistency.tracked > 0) {
@@ -144,6 +154,7 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
     else checkInStatus = "waiting";
 
     return {
+      streak,
       name: displayName(user),
       email: user.email ?? null,
       signedUpAt: user.created_at,
@@ -165,6 +176,18 @@ async function okrReport(admin: SessionClient, users: User[], failedUsers: numbe
     totalUsers: users.length,
     failedUsers,
     months,
+    okr1: {
+      streakUsers,
+      totalUsers: users.length,
+      percent: percent(streakUsers, users.length),
+      rule: "Percentage of all registered users with a current streak of 7 days or more. Days use UTC; a streak expires after a full day without activity.",
+    },
+    okr2: {
+      friendUsers,
+      totalUsers: users.length,
+      percent: percent(friendUsers, users.length),
+      rule: "Percentage of all registered users who have at least one friend. Each user counts once, regardless of how many friends they have.",
+    },
     okr3: {
       consistentUsers,
       goalUsers,

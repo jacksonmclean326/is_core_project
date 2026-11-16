@@ -458,6 +458,7 @@ export function clearCheckIn(): Promise<{ ok: true }> {
 }
 
 export interface OkrPerson {
+  streak: number;
   name: string;
   email: string | null;
   signedUpAt: string;
@@ -476,6 +477,8 @@ export interface OkrReport {
   failedUsers: number;
   monthsWritten: number;
   months: string[];
+  okr1?: { streakUsers: number; totalUsers: number; percent: number | null; rule: string };
+  okr2?: { friendUsers: number; totalUsers: number; percent: number | null; rule: string };
   okr3: { consistentUsers: number; goalUsers: number; percent: number | null; rule: string };
   okr4: {
     reportedSavings: number;

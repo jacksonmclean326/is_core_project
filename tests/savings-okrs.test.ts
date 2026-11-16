@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateMonth, finishedMonths, isCheckInDue, percent, userConsistency } from "../src/shared/savings-okrs.js";
+import { currentDailyStreak, usersWithFriends, evaluateMonth, finishedMonths, isCheckInDue, percent, userConsistency } from "../src/shared/savings-okrs.js";
 
 const month = (spent: number, income: number | null, byCategory: Record<string, number> = {}) => ({
   spent,
@@ -61,4 +61,32 @@ test("the check-in is due 60 days after sign-up until answered, and Not now hide
 test("percent returns null with nothing to divide by", () => {
   assert.equal(percent(0, 0), null);
   assert.equal(percent(2, 3), 67);
+});
+
+
+test("current streaks include today and yesterday but exclude expired and missing activity", () => {
+  const now = new Date("2026-11-16T00:01:00Z");
+  assert.equal(currentDailyStreak(7, "2026-11-16T00:00:00", now), 7);
+  assert.equal(currentDailyStreak(8, "2026-11-15T00:00:00", now), 8);
+  assert.equal(currentDailyStreak(6, "2026-11-16T00:00:00", now), 6);
+  assert.equal(currentDailyStreak(20, "2026-11-14T23:59:00", now), 0);
+  assert.equal(currentDailyStreak(7, "2026-11-17T00:00:00", now), 0);
+  assert.equal(currentDailyStreak(7, null, now), 0);
+  assert.equal(currentDailyStreak(null, "2026-11-16T00:00:00", now), 0);
+  assert.equal(currentDailyStreak(7, "invalid", now), 0);
+  const monthBoundary = new Date("2027-01-01T00:01:00Z");
+  assert.equal(currentDailyStreak(7, "2026-12-31T00:00:00", monthBoundary), 7);
+});
+
+
+test("friend participation counts both users once and ignores self links and deleted accounts", () => {
+  assert.equal(usersWithFriends(["a", "b", "c", "d"], [
+    { user1_id: "a", user2_id: "b" },
+    { user1_id: "c", user2_id: "a" },
+    { user1_id: "b", user2_id: "a" },
+    { user1_id: "d", user2_id: "d" },
+    { user1_id: "d", user2_id: "deleted" },
+  ]), 3);
+  assert.equal(usersWithFriends(["a"], []), 0);
+  assert.equal(usersWithFriends([], []), 0);
 });
