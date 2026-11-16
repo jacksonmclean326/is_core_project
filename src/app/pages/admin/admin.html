@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f5f5ef" />
     <meta name="robots" content="noindex" />
-    <meta name="description" content="Team-only savings OKR numbers for Money Man." />
+    <meta name="description" content="Team-only OKR numbers for Money Man." />
     <title>Money Man - Team OKRs</title>
     <script>try { if (localStorage.getItem("money-man-theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (error) { console.error("Unable to read the saved theme preference.", error); }</script>
     <base href="/app/pages/admin/">
@@ -29,8 +29,8 @@
           <div class="page-heading">
             <div>
               <p class="eyebrow">TEAM ONLY</p>
-              <h1 id="admin-title">Savings OKRs</h1>
-              <p class="subheading">Objective: users are saving money using the app.</p>
+              <h1 id="admin-title">Team OKRs</h1>
+              <p class="subheading">Track consistent app use and savings outcomes.</p>
             </div>
             <button class="outline-button" type="button" id="admin-refresh"><i data-icon="refresh-cw" aria-hidden="true"></i>Refresh</button>
           </div>
@@ -38,6 +38,20 @@
           <p class="admin-status" id="admin-status" role="status" aria-live="polite">Loading the numbers…</p>
 
           <div class="admin-okrs" id="admin-okrs" hidden>
+            <article class="admin-card" aria-labelledby="okr1-title">
+              <p class="eyebrow">OKR 1</p>
+              <h2 id="okr1-title">Users consistently use the app</h2>
+              <p class="admin-big" id="okr1-percent">–</p>
+              <p class="admin-detail" id="okr1-detail"></p>
+              <p class="admin-rule" id="okr1-rule"></p>
+            </article>
+            <article class="admin-card" aria-labelledby="okr2-title">
+              <p class="eyebrow">OKR 2</p>
+              <h2 id="okr2-title">Users engage with the app’s social features</h2>
+              <p class="admin-big" id="okr2-percent">–</p>
+              <p class="admin-detail" id="okr2-detail"></p>
+              <p class="admin-rule" id="okr2-rule"></p>
+            </article>
             <article class="admin-card" aria-labelledby="okr3-title">
               <p class="eyebrow">OKR 3</p>
               <h2 id="okr3-title">Users who consistently meet their savings goals</h2>

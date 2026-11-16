@@ -80,11 +80,13 @@ const report = {
   failedUsers: 0,
   monthsWritten: 0,
   months: ["2026-10", "2026-09", "2026-08", "2026-07"],
+  okr1: { streakUsers: 1, totalUsers: 3, percent: 33, rule: "Current streak of at least 7 days, using UTC days." },
+  okr2: { friendUsers: 2, totalUsers: 3, percent: 67, rule: "Percentage of all registered users with at least one friend." },
   okr3: { consistentUsers: 1, goalUsers: 2, percent: 50, rule: "Met every Savings and Spending goal in at least 3 of the last 4 finished months." },
   okr4: { reportedSavings: 1, answered: 2, percent: 50, eligible: 3, eligibleAnswered: 2, responseRate: 67, rule: "Answered Yes." },
   people: [
     {
-      name: "Ana Saver", email: "ana@example.com", signedUpAt: "2026-07-01T00:00:00Z", daysSinceSignUp: 136,
+      streak: 7, name: "Ana Saver", email: "ana@example.com", signedUpAt: "2026-07-01T00:00:00Z", daysSinceSignUp: 136,
       months: [
         { month: "2026-10", met: true, goalsMet: 2, goalsCounted: 2 },
         { month: "2026-09", met: false, goalsMet: 1, goalsCounted: 2 },
@@ -94,15 +96,19 @@ const report = {
       monthsTracked: 4, monthsMet: 3, consistent: true, checkIn: "yes", savedAmount: 300,
     },
     {
-      name: "<b>Ben</b>", email: "ben@example.com", signedUpAt: "2026-11-01T00:00:00Z", daysSinceSignUp: 13,
+      streak: 0, name: "<b>Ben</b>", email: "ben@example.com", signedUpAt: "2026-11-01T00:00:00Z", daysSinceSignUp: 13,
       months: ["2026-10", "2026-09", "2026-08", "2026-07"].map((month) => ({ month, met: null, goalsMet: 0, goalsCounted: 0 })),
       monthsTracked: 0, monthsMet: 0, consistent: null, checkIn: "waiting", savedAmount: null,
     },
   ],
 };
 
-test("the team OKR page shows both percentages and the per-user table", async () => {
+test("the team OKR page shows all four percentages and the per-user table", async () => {
   const page = await openPage("admin", { routes: { "/api/admin/okrs": () => [200, report], "/api/checkin": checkIn({ due: false }) } });
+  assert.equal(page.$("#okr2-percent").textContent, "67%");
+  assert.match(page.$("#okr2-detail").textContent, /2 of 3 users have at least one friend/);
+  assert.equal(page.$("#okr1-percent").textContent, "33%");
+  assert.match(page.$("#okr1-detail").textContent, /1 of 3 users/);
   assert.equal(page.$("#okr3-percent").textContent, "50%");
   assert.match(page.$("#okr3-detail").textContent, /1 of 2 users/);
   assert.equal(page.$("#okr4-percent").textContent, "50%");
@@ -110,7 +116,7 @@ test("the team OKR page shows both percentages and the per-user table", async ()
 
   const rows = page.$$("#people-body tr");
   assert.equal(rows.length, 2);
-  assert.deepEqual([...rows[0].querySelectorAll("td")].map((cell) => cell.textContent), ["Met", "Met", "Missed", "Met", "Yes (3 of 4 met)", "Yes, saved · $300"]);
+  assert.deepEqual([...rows[0].querySelectorAll("td")].map((cell) => cell.textContent), ["Met", "Met", "Missed", "Met", "7 days", "Yes (3 of 4 met)", "Yes, saved · $300"]);
   assert.match(rows[0].querySelector("th small").textContent, /joined 136 days ago/);
   assert.match(rows[1].querySelector("th small").textContent, /joined 13 days ago/);
   assert.match(rows[1].textContent, /Not asked yet/);
@@ -227,4 +233,43 @@ test("removing an admin asks first, then sends the email", async () => {
   assert.deepEqual(removal.body, { email: "ana@example.com" });
   assert.equal(page.$$("#team-list li").length, 2);
   assert.match(page.$("#team-status").textContent, /ana@example.com is no longer an admin/);
+});
+
+
+test("OKR 1 shows zero for existing users without qualifying streaks and handles no users", async () => {
+  for (const totalUsers of [3, 0]) {
+    const page = await openPage("admin", { routes: {
+      "/api/admin/okrs": () => [200, { ...report, totalUsers, people: [], okr1: { ...report.okr1, streakUsers: 0, totalUsers, percent: totalUsers ? 0 : null } }],
+    } });
+    assert.equal(page.$("#okr1-percent").textContent, totalUsers ? "0%" : "No users yet");
+    assert.match(page.$("#okr1-detail").textContent, totalUsers ? /0 of 3 users/ : /No one has signed up/);
+  }
+});
+
+
+test("OKR 2 handles users without friends and no registered users", async () => {
+  for (const totalUsers of [3, 0]) {
+    const page = await openPage("admin", { routes: {
+      "/api/admin/okrs": () => [200, { ...report, totalUsers, people: [], okr2: { ...report.okr2, friendUsers: 0, totalUsers, percent: totalUsers ? 0 : null } }],
+    } });
+    assert.equal(page.$("#okr2-percent").textContent, totalUsers ? "0%" : "No users yet");
+    assert.match(page.$("#okr2-detail").textContent, totalUsers ? /0 of 3 users/ : /No one has signed up/);
+  }
+});
+
+
+test("an older server response keeps existing OKRs visible and explains unavailable metrics", async () => {
+  for (const missing of [["okr2"], ["okr1", "okr2"]]) {
+    const legacy = { ...report };
+    for (const key of missing) delete legacy[key];
+    const page = await openPage("admin", { routes: { "/api/admin/okrs": () => [200, legacy] } });
+    assert.equal(page.$("#admin-okrs").hidden, false);
+    assert.equal(page.$("#okr3-percent").textContent, "50%");
+    assert.equal(page.$("#okr4-percent").textContent, "50%");
+    for (const key of missing) {
+      assert.equal(page.$(`#${key}-percent`).textContent, "Unavailable");
+      assert.match(page.$(`#${key}-detail`).textContent, /Restart the app server/);
+    }
+    assert.doesNotMatch(page.$("#admin-status").textContent, /Cannot read/);
+  }
 });

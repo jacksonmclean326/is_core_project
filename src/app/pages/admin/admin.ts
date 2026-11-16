@@ -36,7 +36,33 @@ const users = (count: number) => `${count} ${count === 1 ? "user" : "users"}`;
 const joined = (days: number) => (days <= 0 ? "joined today" : days === 1 ? "joined yesterday" : `joined ${days} days ago`);
 
 function render(report: OkrReport): void {
-  const { okr3, okr4 } = report;
+  const { okr1, okr2, okr3, okr4 } = report;
+  if (okr1) {
+    byId("okr1-percent").textContent = okr1.percent === null ? "No users yet" : `${okr1.percent}%`;
+    byId("okr1-detail").textContent = okr1.totalUsers
+      ? `${okr1.streakUsers} of ${users(okr1.totalUsers)} have a current streak of 7 days or more.`
+      : "No one has signed up yet.";
+    byId("okr1-rule").textContent = okr1.rule;
+
+  } else {
+    byId("okr1-percent").textContent = "Unavailable";
+    byId("okr1-detail").textContent = "Restart the app server and refresh to load this metric.";
+    byId("okr1-rule").textContent = "";
+  }
+
+  if (okr2) {
+    byId("okr2-percent").textContent = okr2.percent === null ? "No users yet" : `${okr2.percent}%`;
+    byId("okr2-detail").textContent = okr2.totalUsers
+      ? `${okr2.friendUsers} of ${users(okr2.totalUsers)} have at least one friend.`
+      : "No one has signed up yet.";
+    byId("okr2-rule").textContent = okr2.rule;
+
+  } else {
+    byId("okr2-percent").textContent = "Unavailable";
+    byId("okr2-detail").textContent = "Restart the app server and refresh to load this metric.";
+    byId("okr2-rule").textContent = "";
+  }
+
   byId("okr3-percent").textContent = okr3.percent === null ? "No data yet" : `${okr3.percent}%`;
   byId("okr3-detail").textContent = okr3.goalUsers
     ? `${okr3.consistentUsers} of ${users(okr3.goalUsers)} with savings or spending goals.`
@@ -53,7 +79,7 @@ function render(report: OkrReport): void {
   const months = [...report.months].reverse();
   byId("people-head").innerHTML = `<tr><th scope="col">User</th>${months
     .map((month) => `<th scope="col">${escapeHTML(shortMonthName(month))}</th>`)
-    .join("")}<th scope="col">Consistent</th><th scope="col">Check-in</th></tr>`;
+    .join("")}<th scope="col">Current streak</th><th scope="col">Consistent</th><th scope="col">Check-in</th></tr>`;
   byId("people-body").innerHTML = report.people
     .map((person) => {
       const cells = [...person.months]
@@ -69,7 +95,7 @@ function render(report: OkrReport): void {
       const consistent =
         person.consistent === null ? "–" : `${person.consistent ? "Yes" : "No"} (${person.monthsMet} of ${person.monthsTracked} met)`;
       const checkIn = checkInLabels[person.checkIn] + (person.savedAmount !== null ? ` · ${money(person.savedAmount)}` : "");
-      return `<tr><th scope="row"><strong>${escapeHTML(person.name)}</strong><small>${escapeHTML(person.email ?? "")} · ${joined(person.daysSinceSignUp)}</small></th>${cells}<td class="is-wide" data-label="Consistent">${escapeHTML(consistent)}</td><td class="is-wide checkin-${person.checkIn}" data-label="Check-in">${escapeHTML(checkIn)}</td></tr>`;
+      return `<tr><th scope="row"><strong>${escapeHTML(person.name)}</strong><small>${escapeHTML(person.email ?? "")} · ${joined(person.daysSinceSignUp)}</small></th>${cells}<td class="is-wide ${person.streak >= 7 ? "is-met" : ""}" data-label="Current streak">${person.streak} ${person.streak === 1 ? "day" : "days"}</td><td class="is-wide" data-label="Consistent">${escapeHTML(consistent)}</td><td class="is-wide checkin-${person.checkIn}" data-label="Check-in">${escapeHTML(checkIn)}</td></tr>`;
     })
     .join("");
 
