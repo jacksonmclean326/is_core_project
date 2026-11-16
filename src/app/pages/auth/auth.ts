@@ -10,13 +10,21 @@ const passwordInput = $<HTMLInputElement>("#auth-password");
 const submitButton = $<HTMLButtonElement>("#auth-submit");
 const feedback = $("#auth-feedback");
 const title = $("#auth-title");
+const description = $("#auth-description");
 const switchPrompt = $("#auth-switch-prompt");
 const switchButton = $<HTMLButtonElement>("#auth-switch");
 let isSignUp = false;
+const referralCode = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase();
+const validReferralCode = referralCode && /^[A-HJ-NP-Z2-9]{6}$/.test(referralCode)
+  ? referralCode
+  : undefined;
 
 function setMode(signUp: boolean) {
   isSignUp = signUp;
   title.textContent = isSignUp ? "Create your account." : "Welcome back.";
+  description.textContent = isSignUp
+    ? "Create your account, then take a few quick steps to make Money Man yours."
+    : "Sign in to pick up where you left off, or create an account to get started.";
   nameInput.hidden = !isSignUp;
   nameLabel.hidden = !isSignUp;
   nameInput.required = isSignUp;
@@ -53,7 +61,7 @@ form.addEventListener("submit", async (event) => {
   let result;
   try {
     result = isSignUp
-      ? await signUp(email, password, firstName, lastName, fullName)
+      ? await signUp(email, password, firstName, lastName, fullName, validReferralCode)
       : await signIn(email, password);
   } catch (error) {
     submitButton.disabled = false;
@@ -67,11 +75,11 @@ form.addEventListener("submit", async (event) => {
   submitButton.textContent = isSignUp ? "Create account" : "Sign in";
 
   if (isSignUp && !result.authenticated) {
-    feedback.textContent = "Account created. Check your email for a confirmation link, then sign in.";
+    feedback.textContent = "Account created. Check your email for a confirmation link, then sign in to finish setting up.";
     return;
   }
 
-  window.location.assign("/home");
+  window.location.assign(result.user?.user_metadata?.onboarding_complete === false ? "/onboarding" : "/home");
 });
 
-setMode(false);
+setMode(Boolean(validReferralCode));

@@ -3,7 +3,14 @@ import { createMoneyFormatter, currencyOrDefault, defaultCurrency } from "../../
 import { currentMonthKey } from "../../shared/months.js";
 import type { GoalStep } from "../../shared/goal-progress.js";
 import { showToast } from "../ui/ui.js";
-import { getAccount, getBudget, getRates, saveCategoryLimits } from "../api.js";
+import {
+  getAccount,
+  getBudget,
+  getRates,
+  saveCategoryLimits,
+  saveCategoryPreferences,
+  type CategoryPreferences,
+} from "../api.js";
 
 const palette = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#d9d5c7"];
 
@@ -133,6 +140,9 @@ function loadState(): AppState {
 
 export const state: AppState = loadState();
 let accountPreferencesPromise: Promise<void> | null = null;
+let savedCategoryPreferences: CategoryPreferences | null = null;
+let loadedCustomCategoryKeys: Set<string> | null = null;
+let categoryPreferenceSaveQueue: Promise<void> = Promise.resolve();
 
 export function loadAccountPreferences(): Promise<void> {
   if (!accountPreferencesPromise) {
@@ -146,6 +156,7 @@ export function loadAccountPreferences(): Promise<void> {
         state.streak = Number.isFinite(user.streak)
           ? Math.max(1, Math.trunc(user.streak ?? 1))
           : 1;
+        applyCategoryPreferences(user.category_preferences ?? null);
         applySavedLimits(user.category_limits ?? null);
       })
       .catch((error: unknown) => {
@@ -155,6 +166,60 @@ export function loadAccountPreferences(): Promise<void> {
       });
   }
   return accountPreferencesPromise;
+}
+
+function applyCategoryPreferences(preferences: CategoryPreferences | null): void {
+  savedCategoryPreferences = preferences;
+  for (const category of state.categories) {
+    if (category.custom) {
+      category.visible = true;
+      continue;
+    }
+    const defaults = initialState.categories.find((item) => item.id === category.id);
+    if (defaults) {
+      category.name = defaults.name;
+      category.visible = defaults.visible;
+    }
+  }
+  applySavedCategoryPreferencesToCurrentCategories();
+}
+
+export function applySavedCategoryPreferencesToCurrentCategories(customCategoryKeys?: ReadonlySet<string>): void {
+  if (customCategoryKeys) {
+    loadedCustomCategoryKeys = new Set(customCategoryKeys);
+    if (savedCategoryPreferences) {
+      savedCategoryPreferences = Object.fromEntries(
+        Object.entries(savedCategoryPreferences).filter(([key]) => !key.startsWith("c-") || customCategoryKeys.has(key)),
+      );
+    }
+  }
+  for (const category of state.categories) {
+    const preference = savedCategoryPreferences?.[category.id];
+    if (!preference) continue;
+    if (!category.custom && typeof preference.name === "string") category.name = preference.name;
+    if (typeof preference.visible === "boolean") category.visible = preference.visible;
+  }
+}
+
+function currentCategoryPreferences(): CategoryPreferences {
+  const preferences = { ...savedCategoryPreferences };
+  for (const category of state.categories) {
+    if (category.custom && !loadedCustomCategoryKeys?.has(category.id)) continue;
+    preferences[category.id] = category.custom
+      ? { visible: category.visible }
+      : { name: category.name, visible: category.visible };
+  }
+  return preferences;
+}
+
+/** Persists category labels and chart visibility for this account, not just this browser. */
+export function persistCategoryPreferences(): Promise<void> {
+  const preferences = currentCategoryPreferences();
+  const request = categoryPreferenceSaveQueue.then(() => saveCategoryPreferences(preferences));
+  categoryPreferenceSaveQueue = request.then(() => undefined, () => undefined);
+  return request.then(({ preferences: saved }) => {
+    savedCategoryPreferences = saved;
+  });
 }
 
 const currencyStorageKey = "money-man-currency";

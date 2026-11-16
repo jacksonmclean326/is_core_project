@@ -68,6 +68,141 @@ summary:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #141a17;
+  --white: #202824;
+  --ink: #e7ece8;
+  --muted: #b1bdb5;
+  --field-border: #718078;
+  --line: #39453e;
+  --green: #39815f;
+  --green-dark: #9acfb0;
+  --green-soft: #293d32;
+  --coral: #f08a72;
+  --blue: #8eb6d1;
+  --gold: #e5bf69;
+  --lilac: #b8a9d0;
+}
+
+:root[data-theme="dark"] body {
+  background: var(--paper);
+}
+
+:root[data-theme="dark"] .brand-mascot {
+  mix-blend-mode: normal;
+}
+
+:root[data-theme="dark"] .primary-button {
+  background: #347652;
+}
+
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  color: var(--ink);
+  background-color: var(--white);
+  border-color: var(--field-border);
+}
+
+:root[data-theme="dark"] .input-with-prefix input {
+  background: transparent;
+}
+
+:root[data-theme="dark"] dialog,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .admin-card,
+:root[data-theme="dark"] .setup-card,
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] .graph-type-card,
+:root[data-theme="dark"] .categories-panel,
+:root[data-theme="dark"] .tx-day-card,
+:root[data-theme="dark"] .goal-card,
+:root[data-theme="dark"] .friend-actions-panel {
+  color: var(--ink);
+  background: var(--white);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .trend-section {
+  background: var(--white);
+}
+
+:root[data-theme="dark"] .trend-summary > div,
+:root[data-theme="dark"] .graph-type-options input:checked + .graph-type-card-content,
+:root[data-theme="dark"] .graph-editor-note,
+:root[data-theme="dark"] .record-month,
+:root[data-theme="dark"] .goal-card,
+:root[data-theme="dark"] .tx-line:hover,
+:root[data-theme="dark"] .cat-name:hover,
+:root[data-theme="dark"] .cat-limit:hover {
+  background: var(--green-soft);
+}
+
+:root[data-theme="dark"] .graph-dialog {
+  background: var(--white);
+}
+
+:root[data-theme="dark"] .chart-legend-item {
+  color: var(--muted);
+  background: var(--white);
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .streak-indicator {
+  color: #f0c2ae;
+  background: #352a25;
+  border-color: #5b4539;
+}
+
+:root[data-theme="dark"] .budget-track,
+:root[data-theme="dark"] .mini-track,
+:root[data-theme="dark"] .top-category-track,
+:root[data-theme="dark"] .challenge-progress {
+  background: #3b4740;
+}
+
+:root[data-theme="dark"] .leaderboard-podium {
+  background: radial-gradient(ellipse at 50% 100%, #383428, transparent 75%);
+}
+
+:root[data-theme="dark"] .podium-block,
+:root[data-theme="dark"] .third-place .podium-block {
+  color: var(--ink);
+  background: #39453e;
+}
+
+:root[data-theme="dark"] .remove-friend:hover {
+  background: #3c2b28;
+}
+
+:root[data-theme="dark"] .leaderboard-intro {
+  color: #f6f4ea;
+  background-color: #244a3a;
+}
+
+:root[data-theme="dark"] .profile-button,
+:root[data-theme="dark"] .large-initials {
+  background: #4a3b2e;
+}
+
+:root[data-theme="dark"] .profile-initials {
+  color: #f0dfc8;
+}
+
+:root[data-theme="dark"] .switch {
+  background-color: #56645c;
+}
+
+:root[data-theme="dark"] .preference-row,
+:root[data-theme="dark"] .settings-link-list li {
+  border-color: var(--line);
+}
+
+:root[data-theme="dark"] .auth-story-image {
+  background: var(--white);
+}
 .app-shell {
   width: min(100%, 1320px);
   min-height: 100vh;
@@ -335,7 +470,7 @@ h3 {
   padding: 8px max(16px, calc((100vw - 520px) / 2))
     calc(8px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
-  background: rgba(255, 254, 250, 0.96);
+  background: color-mix(in srgb, var(--white) 96%, transparent);
   backdrop-filter: blur(14px);
 }
 .nav-item {
@@ -345,7 +480,7 @@ h3 {
   min-height: 48px;
   padding: 5px 0 2px;
   border: 0;
-  color: #7e8981;
+  color: var(--muted);
   background: transparent;
   font-size: 0.5625rem;
   font-weight: 600;
@@ -406,6 +541,25 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--white);
+}
+
+:root[data-theme="dark"] .bottom-nav {
+  border-top-color: #39453e;
+  background: rgba(27, 35, 31, 0.97);
+}
+
+:root[data-theme="dark"] .nav-item {
+  color: #aab8af;
+}
+
+:root[data-theme="dark"] .nav-item.is-current {
+  border-radius: 7px;
+  color: #b7e0c3;
+  background: #293d32;
+}
+
+:root[data-theme="dark"] .nav-item:focus-visible {
+  outline-color: #9acfb0;
 }
 .category-detail-summary > p {
   margin: 0 0 5px;

@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { HttpError } from "../errors.js";
+import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { cookieHeader, sendJson } from "../http/response.js";
 import { isAdminUser } from "../admin.js";
@@ -13,7 +13,13 @@ export async function handleAuthApi(
   if (pathname === "/api/auth/session" && request.method === "GET") {
     try {
       const { user } = await requireSession(request, response);
-      sendJson(response, 200, { user: { ...publicUser(user), isAdmin: await isAdminUser(user) } });
+      sendJson(response, 200, {
+        user: {
+          ...publicUser(user),
+          isAdmin: await isAdminUser(user),
+          dark_mode: user.user_metadata?.dark_mode === true,
+        },
+      });
     } catch (error) {
       if (error instanceof HttpError && error.status === 401) {
         sendJson(response, 200, { user: null });
@@ -38,14 +44,25 @@ export async function handleAuthApi(
       throw new HttpError(400, "Password is required.");
     }
 
-    const signUpDetails =
-      pathname === "/api/auth/signup"
-        ? {
-            firstName: requiredString(body.firstName, "First name", 100),
-            lastName: requiredString(body.lastName, "Last name", 100),
-            fullName: requiredString(body.fullName, "Full name", 200),
-          }
-        : undefined;
+    let signUpDetails:
+      | { firstName: string; lastName: string; fullName: string; referralCode?: string }
+      | undefined;
+    if (pathname === "/api/auth/signup") {
+      const referralCode = body.referralCode;
+      if (
+        referralCode !== undefined &&
+        referralCode !== null &&
+        (typeof referralCode !== "string" || !/^[A-HJ-NP-Z2-9]{6}$/.test(referralCode))
+      ) {
+        throw new HttpError(400, "The friend invitation link is invalid.");
+      }
+      signUpDetails = {
+        firstName: requiredString(body.firstName, "First name", 100),
+        lastName: requiredString(body.lastName, "Last name", 100),
+        fullName: requiredString(body.fullName, "Full name", 200),
+        ...(typeof referralCode === "string" ? { referralCode } : {}),
+      };
+    }
     const result = await signIn(
       request,
       response,

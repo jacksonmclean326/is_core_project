@@ -7,6 +7,7 @@
     <link rel="icon" type="image/png" href="../../assets/money-man-mascot.png">
     <meta name="description" content="Explore your monthly spending, categories, and savings goals.">
     <title>Money Man - Spending details</title>
+    <script>try { if (localStorage.getItem("money-man-theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (error) { console.error("Unable to read the saved theme preference.", error); }</script>
     <base href="/app/pages/details/">
     <link rel="stylesheet" href="../../global.css">
     <link rel="stylesheet" href="details.css">
@@ -39,7 +40,7 @@
             <div class="top-categories-panel"><div class="section-heading compact-heading"><div><p class="eyebrow">WHERE IT GOES</p><h2>Top categories</h2></div><span class="quiet-note">% of spending</span></div><div class="top-category-list" id="top-category-list"></div><a class="text-button view-all-link" href="/details#all-transactions">See every transaction <i data-icon="arrow-down" aria-hidden="true"></i></a></div>
           </section>
           <section class="categories-panel" id="categories-panel" aria-labelledby="categories-panel-title" hidden>
-            <div class="section-heading compact-heading"><div><h2 id="categories-panel-title">Categories</h2><p class="section-note">Changes save as you make them. Rename a category, set a monthly limit, or switch it off the chart.</p></div><button class="text-button" type="button" id="categories-done">Done</button></div>
+            <div class="section-heading compact-heading"><div><h2 id="categories-panel-title">Categories</h2><p class="section-note">Changes save as you make them. Names and chart visibility are private to your account. Rename a category, set a monthly limit, or switch it off the chart.</p></div><button class="text-button" type="button" id="categories-done">Done</button></div>
             <p class="limits-note" id="limits-note"></p>
             <div class="cat-head" aria-hidden="true"><span>Chart</span><span>Name</span><span>Monthly limit</span></div>
             <div class="cat-list" id="category-rows" role="list"></div>
@@ -48,7 +49,7 @@
           <section class="goals-section" aria-labelledby="goals-title">
             <div class="section-heading compact-heading"><div><h2 id="goals-title">Goals</h2><p class="section-note">Track what you want to save, limit, or reach. Savings and spending goals update automatically each month.</p></div><button class="edit-summary-button" type="button" id="edit-goals-link" aria-expanded="false" aria-controls="goals-panel" title="Edit goals: change, add, or delete them"><i data-icon="settings-2" aria-hidden="true"></i><span>Edit goals</span></button></div>
             <section class="categories-panel goals-panel" id="goals-panel" aria-labelledby="goals-panel-title" hidden>
-              <div class="section-heading compact-heading"><div><h3 id="goals-panel-title">Edit goals</h3><p class="section-note">Changes save as you make them. Change a goal's type, name, or amount, or add a new one below.</p></div><button class="text-button" type="button" id="goals-done">Done</button></div>
+              <div class="section-heading compact-heading"><div><h3 id="goals-panel-title">Edit goals</h3><p class="section-note">Changes save as you make them. When you're finished adding or editing goals, select “Done editing goals” to close this panel.</p></div><button class="primary-button goals-done-button" type="button" id="goals-done">Done editing goals</button></div>
               <div class="gp-head" aria-hidden="true"><span>Type</span><span>Name</span><span>Amount</span></div>
               <div class="cat-list" id="goal-rows" role="list"></div>
               <div id="goal-add"></div>

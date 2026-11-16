@@ -26,7 +26,7 @@ import {
   shortMonthName,
 } from "../../../shared/months.js";
 import { getBankConnections, getLeaderboard, getSavingsRecord, type SavingsRecord } from "../../api.js";
-import type { LeaderboardEntry } from "../../../shared/leaderboard.js";
+import type { LeaderboardEntry, MonthlyChallenge } from "../../../shared/leaderboard.js";
 import { loadGoals } from "../../goals.js";
 import "../../page-navigation.js";
 
@@ -55,17 +55,34 @@ const graphMetrics: GraphMetric[] = [
 const graphTypes: GraphType[] = ["line", "bar", "donut"];
 const chartColors = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#747f79"];
 
+function graphTypesFor(metric: GraphMetric): GraphType[] {
+  if (metric === "monthly-spending") return ["line", "bar"];
+  if (metric === "category-spending") return ["bar", "donut"];
+  return ["bar"];
+}
+
+function defaultGraphType(metric: GraphMetric): GraphType {
+  if (metric === "monthly-spending") return "line";
+  if (metric === "category-spending") return "donut";
+  return "bar";
+}
+
+function compatibleGraphType(metric: GraphMetric, type: GraphType): GraphType {
+  return graphTypesFor(metric).includes(type) ? type : defaultGraphType(metric);
+}
+
 function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(graphStorageKey) ?? "null");
     if (typeof saved === "object" && saved !== null) {
       const value = saved as { metric?: unknown; type?: unknown };
-      // The old sample-data "friend-streaks" graph became real friends' goal points.
+      // The old sample-data "friend-streaks" graph became the friends' monthly challenge graph.
       if (value.metric === "friend-streaks") value.metric = "friend-points";
-      return {
-        metric: graphMetrics.includes(value.metric as GraphMetric) ? value.metric as GraphMetric : "monthly-spending",
-        type: graphTypes.includes(value.type as GraphType) ? value.type as GraphType : "line",
-      };
+      const metric = graphMetrics.includes(value.metric as GraphMetric)
+        ? value.metric as GraphMetric
+        : "monthly-spending";
+      const type = graphTypes.includes(value.type as GraphType) ? value.type as GraphType : defaultGraphType(metric);
+      return { metric, type: compatibleGraphType(metric, type) };
     }
   } catch {
     // Ignore unavailable or malformed browser preferences.
@@ -75,12 +92,15 @@ function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
 
 let graphSettings = loadGraphSettings();
 
-/** Friends' leaderboard scores for the goal points graph: null until loaded. */
+/** Friends' normalized challenge scores: null until loaded. */
 let friendScores: LeaderboardEntry[] | null = null;
+let friendChallenge: MonthlyChallenge | null = null;
 let friendScoresFailed = false;
 async function loadFriendScores(): Promise<void> {
   try {
-    friendScores = (await getLeaderboard()).entries;
+    const result = await getLeaderboard();
+    friendScores = result.entries;
+    friendChallenge = result.challenge;
     friendScoresFailed = false;
   } catch {
     friendScoresFailed = true;
@@ -171,19 +191,21 @@ function graphData(metric: GraphMetric): GraphData {
     };
   }
 
-  // Real friends' goal points, the same numbers as the Friends leaderboard.
-  const ranked = (friendScores ?? []).filter((entry) => entry.score !== null);
+  // Normalized monthly challenge percentages, the same privacy-safe scores as the Friends page.
+  const ranked = friendScores ?? [];
   const you = (friendScores ?? []).find((entry) => entry.isYou);
   return {
-    title: "Friends' goal points",
-    summary: you?.score != null ? `${you.score.toLocaleString("en-US")} pts` : friendScores ? "Unranked" : "–",
-    caption: you?.score != null ? "your goal points (out of 1,000)" : "add goals to earn points",
+    title: "Friends' monthly challenge",
+    summary: you ? `${Math.floor(you.score)}%` : friendScores ? "–" : "–",
+    caption: you ? "your normalized challenge score" : "enable visibility to appear",
     items: ranked.map((entry) => ({ label: entry.isYou ? "You" : entry.name, value: entry.score ?? 0 })),
-    formatValue: (value) => `${Math.round(value).toLocaleString("en-US")} pts`,
-    note: "Points come from average goal progress, the same as the Friends leaderboard.",
+    formatValue: (value) => `${Math.floor(value)}%`,
+    note: friendChallenge
+      ? `Scores are normalized percentages for ${friendChallenge.title}. No financial amounts are shared.`
+      : "Friend scores are normalized percentages; no financial amounts are shared.",
     emptyMessage: friendScores === null
       ? (friendScoresFailed ? "Couldn't load your friends' scores. Try again in a moment." : "Loading your friends' scores…")
-      : "Add friends on the Friends tab to compare goal points.",
+      : "Add friends on the Friends tab to compare monthly challenge progress.",
   };
 }
 
@@ -194,7 +216,7 @@ function shortLabel(label: string, maxChars = 12): string {
 
 /** "$4.3K" style amounts for axis ticks and narrow bars. */
 function compactValue(metric: GraphMetric, value: number): string {
-  if (metric === "friend-points") return `${Math.round(value)}`;
+  if (metric === "friend-points") return `${Math.floor(value)}%`;
   const shown = usdToDisplay(value);
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -351,23 +373,46 @@ if (typeof ResizeObserver !== "undefined") {
 }
 
 function graphEditorNote(metric: GraphMetric): string {
-  if (metric === "friend-points") return "Compare goal points with your friends. Points match the Friends leaderboard.";
+  if (metric === "friend-points") return "Compare this month's normalized challenge percentages with your friends.";
   if (metric === "amount-saved") return "Budget left is an estimate based on your monthly budget minus recorded spending.";
   if (metric === "goal-remaining" && !state.goals.length) return "Add a savings goal on Details to see its remaining amount.";
   return "Your graph choice is saved in this browser.";
 }
 
+function graphMetricHelp(metric: GraphMetric): string {
+  if (metric === "monthly-spending") return "See how your total spending changes from month to month.";
+  if (metric === "category-spending") return "Compare category amounts or see how each category contributes to your total.";
+  if (metric === "amount-saved") return "Compare the amount spent with the budget you have left.";
+  if (metric === "goal-remaining") return "Compare how much remains across your savings goals.";
+  return "Compare normalized monthly challenge scores; no financial amounts are shown.";
+}
+
+function updateGraphEditor(metric: GraphMetric, currentType: GraphType): GraphType {
+  const allowedTypes = graphTypesFor(metric);
+  for (const input of document.querySelectorAll<HTMLInputElement>('input[name="graph-type"]')) {
+    const card = input.closest<HTMLElement>(".graph-type-card");
+    const available = allowedTypes.includes(input.value as GraphType);
+    if (card) card.hidden = !available;
+    input.disabled = !available;
+  }
+  const type = compatibleGraphType(metric, currentType);
+  $<HTMLInputElement>(`input[name="graph-type"][value="${type}"]`).checked = true;
+  $("#graph-metric-help").textContent = graphMetricHelp(metric);
+  $("#graph-editor-note").textContent = graphEditorNote(metric);
+  return type;
+}
+
 function openGraphEditor(): void {
   $<HTMLSelectElement>("#graph-metric").value = graphSettings.metric;
-  $<HTMLInputElement>(`input[name="graph-type"][value="${graphSettings.type}"]`).checked = true;
-  $("#graph-editor-note").textContent = graphEditorNote(graphSettings.metric);
+  updateGraphEditor(graphSettings.metric, graphSettings.type);
   $<HTMLDialogElement>("#graph-dialog").showModal();
 }
 
 $("#edit-graph").addEventListener("click", openGraphEditor);
 $("#graph-metric").addEventListener("change", (event) => {
   const metric = (event.currentTarget as HTMLSelectElement).value as GraphMetric;
-  $("#graph-editor-note").textContent = graphEditorNote(metric);
+  const selectedType = document.querySelector<HTMLInputElement>('input[name="graph-type"]:checked')?.value as GraphType | undefined;
+  updateGraphEditor(metric, selectedType ?? graphSettings.type);
 });
 $("#graph-dialog").addEventListener("click", (event) => {
   const target = event.target;
@@ -378,7 +423,8 @@ $("#graph-dialog").addEventListener("click", (event) => {
 $("#graph-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const metric = $<HTMLSelectElement>("#graph-metric").value as GraphMetric;
-  const type = $<HTMLInputElement>('input[name="graph-type"]:checked').value as GraphType;
+  const selectedType = document.querySelector<HTMLInputElement>('input[name="graph-type"]:checked')?.value as GraphType | undefined;
+  const type = compatibleGraphType(metric, selectedType ?? defaultGraphType(metric));
   graphSettings = { metric, type };
   try {
     localStorage.setItem(graphStorageKey, JSON.stringify(graphSettings));

@@ -14,6 +14,7 @@ export default defineConfig({
       configureServer(server) {
         const routes = new Set([
           "auth",
+          "onboarding",
           "home",
           "details",
           "accounts",
@@ -65,7 +66,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         ...Object.fromEntries(
-          ["auth", "home", "details", "accounts", "chat", "leaderboard", "settings", "privacy", "help", "admin"].map(
+          ["auth", "onboarding", "home", "details", "accounts", "chat", "leaderboard", "settings", "privacy", "help", "admin"].map(
             (page) => [
               page,
               resolve(process.cwd(), `src/app/pages/${page}/${page}.html`),

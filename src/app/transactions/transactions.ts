@@ -18,6 +18,7 @@ import {
 import { showToast } from "../ui/ui.js";
 import {
   checkCategoryWarnings,
+  applySavedCategoryPreferencesToCurrentCategories,
   loadAccountPreferences,
   money,
   state,
@@ -173,6 +174,7 @@ export function syncCustomCategories(list: CustomCategory[]): void {
       state.categories.push({ id: custom.key, name: custom.name, amount: 0, limit: 0, color: custom.color, visible: true, custom: true });
     }
   }
+  applySavedCategoryPreferencesToCurrentCategories(keys);
 }
 
 export function onDataChanged(handler: (result: LoadResult) => void): void {

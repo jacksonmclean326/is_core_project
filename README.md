@@ -13,8 +13,8 @@ College students often struggle to budget effectively due to limited time, incom
 | Month views                        | Working. Details has a month switcher; Home shows a real six-month trend, drawn at the screen's real size so it stays readable on phones. |
 | Home, Details                      | Real data once a bank is linked or a transaction is added; a "No spending yet" prompt before that.          |
 | Budget, goals, preferences, streak | Monthly budgets (carried forward to a new month until changed), goals, preferences, category limits and the daily streak are saved per user. Home shows each user's own savings record. |
-| Friends, leaderboard               | Real friends and goal completion rankings (requires friends/leaderboard migrations).                                                |
-| Savings OKRs (team page)           | Working. `/admin` tracks OKR 1 (users with a current streak of 7 days or more), OKR 2 (users with at least one friend), OKR 3 (users consistently meeting savings goals) and OKR 4 (users reporting savings after two months) from real user data. Admins are rows in the `Team Admin` table (requires the savings OKR and team admin migrations). |
+| Friends, leaderboard               | Real friends and monthly challenge rankings (requires friends/leaderboard migrations).                                                |
+| Savings OKRs (team page)           | Working. `/admin` tracks OKR 3 (users consistently meeting savings goals) and OKR 4 (users reporting savings after two months) from real user data. Admins are rows in the `Team Admin` table (requires the savings OKR and team admin migrations). |
 | Chat                               | Groq-powered replies with recent spending summaries, saved budgets and goals; conversation history is saved per user and can be cleared. |
 
 ## ERD:
@@ -171,6 +171,8 @@ The rules were developed against a list of more than 2,000 merchant cases, inclu
 
 Users can add their own categories (up to 12, names up to 24 characters), rename and hide any category, and delete their own. Deleting a custom category moves its transactions to Other. Built-in categories can be renamed and hidden but not deleted.
 
+Built-in category names and chart visibility are stored per user in account preferences (`PUT /api/account/category-preferences`), so changes follow that account across devices and do not affect other users. Custom category names remain scoped to their owner's category records.
+
 **Category limits.** Each category can have a monthly limit (blank means none). Set them on Details with **Edit** (a limit box on every category, with a running total against your budget), or open a category and choose **Set a limit**. Spending near a limit (90%) shows a warning, and Home lists the categories closest to theirs. Changing the monthly budget in Settings scales the limits in proportion; saving the same budget leaves them untouched. Limits are saved to the account (`PUT /api/account/category-limits`, a moment after each change), so they follow the user to every device. The browser keeps a copy so pages draw straight away, and the account's copy wins when it loads. Limits a browser had before this was added move to the account the first time.
 
 **All transactions.** Below the charts, Details lists every transaction in the month you are viewing (bank and manual together), newest first and grouped by day. You can search by merchant, amount, account, bank, or category, show one category, sort by date or size, and see the count and total for what is showing. Transactions are grouped into one card per day (with the day's count and total), and each row carries its category as a thin colored bar on its left edge. Tap a row to open it: category buttons re-categorize it (a bank transaction also has an "Also apply to every ... transaction" option), and manual entries have Edit and Delete. The search, sort, and row-building code is in `src/shared/transaction-list.ts` and is unit-tested (including that merchant names cannot inject HTML).
@@ -238,7 +240,7 @@ To check spending data:
 
 ## Known limitations
 
-- Friend rankings use average goal completion, with spending limits shown separately. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
+- Friend rankings rotate monthly through a $250 micro-savings sprint, a $150 eating-out allowance, and a $35 virtual round-up race. The leaderboard shares normalized percentages and completion status only; it never returns friends' savings totals, spending amounts, balances, or transaction amounts. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
 - A new month uses the most recent earlier budget until the user saves one for that month (Settings says where it came from). Past months with no budget of their own use the most recent earlier one too.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.
@@ -279,7 +281,7 @@ App is autodeployed to AWS Beanstalk every commit to main through github actions
 
 Run `supabase/migrations/202611080001_friends.sql` in the Supabase SQL Editor before using Friends. It adds authenticated functions to list friends, look up a real account by friend code, and remove a friendship. No service-role key is used. Only friend IDs and display names are returned; emails and financial information stay private.
 
-Friendships are mutual: adding a code creates one link visible to both people; either person can remove it. Invalid codes, your own code, and existing friends are rejected. Concurrent reciprocal adds are serialized to avoid duplicate links. The Friends page now loads database records instead of browser sample friends. A separate leaderboard shows real aggregate goal progress after the leaderboard migration is applied.
+Friendships are mutual: adding a code creates one link visible to both people; either person can remove it. Invalid codes, your own code, and existing friends are rejected. Concurrent reciprocal adds are serialized to avoid duplicate links. The Friends page now loads database records instead of browser sample friends. A separate leaderboard shows the active monthly challenge after the leaderboard migration is applied; it includes only friends who have leaderboard visibility enabled.
 
 To verify with two test accounts:
 
@@ -291,17 +293,15 @@ To verify with two test accounts:
 
 ## Friend leaderboard setup
 
-After the friends migration, run `supabase/migrations/202611080002_friend_leaderboard.sql` in the Supabase SQL Editor. The server needs the existing `SUPABASE_SECRET_KEY` to calculate automatic goal progress from transactions and monthly budgets. Keep that key server-only.
+After the friends migration, run `supabase/migrations/202611080002_friend_leaderboard.sql` in the Supabase SQL Editor. The server needs the existing `SUPABASE_SECRET_KEY` to read current-month transactions and budgets. Keep that key server-only.
 
-`GET /api/leaderboard` authenticates the caller, obtains only their direct friends and themselves with `leaderboard_visibility` enabled, and computes progress using the same `withGoalProgress` function as `/api/goals`. It rechecks membership and visibility before returning. No caller-supplied user IDs are accepted, and no goal names, target amounts, checklist text, transactions, or financial balances are returned. Existing goal RLS policies stay unchanged.
+`GET /api/leaderboard` authenticates the caller, obtains only their direct friends and themselves with `leaderboard_visibility` enabled, and rechecks membership and visibility before returning. No caller-supplied user IDs are accepted. The API returns the active challenge, days remaining, names, normalized percentage scores, and status badges only; transaction amounts, savings totals, restaurant spending, account balances, and completion timestamps are never returned.
 
-Score = round(average completion fraction × 1,000), from 0 to 1,000 points, for valid Savings, Earnings, Investing, Custom, and Checklist goals, each capped at 100%. Spending goals report the number of current-month limits still met and do not earn completion points. People with no completion goals show as Unranked. Rankings refresh on opening/focusing the page, every minute while visible, after friend changes, and with Refresh. This reads current database data; it does not copy or overwrite friends' goals.
+The challenge rotates by calendar month: January/April/July/October use the $250 Micro-Savings Sprint; February/May/August/November use the $150 Eating Out Challenge; and March/June/September/December use the $35 Spare-Change Round-Up Race. Micro-Savings uses the existing Savings-goal measure (monthly income, or budget as a fallback, minus current-month spending); with no transactions it starts at 0%. The current transaction table has no timestamped savings deposits, so completed Micro-Savings scores use the start of the month as their internal completion time. Eating Out uses food-category transactions and excludes recognized grocery merchants; it starts at 100% health. Round-ups use stored transaction precision, with exact-dollar transactions contributing $0, and rank finishers by the first transaction date at which they reach $35. No challenge history table is needed; scores are recalculated from existing `Transaction` and `Budget` rows.
 
-Verification: use two linked test accounts with visibility enabled. Set one Custom goal to 25 of 100 and one Checklist goal to one of two steps; Refresh should show 375 points. Change the Custom progress to 100; Refresh should show 750 points. Test a Savings goal against the same user's Home/Details progress. Toggle visibility off and verify the account disappears on the next refresh while remaining in the friend management list. Remove the friendship and confirm the account's leaderboard entry disappears. A third, unrelated account must not receive either friend's entry unless directly linked. Confirm signed-out `/api/leaderboard` returns an authentication error.
+Rankings refresh on opening/focusing the page, every minute while visible, after friend changes, and with Refresh. Leaderboard visibility in Settings hides your score from your own and friends’ rankings; it does not prevent you from viewing visible friends. Successful changes refresh other local tabs immediately; other devices pick them up on the next refresh (within a minute while visible). Failed saves restore the previous switch value. The leaderboard displays a hidden-score notice when opted out.
 
-Scoring regression tests: `node --import tsx --test tests/leaderboard.test.ts`.
-
-Leaderboard visibility in Settings hides your score from your own and friends’ rankings; it does not prevent you from viewing visible friends. Successful changes refresh other local tabs immediately; other devices pick them up on the next refresh (within a minute while visible). Failed saves restore the previous switch value. The leaderboard displays a hidden-score notice when opted out.
+Scoring regression tests: `node --import tsx --test tests/leaderboard.test.ts`. UI coverage includes normalized score rendering and verifies that a leaderboard row does not show dollar amounts.
 
 ## Savings OKRs
 

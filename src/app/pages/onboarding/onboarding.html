@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f5ef">
+    <link rel="icon" type="image/png" href="../../assets/money-man-mascot.png">
+    <meta name="description" content="Set up your Money Man account.">
+    <title>Money Man - Getting started</title>
+    <script>try { if (localStorage.getItem("money-man-theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (error) { console.error("Unable to read the saved theme preference.", error); }</script>
+    <base href="/app/pages/onboarding/">
+    <link rel="stylesheet" href="../../global.css">
+    <link rel="stylesheet" href="onboarding.css">
+  </head>
+  <body>
+    <main class="setup-page">
+      <a class="wordmark setup-brand" href="/home" aria-label="Money Man"><img class="brand-mascot" src="../../assets/money-man-mascot.png" alt=""><span>Money Man</span></a>
+      <header class="setup-heading">
+        <p class="eyebrow">A FRESH START, YOUR WAY</p>
+        <h1>Let’s get your money in view.</h1>
+        <p>These quick steps set up your first goal, monthly plan, and the way you want to use Money Man. You can change everything later in Settings.</p>
+      </header>
+      <ol class="setup-progress" id="setup-progress" aria-label="Setup progress">
+        <li aria-current="step">Your why</li>
+        <li>Monthly plan</li>
+        <li>Preferences</li>
+        <li>Transactions</li>
+        <li>Your first friend</li>
+      </ol>
+      <form id="setup-form" class="setup-card" novalidate>
+        <section class="setup-step" data-step="0" aria-labelledby="why-title">
+          <p class="eyebrow">STEP 1 OF 5</p>
+          <h2 id="why-title">What brings you to Money Man?</h2>
+          <p class="setup-help">Choose the reason that matters most to you.</p>
+          <fieldset class="reason-options">
+            <legend class="sr-only">Your main reason for using Money Man</legend>
+            <label><input type="radio" name="reason" value="save_money" required><span><strong>Save money</strong><small>Build savings and make progress toward goals</small></span></label>
+            <label><input type="radio" name="reason" value="learn_budgeting"><span><strong>Learn how to budget</strong><small>Make a monthly plan that works for me</small></span></label>
+            <label><input type="radio" name="reason" value="organize_finances"><span><strong>Keep everything in one place</strong><small>See my accounts, spending, and goals together</small></span></label>
+            <label><input type="radio" name="reason" value="other"><span><strong>Something else</strong><small>Build a clearer picture of my money</small></span></label>
+          </fieldset>
+          <div class="goal-first">
+            <h3>Set your first goal</h3>
+            <p class="setup-help">You can start with a savings target and add other kinds of goals later.</p>
+            <label for="first-goal-name">Goal name</label>
+            <input id="first-goal-name" maxlength="36" placeholder="For example, emergency fund" autocomplete="off" required>
+            <label for="first-goal-target">How much do you want to save?</label>
+            <div class="setup-money"><span class="currency-symbol" aria-hidden="true">$</span><input id="first-goal-target" type="number" min="1" step="0.01" inputmode="decimal" placeholder="1,000" required></div>
+          </div>
+        </section>
+
+        <section class="setup-step" data-step="1" aria-labelledby="plan-title" hidden>
+          <p class="eyebrow">STEP 2 OF 5</p>
+          <h2 id="plan-title">Set your monthly plan</h2>
+          <p class="setup-help">Enter your monthly take-home income and the amount you plan to spend. Your budget should fit within your income.</p>
+          <label for="monthly-income">Monthly income</label>
+          <div class="setup-money"><span class="currency-symbol" aria-hidden="true">$</span><input id="monthly-income" type="number" min="1" step="0.01" inputmode="decimal" placeholder="4,000" required></div>
+          <label for="monthly-budget">Monthly budget</label>
+          <div class="setup-money"><span class="currency-symbol" aria-hidden="true">$</span><input id="monthly-budget" type="number" min="1" step="0.01" inputmode="decimal" placeholder="3,000" required></div>
+          <label for="setup-currency">Display currency</label>
+          <select id="setup-currency"></select>
+          <p class="setup-help">Your amounts are stored in US dollars and shown in your chosen currency.</p>
+        </section>
+
+        <section class="setup-step" data-step="2" aria-labelledby="preferences-title" hidden>
+          <p class="eyebrow">STEP 3 OF 5</p>
+          <h2 id="preferences-title">Choose your preferences</h2>
+          <p class="setup-help">You can update these any time in Settings.</p>
+          <div class="setup-preferences">
+            <label><span><strong>Daily account sync</strong><small>Refresh transactions before you check in</small></span><input type="checkbox" id="sync-toggle" checked></label>
+            <label><span><strong>Budget reminders</strong><small>Get a nudge when a category reaches 90%</small></span><input type="checkbox" id="reminder-toggle" checked></label>
+            <label><span><strong>Leaderboard visibility</strong><small>Share your normalized monthly challenge score with friends</small></span><input type="checkbox" id="leaderboard-toggle" checked></label>
+          </div>
+        </section>
+
+        <section class="setup-step" data-step="3" aria-labelledby="transactions-title" hidden>
+          <p class="eyebrow">STEP 4 OF 5</p>
+          <h2 id="transactions-title">How would you like to add transactions?</h2>
+          <p class="setup-help">Connect a bank securely with Plaid, or skip the connection and enter transactions yourself.</p>
+          <fieldset class="entry-options">
+            <legend class="sr-only">Transaction entry method</legend>
+            <label><input type="radio" name="entry-mode" value="plaid"><span><strong>Connect a bank with Plaid</strong><small>Import your accounts and transactions</small></span></label>
+            <label><input type="radio" name="entry-mode" value="manual" checked><span><strong>Input manually</strong><small>Skip bank connection and enter transactions on Details</small></span></label>
+          </fieldset>
+          <button class="outline-button" type="button" id="connect-bank"><i data-icon="landmark" aria-hidden="true"></i> Connect a bank with Plaid</button>
+          <p id="bank-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+          <aside class="setup-privacy"><strong>Your bank sign-in stays with Plaid.</strong> Money Man does not receive your bank login password. If you connect, you authorize Plaid to share account details, balances, and transactions with Money Man.</aside>
+        </section>
+
+        <section class="setup-step" data-step="4" aria-labelledby="friend-title" hidden>
+          <p class="eyebrow">STEP 5 OF 5</p>
+          <h2 id="friend-title">Add your first friend</h2>
+          <p class="setup-help">Add someone who already uses Money Man, or send an invitation link. You can skip this and do it later.</p>
+          <label for="friend-code-input">Have a friend code?</label>
+          <div class="friend-code-entry"><input id="friend-code-input" maxlength="6" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Six-character code"><button class="outline-button" type="button" id="add-first-friend">Add friend</button></div>
+          <p id="friend-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+          <div class="setup-invite">
+            <div><strong>Invite someone new</strong><small>They can create an account from your link and be added to your circle.</small></div>
+            <button class="outline-button" type="button" id="share-invite" disabled><i data-icon="user-plus" aria-hidden="true"></i> Share invite link</button>
+          </div>
+          <label class="setup-skip"><input type="checkbox" id="skip-friend"> I’ll add friends later</label>
+          <p id="invite-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+        </section>
+
+        <p id="setup-feedback" class="form-feedback" role="status" aria-live="polite"></p>
+        <div class="setup-actions">
+          <button class="text-button" type="button" id="setup-back" hidden>Back</button>
+          <span class="setup-action-spacer"></span>
+          <button class="primary-button" type="button" id="setup-next">Continue</button>
+          <button class="primary-button" type="submit" id="setup-finish" hidden>Finish setup</button>
+        </div>
+      </form>
+    </main>
+    <script type="module" src="onboarding.ts"></script>
+  </body>
+</html>
