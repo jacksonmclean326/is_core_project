@@ -31,7 +31,6 @@ import { loadGoals } from "../../goals.js";
 import "../../page-navigation.js";
 
 type GraphMetric = "monthly-spending" | "amount-saved" | "friend-points";
-type GraphType = "line" | "bar" | "donut";
 type GraphDatum = { label: string; value: number };
 type GraphSeries = { label: string; color: string; values: GraphDatum[]; isYou?: boolean };
 type GraphData = {
@@ -39,7 +38,6 @@ type GraphData = {
   summary: string;
   caption: string;
   items: GraphDatum[];
-  formatValue: (value: number) => string;
   note?: string;
   emptyMessage?: string;
   change?: { icon: string; text: string };
@@ -48,34 +46,21 @@ type GraphData = {
 
 const graphStorageKey = "money-man-home-graph";
 const graphMetrics: GraphMetric[] = ["monthly-spending", "friend-points", "amount-saved"];
-const graphTypes: GraphType[] = ["line"];
 const chartColors = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#747f79"];
-
-function graphTypesFor(_metric: GraphMetric): GraphType[] { return ["line"]; }
-
-function defaultGraphType(_metric: GraphMetric): GraphType { return "line"; }
-
-function compatibleGraphType(metric: GraphMetric, type: GraphType): GraphType {
-  return graphTypesFor(metric).includes(type) ? type : defaultGraphType(metric);
-}
-
-function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
+function loadGraphSettings(): { metric: GraphMetric } {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(graphStorageKey) ?? "null");
     if (typeof saved === "object" && saved !== null) {
-      const value = saved as { metric?: unknown; type?: unknown; version?: unknown };
-      // The old sample-data "friend-streaks" graph became the friends' monthly challenge graph.
-      if (value.metric === "friend-streaks") value.metric = "friend-points";
+      const value = saved as { metric?: unknown; version?: unknown };
       const metric = value.version === 2 && graphMetrics.includes(value.metric as GraphMetric)
         ? value.metric as GraphMetric
         : "monthly-spending";
-      const type = graphTypes.includes(value.type as GraphType) ? value.type as GraphType : defaultGraphType(metric);
-      return { metric, type: compatibleGraphType(metric, type) };
+      return { metric };
     }
   } catch {
     // Ignore unavailable or malformed browser preferences.
   }
-  return { metric: "monthly-spending", type: "line" };
+  return { metric: "monthly-spending" };
 }
 
 let graphSettings = loadGraphSettings();
@@ -127,7 +112,6 @@ function graphData(metric: GraphMetric): GraphData {
         { label: "This month", color: chartColors[0]!, values: homeTrends.daily.map(row => ({ label: row.label, value: row.spent })), isYou: true },
         { label: "Last month", color: chartColors[2]!, values: homeTrends.previousDaily },
       ] } : {}),
-      formatValue: currencyValue,
       ...(graphPeriod === "daily" ? { note: "Each point is that day's spending total, compared with the same day last month." } : {}),
       ...(comparison !== undefined ? { change: {
         icon: difference <= 0 ? "arrow-down-right" : "arrow-up-right",
@@ -145,7 +129,6 @@ function graphData(metric: GraphMetric): GraphData {
         summary: "Set a budget",
         caption: "to see your unspent budget",
         items: [],
-        formatValue: currencyValue,
         emptyMessage: "Set a monthly budget in Settings to compare spending with your unspent budget.",
       };
     }
@@ -156,7 +139,6 @@ function graphData(metric: GraphMetric): GraphData {
       summary: currencyValue(remaining),
       caption: "estimated income remaining after recorded spending",
       items: timeline.map(row => ({ label: row.label, value: row.saved })),
-      formatValue: currencyValue,
       note: "Budget left is an estimate based on your budget minus recorded spending; it is not a bank savings balance.",
     };
   }
@@ -171,7 +153,6 @@ function graphData(metric: GraphMetric): GraphData {
     caption: you ? "your normalized challenge score" : "enable visibility to appear",
     items: seriesRows[0]?.values ?? ranked.map((entry) => ({ label: entry.isYou ? "You" : entry.name, value: entry.score ?? 0 })),
     series: seriesRows.map((row,index)=>({label:row.isYou ? "You" : row.name,color:chartColors[index%chartColors.length],values:row.values,isYou:row.isYou})),
-    formatValue: (value) => `${Math.floor(value)}%`,
     note: friendChallenge
       ? `Normalized challenge scores; challenge rules can vary by month. Current challenge: ${friendChallenge.title}. No financial amounts are shared.`
       : "Normalized challenge scores; no financial amounts are shared.",
@@ -230,10 +211,8 @@ function renderGraph(): void {
   if (data.change) {
     change.innerHTML = `<i data-icon="${data.change.icon}" aria-hidden="true"></i> ${escapeHTML(data.change.text)}`;
   }
-  const total = data.items.reduce((sum, item) => sum + Math.max(0, item.value), 0);
-  if (!data.items.length || (graphSettings.type === "donut" && total <= 0)) {
+  if (!data.items.length) {
     chart.classList.add("is-empty");
-    chart.classList.remove("is-donut");
     chart.setAttribute("aria-label", data.title);
     chart.innerHTML = `<p class="chart-empty">${escapeHTML(data.emptyMessage ?? "No data to chart yet.")}</p>`;
     legend.innerHTML = "";
@@ -242,11 +221,11 @@ function renderGraph(): void {
     return;
   }
 
-  chart.classList.remove("is-empty", "is-donut");
-  chart.setAttribute("aria-label", `${data.title}, ${graphSettings.type} chart`);
+  chart.classList.remove("is-empty");
+  chart.setAttribute("aria-label", `${data.title}, line chart`);
   const allSeries = data.series?.length ? data.series : [{ label: "", color: chartColors[0]!, values: data.items }];
   const values = allSeries.flatMap(series => series.values.map(item => Math.max(0,item.value)));
-  // Leave headroom above the tallest point for its value label, then round the axis up to a tidy number.
+  // Round the axis to a tidy number above the highest point.
   const scale = niceScale(Math.max(...values, 0) * 1.08);
   const ticks = [0, 1, 2, 3].map((step) => step * scale.step);
   const tickLabels = ticks.map((tick) => compactValue(graphSettings.metric, tick));
@@ -270,65 +249,33 @@ function renderGraph(): void {
     index % labelEvery === 0 || index === data.items.length - 1
       ? `<text class="chart-label" x="${x}" y="${labelY}" text-anchor="middle">${escapeHTML(shortLabel(data.items[index]?.label ?? "", Math.min(12, Math.max(maxChars, Math.floor((slot * labelEvery - 6) / 7)))))}</text>`
       : "";
-  let chartMarkup = "";
-
-  if (graphSettings.type === "line") {
-    const inset = Math.min(24, slot / 2);
-    const count = Math.max(...allSeries.map(series=>series.values.length));
-    const xFor = (index:number) => count === 1 ? (left+right)/2 : left+inset+((right-left-inset*2)*index)/(count-1);
-    const lines = allSeries.map((series,seriesIndex)=>{
-      const points=series.values.map((item,index)=>({x:xFor(index),y:yFor(item.value)}));
-      const path=points.map((point,index)=>`${index?"L":"M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-      const dots=points.map((point,index)=>`<circle cx="${point.x}" cy="${point.y}" r="${index===points.length-1?4.5:3.5}" fill="${series.color}" stroke="white" stroke-width="1.5"/>`).join("");
-      const labels=seriesIndex===0 ? points.map((point,index)=>bottomLabel(point.x,index)).join("") : "";
-      return `<path d="${path}" fill="none" stroke="${series.color}" stroke-width="${series.isYou?3.5:2.5}" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}`;
-    }).join("");
-    chartMarkup = `${grid}${lines}`;
-    if (data.series?.length) {
-      legend.innerHTML=allSeries.map(series=>`<div class="chart-legend-item"><span class="chart-legend-swatch" style="--swatch:${series.color}"></span><span class="chart-legend-label">${escapeHTML(series.label)}</span></div>`).join("");
-      legend.hidden=false;
-    } else { legend.innerHTML=""; legend.hidden=true; }
-  } else if (graphSettings.type === "bar") {
-    const barWidth = Math.max(4, Math.min(44, slot * 0.58));
-    const bars = data.items.map((item, index) => {
-      const x = left + slot * index + (slot - barWidth) / 2;
-      const y = yFor(item.value);
-      const labelX = x + barWidth / 2;
-      const valueY = Math.max(top + 10, y - 7);
-      // The full amount if it fits over the bar, "$4.3K" if that fits, otherwise nothing (the axis still reads it).
-      const full = data.formatValue(item.value);
-      const compact = compactValue(graphSettings.metric, item.value);
-      const valueText = textWidth(full) <= slot - 4 ? full : textWidth(compact) <= slot - 2 ? compact : "";
-      const radius = Math.min(barWidth / 2, 10);
-      return `<rect class="chart-bar-track" x="${x}" y="${top}" width="${barWidth}" height="${bottom - top}" rx="${radius}"/><rect class="chart-bar${index === data.items.length - 1 ? " is-last" : ""}" x="${x}" y="${y}" width="${barWidth}" height="${Math.max(0, bottom - y)}" rx="${radius}"/>${
-        valueText ? `<text class="chart-value" x="${labelX}" y="${valueY}" text-anchor="middle">${escapeHTML(valueText)}</text>` : ""
-      }${bottomLabel(labelX, index)}`;
-    }).join("");
-    chartMarkup = `<defs><linearGradient id="chart-bar-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#6f9a7f"/><stop offset="100%" stop-color="#2f6854"/></linearGradient><linearGradient id="chart-bar-current" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#f09a78"/><stop offset="100%" stop-color="#e7745a"/></linearGradient></defs>${grid}${bars}`;
+  const inset = Math.min(24, slot / 2);
+  const count = Math.max(...allSeries.map((series) => series.values.length));
+  const xFor = (index: number) => count === 1
+    ? (left + right) / 2
+    : left + inset + ((right - left - inset * 2) * index) / (count - 1);
+  const lines = allSeries.map((series, seriesIndex) => {
+    const points = series.values.map((item, index) => ({ x: xFor(index), y: yFor(item.value) }));
+    const path = points
+      .map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+      .join(" ");
+    const dots = points
+      .map((point, index) =>
+        `<circle cx="${point.x}" cy="${point.y}" r="${index === points.length - 1 ? 4.5 : 3.5}" fill="${series.color}" stroke="white" stroke-width="1.5"/>`,
+      )
+      .join("");
+    const labels = seriesIndex === 0 ? points.map((point, index) => bottomLabel(point.x, index)).join("") : "";
+    return `<path d="${path}" fill="none" stroke="${series.color}" stroke-width="${series.isYou ? 3.5 : 2.5}" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}`;
+  }).join("");
+  const chartMarkup = `${grid}${lines}`;
+  if (data.series?.length) {
+    legend.innerHTML = allSeries
+      .map((series) => `<div class="chart-legend-item"><span class="chart-legend-swatch" style="--swatch:${series.color}"></span><span class="chart-legend-label">${escapeHTML(series.label)}</span></div>`)
+      .join("");
+    legend.hidden = false;
+  } else {
     legend.innerHTML = "";
     legend.hidden = true;
-  } else {
-    const radius = 72;
-    const centerX = 140;
-    const centerY = 110;
-    const circumference = 2 * Math.PI * radius;
-    let offset = 0;
-    const circles = data.items.map((item, index) => {
-      const segment = Math.max(0, item.value) / total * circumference;
-      const visibleSegment = Math.max(0, segment - 3);
-      const circle = `<circle class="chart-donut-ring" cx="${centerX}" cy="${centerY}" r="${radius}" stroke="${chartColors[index % chartColors.length]}" stroke-dasharray="${visibleSegment} ${circumference - visibleSegment}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${centerX} ${centerY})" />`;
-      offset += segment;
-      return circle;
-    }).join("");
-    chartMarkup = `<circle class="chart-donut-track" cx="${centerX}" cy="${centerY}" r="${radius}"/><g>${circles}</g><text class="chart-donut-total" x="${centerX}" y="${centerY + 5}">${escapeHTML(data.summary)}</text>`;
-    legend.innerHTML = data.items.map((item, index) =>
-      `<div class="chart-legend-item"><span class="chart-legend-swatch" style="--swatch:${chartColors[index % chartColors.length]}"></span><span class="chart-legend-label">${escapeHTML(item.label)}</span><strong class="chart-legend-value">${escapeHTML(data.formatValue(item.value))}</strong></div>`,
-    ).join("");
-    legend.hidden = false;
-    chart.classList.add("is-donut");
-    chart.innerHTML = `<svg viewBox="0 0 280 220" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${chartMarkup}</svg>`;
-    refreshIcons();
-    return;
   }
 
   chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">${chartMarkup}</svg>`;
@@ -360,7 +307,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-graph-period]").forEach((but
 $("#show-last-month").addEventListener("change", renderGraph);
 $("#graph-metric").addEventListener("change", (event) => {
   const metric = (event.currentTarget as HTMLSelectElement).value as GraphMetric;
-  graphSettings = { metric, type: "line" };
+  graphSettings = { metric };
   try {
     localStorage.setItem(graphStorageKey, JSON.stringify({ ...graphSettings, version: 2 }));
   } catch {

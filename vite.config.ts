@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
 import { inlineIcons } from "./src/app/ui/icons";
+import { pageRoutes } from "./src/shared/page-routes";
 
 export default defineConfig({
   plugins: [
@@ -12,19 +13,7 @@ export default defineConfig({
     {
       name: "clean-page-routes",
       configureServer(server) {
-        const routes = new Set([
-          "auth",
-          "onboarding",
-          "home",
-          "details",
-          "accounts",
-          "chat",
-          "leaderboard",
-          "settings",
-          "privacy",
-          "help",
-          "admin",
-        ]);
+        const routes = new Set<string>(pageRoutes);
 
         server.middlewares.use((request, response, next) => {
           const requestUrl = request.url || "/";
@@ -65,14 +54,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        ...Object.fromEntries(
-          ["auth", "onboarding", "home", "details", "accounts", "chat", "leaderboard", "settings", "privacy", "help", "admin"].map(
-            (page) => [
-              page,
-              resolve(process.cwd(), `src/app/pages/${page}/${page}.html`),
-            ],
-          ),
-        ),
+        ...Object.fromEntries(pageRoutes.map((page) => [
+          page,
+          resolve(process.cwd(), `src/app/pages/${page}/${page}.html`),
+        ])),
       },
     },
   },

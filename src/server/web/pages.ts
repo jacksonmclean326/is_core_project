@@ -5,33 +5,11 @@ import { requireSession } from "../auth/session.js";
 import { config } from "../config.js";
 import { errorCode, HttpError } from "../errors.js";
 import { sendRedirect } from "../http/response.js";
+import { pageRoutes, type PageRoute } from "../../shared/page-routes.js";
 
-export type PageRoute =
-  | "auth"
-  | "onboarding"
-  | "home"
-  | "details"
-  | "accounts"
-  | "chat"
-  | "leaderboard"
-  | "settings"
-  | "privacy"
-  | "help"
-  | "admin";
+export type { PageRoute } from "../../shared/page-routes.js";
 
-export const pageFiles = new Map<string, PageRoute>([
-  ["/auth", "auth"],
-  ["/onboarding", "onboarding"],
-  ["/home", "home"],
-  ["/details", "details"],
-  ["/accounts", "accounts"],
-  ["/chat", "chat"],
-  ["/leaderboard", "leaderboard"],
-  ["/settings", "settings"],
-  ["/privacy", "privacy"],
-  ["/help", "help"],
-  ["/admin", "admin"],
-]);
+export const pageFiles = new Map<string, PageRoute>(pageRoutes.map((route) => [`/${route}`, route]));
 
 export async function servePage(
   request: IncomingMessage,

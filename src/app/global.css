@@ -115,7 +115,6 @@ summary:focus-visible {
 :root[data-theme="dark"] .admin-card,
 :root[data-theme="dark"] .setup-card,
 :root[data-theme="dark"] .auth-card,
-:root[data-theme="dark"] .graph-type-card,
 :root[data-theme="dark"] .categories-panel,
 :root[data-theme="dark"] .tx-day-card,
 :root[data-theme="dark"] .goal-card,
@@ -130,24 +129,12 @@ summary:focus-visible {
 }
 
 :root[data-theme="dark"] .trend-summary > div,
-:root[data-theme="dark"] .graph-type-options input:checked + .graph-type-card-content,
-:root[data-theme="dark"] .graph-editor-note,
 :root[data-theme="dark"] .record-month,
 :root[data-theme="dark"] .goal-card,
 :root[data-theme="dark"] .tx-line:hover,
 :root[data-theme="dark"] .cat-name:hover,
 :root[data-theme="dark"] .cat-limit:hover {
   background: var(--green-soft);
-}
-
-:root[data-theme="dark"] .graph-dialog {
-  background: var(--white);
-}
-
-:root[data-theme="dark"] .chart-legend-item {
-  color: var(--muted);
-  background: var(--white);
-  border-color: var(--line);
 }
 
 :root[data-theme="dark"] .streak-indicator {
