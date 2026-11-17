@@ -1,3 +1,4 @@
+import { createUuid } from "../../uuid.js";
 import { $, displayToUsd, escapeHTML, eventElement, refreshIcons, shownCurrency, showToast, state, toInputValue } from "../../core.js";
 import type { Goal } from "../../core.js";
 import { saveGoals } from "../../goals.js";
@@ -274,7 +275,7 @@ async function addGoal(form: HTMLFormElement): Promise<void> {
     target = parsed;
   }
   error.textContent = "";
-  const goal: Goal = { id: crypto.randomUUID(), kind, name, target, progress: 0, automatic: false, note: null, category: null, deadline: null, steps };
+  const goal: Goal = { id: createUuid(), kind, name, target, progress: 0, automatic: false, note: null, category: null, deadline: null, steps };
   const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
   button.disabled = true;
   try {
