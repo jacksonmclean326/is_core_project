@@ -146,6 +146,8 @@ test("finishing setup saves the first goal, budget, preferences, currency, and o
     },
   });
 
+  Object.defineProperty(page.window.crypto, "randomUUID", { value: undefined });
+
   await page.click('input[name="reason"][value="learn_budgeting"]');
   await page.type("#first-goal-name", "Trip fund");
   await page.type("#first-goal-target", "2500");
@@ -162,6 +164,8 @@ test("finishing setup saves the first goal, budget, preferences, currency, and o
   assert.equal(budget.body.monthlyIncome, 5000);
   assert.equal(budget.body.monthlyBudget, 3500);
   const goals = page.calls.find((call) => call.path === "/api/goals" && call.method === "PUT");
+  assert.ok(goals, page.$("#setup-feedback").textContent);
+  assert.match(goals.body.items[0].id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.equal(goals.body.items[0].name, "Trip fund");
   assert.equal(goals.body.items[0].target, 2500);
   assert.ok(page.calls.filter((call) => call.path === "/api/account/preferences").length === 3);

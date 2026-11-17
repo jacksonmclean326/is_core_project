@@ -1,3 +1,4 @@
+import { createUuid } from "../../uuid.js";
 import { leaderboardVisibilityEvent } from "../../../shared/leaderboard.js";
 import {
   $,
@@ -372,7 +373,7 @@ preferenceControls.forEach(([selector, key, column]) => {
         showToast(control.checked ? "Leaderboard visibility enabled." : "Your leaderboard score is hidden.");
         // Other tabs refresh from the server; this event carries no profile or financial data.
         try {
-          localStorage.setItem(leaderboardVisibilityEvent, crypto.randomUUID());
+          localStorage.setItem(leaderboardVisibilityEvent, createUuid());
         } catch {
           // Storage may be blocked; focus and periodic refresh still update the leaderboard.
         }

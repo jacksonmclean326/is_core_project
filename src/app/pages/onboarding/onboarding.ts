@@ -1,3 +1,4 @@
+import { createUuid } from "../../uuid.js";
 import { onboardingReasons, type OnboardingReason } from "../../../shared/onboarding.js";
 import { currencies, currencyOrDefault } from "../../../shared/currencies.js";
 import { currentMonthKey } from "../../../shared/months.js";
@@ -250,7 +251,7 @@ async function finishSetup(event: SubmitEvent): Promise<void> {
     await saveBudget({ month: currentMonthKey(), monthlyIncome: income, monthlyBudget: budget });
     if (existingGoals.length === 0) {
       const firstGoal: Goal = {
-        id: crypto.randomUUID(),
+        id: createUuid(),
         kind: "Savings",
         name,
         target,
