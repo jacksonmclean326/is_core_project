@@ -2,6 +2,7 @@ import type { Transaction } from "plaid";
 import { createServiceSupabaseClient } from "../auth/supabase.js";
 import { categorizerVersion } from "../categorize.js";
 import { loadOverrides } from "../category-store.js";
+import { categorizeWithGroq } from "../categorization/groq.js";
 import { supabaseFailure } from "../errors.js";
 import { createPlaidClient, decryptPlaidAccessToken, logPlaidFailure } from "./client.js";
 import { plaidErrorCode, toStoredTransactions } from "./convert.js";
@@ -155,7 +156,7 @@ async function runSync(item: SyncItem): Promise<void> {
   const pulled = await pullChanges(item, startCursor);
   if (!pulled || pulled.status === "NOT_READY") return; // try again on the next page load
 
-  const [{ overrides }, sourcesResult] = await Promise.all([
+  const [{ overrides, customCategories }, sourcesResult] = await Promise.all([
     loadOverrides(admin, item.user_id),
     admin
       .from("Income Source")
@@ -175,7 +176,8 @@ async function runSync(item: SyncItem): Promise<void> {
   ];
 
   const touched = [...pulled.added, ...pulled.modified];
-  const kept = toStoredTransactions(touched, accounts, item.institution_name, overrides);
+  const aiCategories = await categorizeWithGroq(touched, overrides, customCategories);
+  const kept = toStoredTransactions(touched, accounts, item.institution_name, overrides, aiCategories);
   const keptIds = new Set(kept.map((row) => row.id));
   const rows = kept.map((row) => ({
     user_id: item.user_id,

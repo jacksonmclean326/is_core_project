@@ -1,4 +1,12 @@
-export const categoryIds = ["housing", "food", "transport", "utilities", "education", "personal", "other"] as const;
+export const categoryIds = [
+  "housing",
+  "food",
+  "transport",
+  "utilities",
+  "education",
+  "personal",
+  "other",
+] as const;
 export type BuiltInCategoryId = (typeof categoryIds)[number];
 /** A built-in id ("food") or a user-created key ("c-1a2b3c4d"). */
 export type CategoryId = string;
@@ -16,7 +24,10 @@ export function isCategoryKey(value: unknown): value is CategoryId {
 }
 
 export function isBuiltInCategory(value: unknown): value is BuiltInCategoryId {
-  return typeof value === "string" && (categoryIds as readonly string[]).includes(value);
+  return (
+    typeof value === "string" &&
+    (categoryIds as readonly string[]).includes(value)
+  );
 }
 
 /**
@@ -46,12 +57,20 @@ export function applyOverrides(
   transaction: { id: string; name: string },
   overrides: CategoryOverrides | undefined,
 ): CategoryId {
-  if (!overrides) return automatic;
+  return categoryOverride(transaction, overrides) ?? automatic;
+}
+
+/** The user's explicit transaction or merchant choice, if it still names a valid category. */
+export function categoryOverride(
+  transaction: { id: string; name: string },
+  overrides: CategoryOverrides | undefined,
+): CategoryId | null {
+  if (!overrides) return null;
   const manual = overrides.manual.get(transaction.id);
   if (manual && overrides.validKeys.has(manual)) return manual;
   const rule = overrides.merchantRules.get(normalizeMerchant(transaction.name));
   if (rule && overrides.validKeys.has(rule)) return rule;
-  return automatic;
+  return null;
 }
 
 export interface CategorizableTransaction {
@@ -92,41 +111,162 @@ function phrases(...list: string[]): RegExp {
 }
 
 /** Well-known brands (whole words, after simplifying: no accents, apostrophes or symbols). Exported so tests can check every one. */
-export const brandPhrases: Record<Exclude<BuiltInCategoryId, "housing" | "other">, string[]> = {
+export const brandPhrases: Record<
+  Exclude<BuiltInCategoryId, "housing" | "other">,
+  string[]
+> = {
   food: [
-    "uber eats", "ubereats", "doordash", "grubhub", "postmates", "instacart", "starbucks", "dunkin", "mcdonalds",
-    "chipotle", "chick fil a", "taco bell", "panera", "wendys", "burger king", "dominos", "papa johns", "pizza hut",
-    "kfc", "popeyes", "five guys", "in n out", "sweetgreen", "cava", "panda express", "jimmy johns", "jersey mikes",
-    "little caesars", "dairy queen", "culvers", "whole foods", "trader joes", "safeway", "kroger", "aldi", "publix",
-    "food lion", "wegmans", "h e b", "meijer", "sprouts farmers market", "winco", "cafe rio",
+    "uber eats",
+    "ubereats",
+    "doordash",
+    "grubhub",
+    "postmates",
+    "instacart",
+    "starbucks",
+    "dunkin",
+    "mcdonalds",
+    "chipotle",
+    "chick fil a",
+    "taco bell",
+    "panera",
+    "wendys",
+    "burger king",
+    "dominos",
+    "papa johns",
+    "pizza hut",
+    "kfc",
+    "popeyes",
+    "five guys",
+    "in n out",
+    "sweetgreen",
+    "cava",
+    "panda express",
+    "jimmy johns",
+    "jersey mikes",
+    "little caesars",
+    "dairy queen",
+    "culvers",
+    "whole foods",
+    "trader joes",
+    "safeway",
+    "kroger",
+    "aldi",
+    "publix",
+    "food lion",
+    "wegmans",
+    "h e b",
+    "meijer",
+    "sprouts farmers market",
+    "winco",
+    "cafe rio",
   ],
   transport: [
-    "uber", "lyft", "amtrak", "greyhound", "shell oil", "shell service station", "exxon", "exxonmobil", "chevron",
-    "bp gas", "bp products", "ezpass", "e zpass", "ez pass", "zipcar", "turo", "united airlines",
-    "delta air lines", "delta airlines", "american airlines", "southwest airlines", "jetblue", "alaska airlines",
-    "spirit airlines", "frontier airlines",
+    "uber",
+    "lyft",
+    "amtrak",
+    "greyhound",
+    "shell oil",
+    "shell service station",
+    "exxon",
+    "exxonmobil",
+    "chevron",
+    "bp gas",
+    "bp products",
+    "ezpass",
+    "e zpass",
+    "ez pass",
+    "zipcar",
+    "turo",
+    "united airlines",
+    "delta air lines",
+    "delta airlines",
+    "american airlines",
+    "southwest airlines",
+    "jetblue",
+    "alaska airlines",
+    "spirit airlines",
+    "frontier airlines",
   ],
   utilities: [
-    "comcast", "xfinity", "charter communications", "spectrum internet", "spectrum mobile", "spectrum cable",
-    "verizon wireless", "verizon fios", "t mobile", "mint mobile", "cricket wireless", "google fi", "con edison",
-    "pg e", "duke energy", "dominion energy", "rocky mountain power", "waste management", "republic services",
+    "comcast",
+    "xfinity",
+    "charter communications",
+    "spectrum internet",
+    "spectrum mobile",
+    "spectrum cable",
+    "verizon wireless",
+    "verizon fios",
+    "t mobile",
+    "mint mobile",
+    "cricket wireless",
+    "google fi",
+    "con edison",
+    "pg e",
+    "duke energy",
+    "dominion energy",
+    "rocky mountain power",
+    "waste management",
+    "republic services",
   ],
   education: [
-    "chegg", "coursera", "udemy", "pearson education", "pearson vue", "khan academy", "campus bookstore",
-    "textbook", "textbooks", "tuition", "bursar", "registrar",
+    "chegg",
+    "coursera",
+    "udemy",
+    "pearson education",
+    "pearson vue",
+    "khan academy",
+    "campus bookstore",
+    "textbook",
+    "textbooks",
+    "tuition",
+    "bursar",
+    "registrar",
   ],
   personal: [
-    "netflix", "spotify", "hulu", "disney", "hbo", "apple music", "apple tv", "youtube premium", "prime video",
-    "paramount plus", "paramountplus", "peacock tv", "peacocktv", "crunchyroll", "steam games", "steam purchase",
-    "steampowered", "steamgames", "playstation", "xbox", "nintendo", "audible", "cvs", "walgreens", "rite aid",
-    "planet fitness", "anytime fitness", "orangetheory", "equinox fitness", "equinox gym", "sephora", "ulta",
-    "old navy", "uniqlo", "urban outfitters",
+    "netflix",
+    "spotify",
+    "hulu",
+    "disney",
+    "hbo",
+    "apple music",
+    "apple tv",
+    "youtube premium",
+    "prime video",
+    "paramount plus",
+    "paramountplus",
+    "peacock tv",
+    "peacocktv",
+    "crunchyroll",
+    "steam games",
+    "steam purchase",
+    "steampowered",
+    "steamgames",
+    "playstation",
+    "xbox",
+    "nintendo",
+    "audible",
+    "cvs",
+    "walgreens",
+    "rite aid",
+    "planet fitness",
+    "anytime fitness",
+    "orangetheory",
+    "equinox fitness",
+    "equinox gym",
+    "sephora",
+    "ulta",
+    "old navy",
+    "uniqlo",
+    "urban outfitters",
   ],
 };
 
-const brandRules = (Object.entries(brandPhrases) as [BuiltInCategoryId, string[]][]).map(
-  ([category, list]): [BuiltInCategoryId, RegExp] => [category, phrases(...list)],
-);
+const brandRules = (
+  Object.entries(brandPhrases) as [BuiltInCategoryId, string[]][]
+).map(([category, list]): [BuiltInCategoryId, RegExp] => [
+  category,
+  phrases(...list),
+]);
 
 /** Plaid's detailed categories (personal_finance_category.detailed) that need their own answer. */
 export const detailedMap: Record<string, BuiltInCategoryId> = {
@@ -160,25 +300,100 @@ export const primaryMap: Record<string, BuiltInCategoryId> = {
  * Last resort when Plaid has nothing useful. Phrases are specific on purpose ("water bill", not "water").
  * Categories are checked in this order. Exported so tests can check every phrase.
  */
-export const fallbackPhrases: Record<Exclude<BuiltInCategoryId, "other">, string[]> = {
+export const fallbackPhrases: Record<
+  Exclude<BuiltInCategoryId, "other">,
+  string[]
+> = {
   food: [
-    "restaurant", "cafe", "coffee", "pizza", "pizzeria", "grill", "diner", "bakery", "sushi", "burger", "burgers",
-    "bbq", "barbecue", "taqueria", "bistro", "deli", "supermarket", "grocery", "groceries", "food co op", "farmers market",
+    "restaurant",
+    "cafe",
+    "coffee",
+    "pizza",
+    "pizzeria",
+    "grill",
+    "diner",
+    "bakery",
+    "sushi",
+    "burger",
+    "burgers",
+    "bbq",
+    "barbecue",
+    "taqueria",
+    "bistro",
+    "deli",
+    "supermarket",
+    "grocery",
+    "groceries",
+    "food co op",
+    "farmers market",
   ],
-  transport: ["gas station", "parking", "taxi", "rideshare", "toll road", "tolls", "transit"],
+  transport: [
+    "gas station",
+    "parking",
+    "taxi",
+    "rideshare",
+    "toll road",
+    "tolls",
+    "transit",
+  ],
   utilities: [
-    "electric", "electricity", "power company", "gas company", "water bill", "water utility", "water utilities",
-    "water department", "water district", "water service", "water works", "sewer", "internet", "broadband", "wireless",
-    "phone bill", "utility", "utilities",
+    "electric",
+    "electricity",
+    "power company",
+    "gas company",
+    "water bill",
+    "water utility",
+    "water utilities",
+    "water department",
+    "water district",
+    "water service",
+    "water works",
+    "sewer",
+    "internet",
+    "broadband",
+    "wireless",
+    "phone bill",
+    "utility",
+    "utilities",
   ],
   housing: [
-    "apartment", "apartments", "landlord", "property management", "mortgage", "renters insurance", "rent payment",
-    "hoa", "dormitory", "housing",
+    "apartment",
+    "apartments",
+    "landlord",
+    "property management",
+    "mortgage",
+    "renters insurance",
+    "rent payment",
+    "hoa",
+    "dormitory",
+    "housing",
   ],
-  education: ["bookstore", "textbook", "tuition", "university", "college", "school", "print shop", "printing services"],
+  education: [
+    "bookstore",
+    "textbook",
+    "tuition",
+    "university",
+    "college",
+    "school",
+    "print shop",
+    "printing services",
+  ],
   personal: [
-    "pharmacy", "gym", "fitness", "salon", "barbershop", "barber", "clothing", "apparel", "cinema", "movie", "movies",
-    "theater", "theatre", "streaming", "tattoo",
+    "pharmacy",
+    "gym",
+    "fitness",
+    "salon",
+    "barbershop",
+    "barber",
+    "clothing",
+    "apparel",
+    "cinema",
+    "movie",
+    "movies",
+    "theater",
+    "theatre",
+    "streaming",
+    "tattoo",
   ],
 };
 
@@ -189,18 +404,35 @@ const fallbackRules: [BuiltInCategoryId, RegExp][] = (
   Object.entries(fallbackPhrases) as [BuiltInCategoryId, string[]][]
 ).map(([category, list]): [BuiltInCategoryId, RegExp] => {
   const base = phrases(...list);
-  return category === "housing" ? [category, new RegExp(`${base.source}|${bareRent.source}`)] : [category, base];
+  return category === "housing"
+    ? [category, new RegExp(`${base.source}|${bareRent.source}`)]
+    : [category, base];
 });
 
 /** Plaid categories that are conclusive: no keyword in the name may move these out of Other. */
-const stayInOther = new Set(["BANK_FEES", "GOVERNMENT_AND_NON_PROFIT", "LOAN_PAYMENTS"]);
+const stayInOther = new Set([
+  "BANK_FEES",
+  "GOVERNMENT_AND_NON_PROFIT",
+  "LOAN_PAYMENTS",
+]);
+
+/** Plaid classifications intentionally kept in Other should not be reinterpreted by AI. */
+export function isProtectedOtherCategory(primaryCategory?: string | null, detailedCategory?: string | null): boolean {
+  const detailed = (detailedCategory ?? "").trim().toUpperCase();
+  const primary = broadCategory((primaryCategory ?? "").trim().toUpperCase(), detailed);
+  return stayInOther.has(primary);
+}
 
 /** Every broad category Plaid uses, longest first, so a detailed name can be traced back to its broad one. */
 const knownPrimaries = [
   ...new Set([
     ...Object.keys(primaryMap),
     ...stayInOther,
-    "INCOME", "TRANSFER_IN", "TRANSFER_OUT", "GENERAL_SERVICES", "OTHER",
+    "INCOME",
+    "TRANSFER_IN",
+    "TRANSFER_OUT",
+    "GENERAL_SERVICES",
+    "OTHER",
   ]),
 ].sort((a, b) => b.length - a.length);
 
@@ -214,19 +446,32 @@ function broadCategory(primary: string, detailed: string): string {
  * Returns the budget category for a transaction, or null when the transaction
  * is not spending (income, refunds, transfers, credit-card payments).
  */
-export function categorizeTransaction(transaction: CategorizableTransaction): BuiltInCategoryId | null {
+export function categorizeTransaction(
+  transaction: CategorizableTransaction,
+): BuiltInCategoryId | null {
   const detailed = (transaction.detailedCategory ?? "").trim().toUpperCase();
-  const primary = broadCategory((transaction.primaryCategory ?? "").trim().toUpperCase(), detailed);
+  const primary = broadCategory(
+    (transaction.primaryCategory ?? "").trim().toUpperCase(),
+    detailed,
+  );
 
-  if (!Number.isFinite(transaction.amount) || !(transaction.amount > 0)) return null;
-  if (primary === "INCOME" || primary === "TRANSFER_IN" || primary === "TRANSFER_OUT") return null;
+  if (!Number.isFinite(transaction.amount) || !(transaction.amount > 0))
+    return null;
+  if (
+    primary === "INCOME" ||
+    primary === "TRANSFER_IN" ||
+    primary === "TRANSFER_OUT"
+  )
+    return null;
   if (detailed === "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT") return null;
 
   const fromPlaid = detailedMap[detailed] ?? primaryMap[primary];
   if (fromPlaid) return fromPlaid;
   if (stayInOther.has(primary)) return "other";
 
-  const text = simplify(`${transaction.merchantName ?? ""} ${transaction.name}`);
+  const text = simplify(
+    `${transaction.merchantName ?? ""} ${transaction.name}`,
+  );
   for (const [category, pattern] of brandRules) {
     if (pattern.test(text)) return category;
   }

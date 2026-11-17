@@ -91,7 +91,7 @@ If either command is not found, install Node.js LTS as described above, then reo
    | `CLIENT_ID`, `PLAID_SECRET`  | Plaid Dashboard **Developers → Keys** (use the Sandbox secret).         |
    | `PLAID_MODE`                 | `sandbox` (the default) or `production`.                                |
    | `PLAID_TOKEN_ENCRYPTION_KEY` | A 32-byte key, generated with the command below.                        |
-   | `GROQ_KEY`                  | GroqCloud API key. Server only; required for AI chat.                    |
+   | `GROQ_KEY`                  | GroqCloud API key. Server only; enables AI chat and ambiguous transaction categorization. |
    | `ADMIN_EMAILS`               | Optional. Extra admin emails for `/admin`, comma separated. Normally admins are rows in the Supabase `Team Admin` table. |
    | `SUPABASE_JWKS_URL`          | Not used by the app. Leave it blank.                                    |
 
@@ -165,9 +165,9 @@ Settings has a **Display currency** picker (the list is in `src/shared/currencie
 4. Bank fees, loans, taxes, and donations stay in Other, whatever the name says. (A mortgage payment counts as Housing and a car payment as Transport.)
 5. Well-known brands in `src/server/categorize.ts`, matched as whole words ("Uber Eats" is Food, "Uber" is Transport).
 6. Careful keyword phrases (for example "water bill", never just "water"), only when Plaid gave nothing useful.
-7. Other. A merchant we are unsure about stays here rather than landing in the wrong category.
+7. If the existing rules still return Other, Groq can suggest one of that user's built-in or custom categories. Plaid's protected Other categories, explicit transaction choices, and remembered merchant rules bypass AI. The server accepts only a valid category key returned with confidence of at least 75%; otherwise the transaction stays Other.
 
-The rules were developed against a list of more than 2,000 merchant cases, including every category Plaid can return, every brand and keyword, and look-alike traps such as "Water Park", "Delta Dental", and "Rent the Runway" (that test file has since been removed from the repo). When you change the rules, raise `categorizerVersion` in `categorize.ts`: every bank then re-sorts its saved transactions from scratch the next time it syncs (your own picks and merchant rules are kept).
+The rules were developed against a list of more than 2,000 merchant cases, including every category Plaid can return, every brand and keyword, and look-alike traps such as "Water Park", "Delta Dental", and "Rent the Runway" (that test file has since been removed from the repo). The Groq workflow is in `src/server/categorization/groq.ts`; it sends a merchant name, Plaid category hints, and the user's category keys and names, but not amounts, dates, account details, or transaction IDs. It considers at most the 40 newest unresolved transactions in a sync. Provider errors and low-confidence results fall back to Other without failing bank sync. When you change the deterministic rules, raise `categorizerVersion` in `categorize.ts`: every bank then re-sorts its saved transactions from scratch the next time it syncs (your own picks and merchant rules are kept).
 
 Users can add their own categories (up to 12, names up to 24 characters), rename and hide any category, and delete their own. Deleting a custom category moves its transactions to Other. Built-in categories can be renamed and hidden but not deleted.
 
@@ -240,7 +240,7 @@ To check spending data:
 
 ## Known limitations
 
-- Friend rankings rotate monthly through a $250 micro-savings sprint, a $150 eating-out allowance, and a $35 virtual round-up race. The leaderboard shares normalized percentages and completion status only; it never returns friends' savings totals, spending amounts, balances, or transaction amounts. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included. History is per user and can be cleared from Ask.
+- Friend rankings rotate monthly through a $250 micro-savings sprint, a $150 eating-out allowance, and a $35 virtual round-up race. The leaderboard shares normalized percentages and completion status only; it never returns friends' savings totals, spending amounts, balances, or transaction amounts. Chat sends recent monthly totals and category summaries, saved budgets, saved goals, and the full saved conversation to Groq; individual transaction names are not included in chat context. Separately, ambiguous bank transactions that deterministic rules leave in Other send the merchant name and Plaid category hints to Groq for categorization. History is per user and can be cleared from Ask.
 - A new month uses the most recent earlier budget until the user saves one for that month (Settings says where it came from). Past months with no budget of their own use the most recent earlier one too.
 - Transactions are spending only. Income and refunds are not tracked.
 - Some interest, fee, and tax charges land in Other because there is no category for them.

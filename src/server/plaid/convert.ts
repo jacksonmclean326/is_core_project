@@ -1,6 +1,6 @@
 import type { Transaction } from "plaid";
 import { isRecord } from "../errors.js";
-import { applyOverrides, categorizeTransaction, type CategoryId, type CategoryOverrides } from "../categorize.js";
+import { categoryOverride, categorizeTransaction, type CategoryId, type CategoryOverrides } from "../categorize.js";
 
 export interface PublicTransaction {
   id: string;
@@ -30,6 +30,7 @@ export function toStoredTransactions(
   accounts: { account_id: string; name: string }[],
   institution: string,
   overrides?: CategoryOverrides,
+  aiCategories?: ReadonlyMap<string, CategoryId>,
 ): StoredTransaction[] {
   const accountNames = new Map(accounts.map((account) => [account.account_id, account.name]));
   const result: StoredTransaction[] = [];
@@ -43,12 +44,15 @@ export function toStoredTransactions(
     });
     if (!category) continue;
     const name = transaction.merchant_name || transaction.name;
+    const userChoice = categoryOverride({ id: transaction.transaction_id, name }, overrides);
+    const aiCategory = category === "other" ? aiCategories?.get(transaction.transaction_id) : undefined;
+    const selected = userChoice ?? (aiCategory && overrides?.validKeys.has(aiCategory) ? aiCategory : category);
     result.push({
       id: transaction.transaction_id,
       name,
       amount: transaction.amount,
       date: transaction.date,
-      category: applyOverrides(category, { id: transaction.transaction_id, name }, overrides),
+      category: selected,
       account: accountNames.get(transaction.account_id) ?? "Linked account",
       institution,
       accountId: transaction.account_id,
