@@ -1,10 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { isAdminUser } from "../admin.js";
+import { isAdminUser } from "../auth/admin.js";
 import { requireSession } from "../auth/session.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
-import { checkInTable, isMissingTable, migrationMissing } from "../savings-history.js";
+import { checkInTable, isMissingTable, migrationMissing } from "../savings/history.js";
 import { checkInAfterDays, checkInSnoozeDays, daysSince, isCheckInDue } from "../../shared/savings-okrs.js";
 
 /**

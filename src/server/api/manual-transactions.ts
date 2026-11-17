@@ -5,7 +5,7 @@ import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
-import { isBuiltInCategory, isCategoryKey, type CategoryId } from "../categorize.js";
+import { isBuiltInCategory, isCategoryKey, type CategoryId } from "../categorization/categorize.js";
 import {
   addDays,
   addMonths,

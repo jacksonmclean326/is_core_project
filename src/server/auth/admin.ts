@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { User } from "@supabase/supabase-js";
-import { requireSession } from "./auth/session.js";
-import { createServiceSupabaseClient } from "./auth/supabase.js";
-import { config } from "./config.js";
-import { HttpError } from "./errors.js";
+import { requireSession } from "./session.js";
+import { createServiceSupabaseClient } from "./supabase.js";
+import { config } from "../config.js";
+import { HttpError } from "../errors.js";
 
 /**
  * Who can open the team-only /admin page. Admins are listed in the "Team Admin" table (managed from the Team admins

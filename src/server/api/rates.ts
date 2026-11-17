@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { requireSession } from "../auth/session.js";
 import { HttpError } from "../errors.js";
 import { sendJson } from "../http/response.js";
-import { getRates } from "../rates.js";
+import { getRates } from "../currency/rates.js";
 
 export async function handleRatesApi(
   request: IncomingMessage,

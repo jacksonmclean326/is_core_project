@@ -1,13 +1,13 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
+import { hiddenSourceIds, withoutHidden } from "../accounts/hidden-sources.js";
 import { createServiceSupabaseClient } from "../auth/supabase.js";
 import { requireSession } from "../auth/session.js";
 import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { sendJson } from "../http/response.js";
 import { createTimer, type Timer } from "../http/timing.js";
-import { categoryIds, type CategoryId } from "../categorize.js";
-import { listCustomCategories, type CustomCategory } from "../category-store.js";
+import { categoryIds, type CategoryId } from "../categorization/categorize.js";
+import { listCustomCategories, type CustomCategory } from "../categorization/category-store.js";
 import { isSyncing, lastSyncFailed, needsSync, startSync, syncColumns, type SyncItem } from "../plaid/sync.js";
 import type { PublicTransaction } from "../plaid/convert.js";
 import {

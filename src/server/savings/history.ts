@@ -1,7 +1,7 @@
-import type { SessionClient } from "./auth/supabase.js";
-import { HttpError, isRecord, supabaseFailure } from "./errors.js";
-import { hiddenSourceIds, withoutHidden } from "./hidden-accounts.js";
-import { isMonthKey, monthStart, utcDateString, type MonthKey } from "../shared/months.js";
+import type { SessionClient } from "../auth/supabase.js";
+import { HttpError, isRecord, supabaseFailure } from "../errors.js";
+import { hiddenSourceIds, withoutHidden } from "../accounts/hidden-sources.js";
+import { isMonthKey, monthStart, utcDateString, type MonthKey } from "../../shared/months.js";
 import {
   backfillMonths,
   evaluateMonth,
@@ -9,7 +9,7 @@ import {
   isSavingsOkrGoal,
   type MonthGoal,
   type MonthSpending,
-} from "../shared/savings-okrs.js";
+} from "../../shared/savings-okrs.js";
 
 /**
  * Monthly goal results for OKR 3. Each finished month gets one "Goal Month Result" row per user. The first time

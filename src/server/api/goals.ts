@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
+import { hiddenSourceIds, withoutHidden } from "../accounts/hidden-sources.js";
 import { addMonths, isDateString, monthStart, utcDateString } from "../../shared/months.js";
 import {
   computeGoalProgress,
@@ -10,17 +10,17 @@ import {
   type MonthFacts,
 } from "../../shared/goal-progress.js";
 import { currencyOrDefault } from "../../shared/currencies.js";
-import { rateFor } from "../rates.js";
+import { rateFor } from "../currency/rates.js";
 import { requireSession } from "../auth/session.js";
 import { createServiceSupabaseClient, type SessionClient } from "../auth/supabase.js";
-import { isBuiltInCategory, isCategoryKey } from "../categorize.js";
-import { listCustomCategories } from "../category-store.js";
+import { isBuiltInCategory, isCategoryKey } from "../categorization/categorize.js";
+import { listCustomCategories } from "../categorization/category-store.js";
 import { config } from "../config.js";
 import { HttpError, isRecord, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { budgetForMonth } from "./budget.js";
-import { recordGoalHistoryInBackground } from "../savings-history.js";
+import { recordGoalHistoryInBackground } from "../savings/history.js";
 
 const pageSize = 1000;
 const baseGoalColumns = "goal_id, goal_type, goal_name, desired_savings, amount_savings, category_key, target_date";

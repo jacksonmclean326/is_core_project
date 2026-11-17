@@ -7,7 +7,7 @@ import {
   type ChallengeTransaction,
   type RankedLeaderboardEntry,
 } from "../../shared/leaderboard.js";
-import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
+import { hiddenSourceIds, withoutHidden } from "../accounts/hidden-sources.js";
 import { requireSession } from "../auth/session.js";
 import { createServiceSupabaseClient } from "../auth/supabase.js";
 import { config } from "../config.js";

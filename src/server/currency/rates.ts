@@ -1,4 +1,4 @@
-import { currencies, defaultCurrency } from "../shared/currencies.js";
+import { currencies, defaultCurrency } from "../../shared/currencies.js";
 
 /**
  * Exchange rates for the display currency. Everything in the database is stored in US dollars; a rate is

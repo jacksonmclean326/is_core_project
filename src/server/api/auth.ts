@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody, requiredString } from "../http/request-body.js";
 import { cookieHeader, sendJson } from "../http/response.js";
-import { isAdminUser } from "../admin.js";
+import { isAdminUser } from "../auth/admin.js";
 import { publicUser, requireSession, signIn, signOut } from "../auth/session.js";
 
 export async function handleAuthApi(

@@ -1,7 +1,7 @@
 import type { Transaction } from "plaid";
 import { createServiceSupabaseClient } from "../auth/supabase.js";
-import { categorizerVersion } from "../categorize.js";
-import { loadOverrides } from "../category-store.js";
+import { categorizerVersion } from "../categorization/categorize.js";
+import { loadOverrides } from "../categorization/category-store.js";
 import { categorizeWithGroq } from "../categorization/groq.js";
 import { supabaseFailure } from "../errors.js";
 import { createPlaidClient, decryptPlaidAccessToken, logPlaidFailure } from "./client.js";

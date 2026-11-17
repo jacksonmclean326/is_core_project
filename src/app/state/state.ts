@@ -254,7 +254,7 @@ export function setCurrency(code: string): boolean {
 
 // ---- Exchange rates -------------------------------------------------------------------------------------
 // Everything is stored in US dollars. Amounts are converted when they are shown, and converted back to
-// dollars when typed in. Rates are daily reference rates (see src/server/rates.ts), cached in this browser.
+// dollars when typed in. Rates are daily reference rates (see src/server/currency/rates.ts), cached in this browser.
 
 const ratesStorageKey = "money-man-rates";
 const ratesFreshMs = 6 * 60 * 60 * 1000;

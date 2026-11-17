@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { hiddenSourceIds, withoutHidden } from "../hidden-accounts.js";
+import { hiddenSourceIds, withoutHidden } from "../accounts/hidden-sources.js";
 import { monthName, monthRange, utcDateString } from "../../shared/months.js";
 import { plainText } from "../../shared/plain-text.js";
 import { requireSession } from "../auth/session.js";
@@ -10,7 +10,7 @@ import { readJsonBody, requiredString } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { withGoalProgress } from "./goals.js";
 import { createMoneyFormatter, currencyOrDefault } from "../../shared/currencies.js";
-import { rateFor } from "../rates.js";
+import { rateFor } from "../currency/rates.js";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type ChatTurnRow = {

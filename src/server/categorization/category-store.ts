@@ -1,6 +1,10 @@
-import { createServiceSupabaseClient } from "./auth/supabase.js";
-import { supabaseFailure } from "./errors.js";
-import { categoryIds, type CategoryId, type CategoryOverrides } from "./categorize.js";
+import { createServiceSupabaseClient } from "../auth/supabase.js";
+import { supabaseFailure } from "../errors.js";
+import {
+  categoryIds,
+  type CategoryId,
+  type CategoryOverrides,
+} from "./categorize.js";
 
 export interface CustomCategory {
   key: string;
@@ -10,7 +14,10 @@ export interface CustomCategory {
 
 type Admin = ReturnType<typeof createServiceSupabaseClient>;
 
-export async function listCustomCategories(admin: Admin, userId: string): Promise<CustomCategory[]> {
+export async function listCustomCategories(
+  admin: Admin,
+  userId: string,
+): Promise<CustomCategory[]> {
   const result = await admin
     .from("Custom Category")
     .select("category_key,name,color,created_at")
@@ -18,11 +25,18 @@ export async function listCustomCategories(admin: Admin, userId: string): Promis
     .order("created_at", { ascending: true })
     .returns<{ category_key: string; name: string; color: string }[]>();
   if (result.error) throw supabaseFailure(result.error);
-  return (result.data ?? []).map((row) => ({ key: row.category_key, name: row.name, color: row.color }));
+  return (result.data ?? []).map((row) => ({
+    key: row.category_key,
+    name: row.name,
+    color: row.color,
+  }));
 }
 
 /** The user's own choices (custom categories, merchant rules, manual picks) for a set of transactions. */
-export async function loadOverrides(admin: Admin, userId: string): Promise<{
+export async function loadOverrides(
+  admin: Admin,
+  userId: string,
+): Promise<{
   overrides: CategoryOverrides;
   customCategories: CustomCategory[];
 }> {
@@ -39,9 +53,14 @@ export async function loadOverrides(admin: Admin, userId: string): Promise<{
       .select("plaid_transaction_id,category_key")
       .eq("user_id", userId)
       .eq("category_manual", true)
-      .returns<{ plaid_transaction_id: string | null; category_key: string | null }[]>(),
+      .returns<
+        { plaid_transaction_id: string | null; category_key: string | null }[]
+      >(),
   ]);
-  const validKeys = new Set<CategoryId>([...categoryIds, ...customCategories.map((category) => category.key)]);
+  const validKeys = new Set<CategoryId>([
+    ...categoryIds,
+    ...customCategories.map((category) => category.key),
+  ]);
   if (rules.error) throw supabaseFailure(rules.error);
   if (manual.error) throw supabaseFailure(manual.error);
 
@@ -49,11 +68,16 @@ export async function loadOverrides(admin: Admin, userId: string): Promise<{
     customCategories,
     overrides: {
       validKeys,
-      merchantRules: new Map((rules.data ?? []).map((row) => [row.merchant_key, row.category_key])),
+      merchantRules: new Map(
+        (rules.data ?? []).map((row) => [row.merchant_key, row.category_key]),
+      ),
       manual: new Map(
         (manual.data ?? [])
           .filter((row) => row.plaid_transaction_id && row.category_key)
-          .map((row) => [row.plaid_transaction_id as string, row.category_key as string]),
+          .map((row) => [
+            row.plaid_transaction_id as string,
+            row.category_key as string,
+          ]),
       ),
     },
   };

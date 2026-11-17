@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { User } from "@supabase/supabase-js";
-import { addAdmin, listAdmins, removeAdmin, requireAdmin } from "../admin.js";
+import { addAdmin, listAdmins, removeAdmin, requireAdmin } from "../auth/admin.js";
 import { createServiceSupabaseClient, type SessionClient } from "../auth/supabase.js";
 import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
-import { checkInTable, isMissingTable, migrationMissing, recordGoalHistory, resultsTable } from "../savings-history.js";
+import { checkInTable, isMissingTable, migrationMissing, recordGoalHistory, resultsTable } from "../savings/history.js";
 import { monthStart, utcDateString, type MonthKey } from "../../shared/months.js";
 import {
   checkInAfterDays,

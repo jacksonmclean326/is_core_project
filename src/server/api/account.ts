@@ -10,7 +10,7 @@ import { sendJson } from "../http/response.js";
 import { currencyOrDefault, isCurrencyCode } from "../../shared/currencies.js";
 import { onboardingReasons } from "../../shared/onboarding.js";
 import { parseCategoryPreferences } from "./category-preferences.js";
-import { rateFor } from "../rates.js";
+import { rateFor } from "../currency/rates.js";
 
 /** Reads { categoryKey: dollars } from untrusted JSON: built-in keys or custom "c-xxxxxxxx" keys, 0 to 10 million. */
 export function parseCategoryLimits(value: unknown): Record<string, number> | null {

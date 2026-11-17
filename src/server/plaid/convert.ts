@@ -1,6 +1,6 @@
 import type { Transaction } from "plaid";
 import { isRecord } from "../errors.js";
-import { categoryOverride, categorizeTransaction, type CategoryId, type CategoryOverrides } from "../categorize.js";
+import { categoryOverride, categorizeTransaction, type CategoryId, type CategoryOverrides } from "../categorization/categorize.js";
 
 export interface PublicTransaction {
   id: string;

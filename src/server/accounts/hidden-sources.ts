@@ -1,4 +1,4 @@
-import type { SessionClient } from "./auth/supabase.js";
+import type { SessionClient } from "../auth/supabase.js";
 
 /**
  * Accounts the person has hidden on the Accounts page. Their transactions stay in the database but are left out

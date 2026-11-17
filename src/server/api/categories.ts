@@ -7,7 +7,7 @@ import { HttpError, supabaseFailure } from "../errors.js";
 import { readJsonBody } from "../http/request-body.js";
 import { sendJson } from "../http/response.js";
 import { settleUserSyncs } from "../plaid/sync.js";
-import { listCustomCategories, type CustomCategory } from "../category-store.js";
+import { listCustomCategories, type CustomCategory } from "../categorization/category-store.js";
 import {
   customCategoryColors,
   isCustomCategoryColor,
@@ -15,7 +15,7 @@ import {
   maxCustomCategories,
 } from "../../shared/category-colors.js";
 
-export { listCustomCategories, loadOverrides, type CustomCategory } from "../category-store.js";
+export { listCustomCategories, loadOverrides, type CustomCategory } from "../categorization/category-store.js";
 import {
   categoryIds,
   isBuiltInCategory,
@@ -23,7 +23,7 @@ import {
   normalizeMerchant,
   type CategoryId,
   type CategoryOverrides,
-} from "../categorize.js";
+} from "../categorization/categorize.js";
 
 export { maxCustomCategories, maxCategoryNameLength };
 const customColors = customCategoryColors.map((color) => color.value);

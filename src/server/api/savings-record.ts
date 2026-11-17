@@ -4,7 +4,7 @@ import { createServiceSupabaseClient } from "../auth/supabase.js";
 import { config } from "../config.js";
 import { HttpError, supabaseFailure } from "../errors.js";
 import { sendJson } from "../http/response.js";
-import { isMissingTable, migrationMissing, recordGoalHistory, resultsTable } from "../savings-history.js";
+import { isMissingTable, migrationMissing, recordGoalHistory, resultsTable } from "../savings/history.js";
 import { monthStart, utcDateString } from "../../shared/months.js";
 import { consistencyNeeded, consistencyWindow, finishedMonths, isSavingsOkrGoal, userConsistency } from "../../shared/savings-okrs.js";
 
