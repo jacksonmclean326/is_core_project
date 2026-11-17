@@ -465,6 +465,7 @@ export interface HomeTrendsResponse {
   month: string;
   monthly: { label: string; spent: number; saved: number }[];
   daily: { label: string; spent: number; saved: number }[];
+  previousDaily: { label: string; value: number }[];
   friendsMonthly: { name: string; isYou: boolean; values: { label: string; value: number }[] }[];
   friendsDaily: { name: string; isYou: boolean; values: { label: string; value: number }[] }[];
 }

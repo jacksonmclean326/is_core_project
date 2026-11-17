@@ -61,6 +61,8 @@ export async function handleHomeTrendsApi(request: IncomingMessage, response: Se
   const allowed = new Set(((latest.data ?? []) as {id:string}[]).map(m=>m.id));
   const safeMembers = memberSeries.filter(m=>allowed.has(m.id)).map(({id,...m})=>m);
   const own = await transactions(admin,user.id,month);
+  const previousMonth = addMonths(month,-1);
+  const previousTransactions = await transactions(admin,user.id,previousMonth);
   const ownMonthly = await Promise.all(months.map(async key=>{
     const [tx,budget]=await Promise.all([transactions(admin,user.id,key),budgetForMonth(client,user.id,`${key}-01`)]);
     const spent=tx.reduce((s,r)=>s+Math.max(0,Number(r.amount)||0),0);
@@ -75,7 +77,13 @@ export async function handleHomeTrendsApi(request: IncomingMessage, response: Se
     spentSoFar+=spentThatDay;
     return {label:date.slice(8),spent:spentThatDay,saved:Math.max(0,(budget.row?.monthly_income??budget.row?.monthly_budget??0)-spentSoFar)};
   });
+  const previousDayCount=Math.min(dayCount,daysInMonth(Number(previousMonth.slice(0,4)),Number(previousMonth.slice(5,7))));
+  const previousDaily=Array.from({length:previousDayCount},(_,i)=>{
+    const date=addDays(`${previousMonth}-01`,i);
+    const spent=previousTransactions.filter(r=>(r.date??"").slice(0,10)===date).reduce((s,r)=>s+Math.max(0,Number(r.amount)||0),0);
+    return {label:date.slice(8),spent};
+  });
   response.setHeader("Cache-Control","no-store");
-  sendJson(response,200,{month,monthly:ownMonthly,daily:ownDaily,friendsMonthly:safeMembers.map(({name,isYou,monthly})=>({name,isYou,values:monthly})),friendsDaily:safeMembers.map(({name,isYou,daily})=>({name,isYou,values:daily}))});
+  sendJson(response,200,{month,monthly:ownMonthly,daily:ownDaily,previousDaily:previousDaily.map(row=>({label:row.label,value:row.spent})),friendsMonthly:safeMembers.map(({name,isYou,monthly})=>({name,isYou,values:monthly})),friendsDaily:safeMembers.map(({name,isYou,daily})=>({name,isYou,values:daily}))});
   return true;
 }

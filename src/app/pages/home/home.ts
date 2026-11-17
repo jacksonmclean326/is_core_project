@@ -63,10 +63,10 @@ function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
   try {
     const saved: unknown = JSON.parse(localStorage.getItem(graphStorageKey) ?? "null");
     if (typeof saved === "object" && saved !== null) {
-      const value = saved as { metric?: unknown; type?: unknown };
+      const value = saved as { metric?: unknown; type?: unknown; version?: unknown };
       // The old sample-data "friend-streaks" graph became the friends' monthly challenge graph.
       if (value.metric === "friend-streaks") value.metric = "friend-points";
-      const metric = graphMetrics.includes(value.metric as GraphMetric)
+      const metric = value.version === 2 && graphMetrics.includes(value.metric as GraphMetric)
         ? value.metric as GraphMetric
         : "monthly-spending";
       const type = graphTypes.includes(value.type as GraphType) ? value.type as GraphType : defaultGraphType(metric);
@@ -79,6 +79,7 @@ function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
 }
 
 let graphSettings = loadGraphSettings();
+$<HTMLSelectElement>("#graph-metric").value = graphSettings.metric;
 let graphPeriod: "monthly" | "daily" = "monthly";
 let homeTrends: HomeTrendsResponse | null = null;
 void getHomeTrends(currentMonthKey(), localDateString()).then(result => { homeTrends = result; renderGraph(); }).catch(() => { homeTrends = null; });
@@ -111,19 +112,27 @@ function graphData(metric: GraphMetric): GraphData {
       ? (homeTrends?.daily ?? []).map(row => row.spent)
       : homeTrends?.monthly.map(row => row.spent) ?? trendValues("spending");
     const current = values.at(-1) ?? 0;
-    const previous = values.at(-2) ?? 0;
+    const comparison = graphPeriod === "daily"
+      ? homeTrends?.previousDaily.find(row => row.label === String(values.length).padStart(2,"0"))?.value
+      : values.at(-2);
+    const previous = comparison ?? 0;
     const difference = current - previous;
     const relative = previous ? Math.round(Math.abs(difference / previous) * 100) : 0;
     return {
       title: graphPeriod === "daily" ? "Daily spending this month" : "Spending by month",
       summary: currencyValue(current),
-      caption: "spent this month",
+      caption: graphPeriod === "daily" ? "spent today" : "spent this month",
       items: values.map((value, index) => ({ label: graphPeriod === "daily" ? String(index + 1) : homeTrends?.monthly[index]?.label.slice(5) ?? months[index] ?? "Month", value })),
+      ...(graphPeriod === "daily" && homeTrends && $<HTMLInputElement>("#show-last-month").checked ? { series: [
+        { label: "This month", color: chartColors[0]!, values: homeTrends.daily.map(row => ({ label: row.label, value: row.spent })), isYou: true },
+        { label: "Last month", color: chartColors[2]!, values: homeTrends.previousDaily },
+      ] } : {}),
       formatValue: currencyValue,
-      change: {
+      ...(graphPeriod === "daily" ? { note: "Each point is that day's spending total, compared with the same day last month." } : {}),
+      ...(comparison !== undefined ? { change: {
         icon: difference <= 0 ? "arrow-down-right" : "arrow-up-right",
-        text: `${relative}% from last month`,
-      },
+        text: `${relative}% from ${graphPeriod === "daily" ? "the same day last month" : "last month"}`,
+      } } : {}),
     };
   }
 
@@ -209,6 +218,7 @@ function renderGraph(): void {
   const height = Math.max(140, Math.round(chart.clientHeight) || 220);
   lastChartWidth = chart.clientWidth;
   const legend = $("#chart-legend");
+  $("#last-month-toggle").hidden = graphSettings.metric !== "monthly-spending" || graphPeriod !== "daily";
   const change = $("#trend-change");
   $("#graph-eyebrow").textContent = graphPeriod === "daily" ? "THIS MONTH, BY DAY" : "YOUR LAST SIX MONTHS";
   $("#trend-title").textContent = data.title;
@@ -337,39 +347,6 @@ if (typeof ResizeObserver !== "undefined") {
   }).observe($("#trend-chart"));
 }
 
-function graphEditorNote(metric: GraphMetric): string {
-  if (metric === "friend-points") return "Friend lines show normalized challenge scores; financial amounts are never shared.";
-  if (metric === "amount-saved") return "Savings are estimated from monthly income minus recorded spending.";
-  return "All graph views are line charts. Switch between monthly and daily points above the chart.";
-}
-
-function graphMetricHelp(metric: GraphMetric): string {
-  if (metric === "monthly-spending") return "Track total spending over the last six months or day by day this month.";
-  if (metric === "amount-saved") return "Track estimated income remaining after spending over six months or within this month.";
-  return "Compare your challenge score with each friend across six months or day by day this month.";
-}
-
-function updateGraphEditor(metric: GraphMetric, currentType: GraphType): GraphType {
-  const allowedTypes = graphTypesFor(metric);
-  for (const input of document.querySelectorAll<HTMLInputElement>('input[name="graph-type"]')) {
-    const card = input.closest<HTMLElement>(".graph-type-card");
-    const available = allowedTypes.includes(input.value as GraphType);
-    if (card) card.hidden = !available;
-    input.disabled = !available;
-  }
-  const type = compatibleGraphType(metric, currentType);
-  $<HTMLInputElement>(`input[name="graph-type"][value="${type}"]`).checked = true;
-  $("#graph-metric-help").textContent = graphMetricHelp(metric);
-  $("#graph-editor-note").textContent = graphEditorNote(metric);
-  return type;
-}
-
-function openGraphEditor(): void {
-  $<HTMLSelectElement>("#graph-metric").value = graphSettings.metric;
-  updateGraphEditor(graphSettings.metric, graphSettings.type);
-  $<HTMLDialogElement>("#graph-dialog").showModal();
-}
-
 document.querySelectorAll<HTMLButtonElement>("[data-graph-period]").forEach((button) => {
   button.addEventListener("click", () => {
     graphPeriod = button.dataset.graphPeriod === "daily" ? "daily" : "monthly";
@@ -380,31 +357,16 @@ document.querySelectorAll<HTMLButtonElement>("[data-graph-period]").forEach((but
   });
 });
 
-$("#edit-graph").addEventListener("click", openGraphEditor);
+$("#show-last-month").addEventListener("change", renderGraph);
 $("#graph-metric").addEventListener("change", (event) => {
   const metric = (event.currentTarget as HTMLSelectElement).value as GraphMetric;
-  const selectedType = document.querySelector<HTMLInputElement>('input[name="graph-type"]:checked')?.value as GraphType | undefined;
-  updateGraphEditor(metric, selectedType ?? graphSettings.type);
-});
-$("#graph-dialog").addEventListener("click", (event) => {
-  const target = event.target;
-  if (target === $("#graph-dialog") || eventElement(event)?.closest("[data-close-graph]")) {
-    $<HTMLDialogElement>("#graph-dialog").close();
-  }
-});
-$("#graph-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const metric = $<HTMLSelectElement>("#graph-metric").value as GraphMetric;
-  const selectedType = document.querySelector<HTMLInputElement>('input[name="graph-type"]:checked')?.value as GraphType | undefined;
-  const type = compatibleGraphType(metric, selectedType ?? defaultGraphType(metric));
-  graphSettings = { metric, type };
+  graphSettings = { metric, type: "line" };
   try {
-    localStorage.setItem(graphStorageKey, JSON.stringify(graphSettings));
+    localStorage.setItem(graphStorageKey, JSON.stringify({ ...graphSettings, version: 2 }));
   } catch {
     // The graph still updates for this visit when storage is unavailable.
   }
   renderGraph();
-  $<HTMLDialogElement>("#graph-dialog").close();
   if (metric === "friend-points") void loadFriendScores();
 });
 
@@ -493,7 +455,6 @@ async function loadBankAccountCount() {
   }
 }
 
-$("#graph-dialog").addEventListener("close", () => refreshIcons());
 $("#watch-categories").addEventListener("click", (event) => {
   const categoryButton = eventElement(event)?.closest<HTMLButtonElement>("[data-category-id]");
   if (categoryButton) openCategoryDetails(categoryButton.dataset.categoryId);
