@@ -1,6 +1,6 @@
 import type { LeaderboardEntry, LeaderboardStatus } from "../../../shared/leaderboard.js";
 import { leaderboardVisibilityEvent } from "../../../shared/leaderboard.js";
-import { $, escapeHTML, eventElement, refreshIcons, showToast } from "../../core.js";
+import { $, escapeHTML, eventElement, refreshIcons } from "../../core.js";
 import { addFriend, deleteFriend, getFriendCode, getFriends, getLeaderboard, type FriendRecord } from "../../api.js";
 import { shareFriendInvite } from "../../friend-invite.js";
 import "../../page-navigation.js";
@@ -221,14 +221,40 @@ $("#add-friend-form").addEventListener("submit", async (event) => {
   }
 });
 
+async function copyFriendCode(): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(friendCode);
+      return true;
+    } catch {
+      // Try copying the selected text if the clipboard write was blocked.
+    }
+  }
+
+  const selection = window.getSelection();
+  if (!selection) return false;
+  const range = document.createRange();
+  range.selectNodeContents($("#friend-code"));
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    if (!document.execCommand?.("copy")) return false;
+    selection.removeAllRanges();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 $("#copy-code").addEventListener("click", async () => {
   if (!friendCode) return;
-  try {
-    await navigator.clipboard.writeText(friendCode);
-    showToast("Your friend code is copied.");
-  } catch {
-    showToast(`Your friend code is ${friendCode}.`);
-  }
+  const copied = await copyFriendCode();
+  const feedback = $("#friend-code-feedback");
+  feedback.textContent = copied
+    ? "Friend code copied."
+    : "Couldn’t copy automatically. Select and copy your friend code above.";
+  feedback.classList.toggle("is-error", !copied);
 });
 
 $<HTMLButtonElement>("#share-invite").addEventListener("click", async () => {
