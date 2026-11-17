@@ -17,6 +17,7 @@ import { handleRatesApi } from "./rates.js";
 import { handleCheckInApi } from "./checkin.js";
 import { handleAdminApi } from "./admin.js";
 import { handleSavingsRecordApi } from "./savings-record.js";
+import { handleHomeTrendsApi } from "./home-trends.js";
 
 export async function handleApi(
   request: IncomingMessage,
@@ -29,6 +30,7 @@ export async function handleApi(
   }
 
   if (await handleAuthApi(request, response, pathname)) return;
+  if (await handleHomeTrendsApi(request, response, pathname)) return;
   if (await handlePlaidApi(request, response, pathname)) return;
   if (await handleGoalsApi(request, response, pathname)) return;
   if (await handleLeaderboardApi(request, response, pathname)) return;

@@ -38,6 +38,7 @@
               <button class="outline-button graph-edit-button" id="edit-graph" type="button" aria-haspopup="dialog"><i data-icon="sliders-horizontal" aria-hidden="true"></i> Edit graph</button>
             </div>
             <div class="trend-summary"><div><p class="trend-value" id="trend-value">–</p><p class="trend-caption" id="trend-caption">spent this month</p></div><span class="trend-change" id="trend-change"></span></div>
+            <div class="graph-period-control" role="group" aria-label="Graph interval"><button type="button" data-graph-period="monthly" aria-pressed="true">Monthly</button><button type="button" data-graph-period="daily" aria-pressed="false">Daily</button></div>
             <div class="chart-wrap" id="trend-chart" role="img" aria-label="Monthly spending trend chart"></div>
             <div class="chart-legend" id="chart-legend" hidden></div>
             <p class="chart-note" id="chart-note" hidden></p>
@@ -76,40 +77,14 @@
           <form id="graph-form" class="graph-form">
             <label for="graph-metric">Data to show
               <select id="graph-metric">
-                <option value="monthly-spending">Spending by month</option>
-                <option value="category-spending">Spending by category</option>
-                <option value="amount-saved">Budget left</option>
-                <option value="goal-remaining">Amount left in goals</option>
-                <option value="friend-points">Friends' monthly challenge</option>
+                <option value="monthly-spending">Spending trends</option>
+                <option value="friend-points">You and friends</option>
+                <option value="amount-saved">Total amount saved</option>
               </select>
             </label>
             <p class="graph-metric-help" id="graph-metric-help"></p>
-            <fieldset class="graph-type-fieldset">
-              <legend>Chart style</legend>
-              <div class="graph-type-options">
-                <label class="graph-type-card">
-                  <input type="radio" name="graph-type" value="line">
-                  <span class="graph-type-card-content">
-                    <svg class="graph-type-preview" viewBox="0 0 64 36" aria-hidden="true"><path d="M4 29H60M5 25l14-9 12 5 14-13 14 6" /><circle cx="45" cy="8" r="2.5" /></svg>
-                    <strong>Line</strong><small>Follow a monthly trend</small>
-                  </span>
-                </label>
-                <label class="graph-type-card">
-                  <input type="radio" name="graph-type" value="bar">
-                  <span class="graph-type-card-content">
-                    <svg class="graph-type-preview graph-type-preview-bars" viewBox="0 0 64 36" aria-hidden="true"><path d="M4 29H60" /><rect x="10" y="18" width="8" height="11" rx="4" /><rect x="25" y="11" width="8" height="18" rx="4" /><rect x="40" y="15" width="8" height="14" rx="4" /><rect x="55" y="5" width="6" height="24" rx="3" /></svg>
-                    <strong>Bars</strong><small>Compare amounts</small>
-                  </span>
-                </label>
-                <label class="graph-type-card">
-                  <input type="radio" name="graph-type" value="donut">
-                  <span class="graph-type-card-content">
-                    <svg class="graph-type-preview graph-type-preview-donut" viewBox="0 0 64 36" aria-hidden="true"><circle cx="32" cy="18" r="12" /><circle cx="32" cy="18" r="12" /></svg>
-                    <strong>Donut</strong><small>See category shares</small>
-                  </span>
-                </label>
-              </div>
-            </fieldset>
+            <fieldset class="graph-type-fieldset" hidden><input type="radio" name="graph-type" value="line" checked></fieldset>
+            <p class="graph-editor-note">All views use line graphs. Choose monthly or daily on the graph.</p>
             <p class="graph-editor-note" id="graph-editor-note" aria-live="polite"></p>
             <div class="graph-form-actions">
               <button class="text-button" type="button" data-close-graph>Cancel</button>

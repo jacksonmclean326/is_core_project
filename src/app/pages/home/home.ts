@@ -25,14 +25,15 @@ import {
   monthName,
   shortMonthName,
 } from "../../../shared/months.js";
-import { getBankConnections, getLeaderboard, getSavingsRecord, type SavingsRecord } from "../../api.js";
+import { getBankConnections, getHomeTrends, getLeaderboard, getSavingsRecord, type HomeTrendsResponse, type SavingsRecord } from "../../api.js";
 import type { LeaderboardEntry, MonthlyChallenge } from "../../../shared/leaderboard.js";
 import { loadGoals } from "../../goals.js";
 import "../../page-navigation.js";
 
-type GraphMetric = "monthly-spending" | "category-spending" | "amount-saved" | "goal-remaining" | "friend-points";
+type GraphMetric = "monthly-spending" | "amount-saved" | "friend-points";
 type GraphType = "line" | "bar" | "donut";
 type GraphDatum = { label: string; value: number };
+type GraphSeries = { label: string; color: string; values: GraphDatum[]; isYou?: boolean };
 type GraphData = {
   title: string;
   summary: string;
@@ -42,30 +43,17 @@ type GraphData = {
   note?: string;
   emptyMessage?: string;
   change?: { icon: string; text: string };
+  series?: GraphSeries[];
 };
 
 const graphStorageKey = "money-man-home-graph";
-const graphMetrics: GraphMetric[] = [
-  "monthly-spending",
-  "category-spending",
-  "amount-saved",
-  "goal-remaining",
-  "friend-points",
-];
-const graphTypes: GraphType[] = ["line", "bar", "donut"];
+const graphMetrics: GraphMetric[] = ["monthly-spending", "friend-points", "amount-saved"];
+const graphTypes: GraphType[] = ["line"];
 const chartColors = ["#2f6854", "#e7745a", "#537f9e", "#d5a33e", "#9b8cb4", "#a9bc9f", "#747f79"];
 
-function graphTypesFor(metric: GraphMetric): GraphType[] {
-  if (metric === "monthly-spending") return ["line", "bar"];
-  if (metric === "category-spending") return ["bar", "donut"];
-  return ["bar"];
-}
+function graphTypesFor(_metric: GraphMetric): GraphType[] { return ["line"]; }
 
-function defaultGraphType(metric: GraphMetric): GraphType {
-  if (metric === "monthly-spending") return "line";
-  if (metric === "category-spending") return "donut";
-  return "bar";
-}
+function defaultGraphType(_metric: GraphMetric): GraphType { return "line"; }
 
 function compatibleGraphType(metric: GraphMetric, type: GraphType): GraphType {
   return graphTypesFor(metric).includes(type) ? type : defaultGraphType(metric);
@@ -91,6 +79,9 @@ function loadGraphSettings(): { metric: GraphMetric; type: GraphType } {
 }
 
 let graphSettings = loadGraphSettings();
+let graphPeriod: "monthly" | "daily" = "monthly";
+let homeTrends: HomeTrendsResponse | null = null;
+void getHomeTrends(currentMonthKey(), localDateString()).then(result => { homeTrends = result; renderGraph(); }).catch(() => { homeTrends = null; });
 
 /** Friends' normalized challenge scores: null until loaded. */
 let friendScores: LeaderboardEntry[] | null = null;
@@ -116,16 +107,18 @@ function formatCurrency(value: number): string {
 function graphData(metric: GraphMetric): GraphData {
   const currencyValue = formatCurrency;
   if (metric === "monthly-spending") {
-    const values = trendValues("spending");
+    const values = graphPeriod === "daily"
+      ? (homeTrends?.daily ?? []).map(row => row.spent)
+      : homeTrends?.monthly.map(row => row.spent) ?? trendValues("spending");
     const current = values.at(-1) ?? 0;
     const previous = values.at(-2) ?? 0;
     const difference = current - previous;
     const relative = previous ? Math.round(Math.abs(difference / previous) * 100) : 0;
     return {
-      title: "Spending by month",
+      title: graphPeriod === "daily" ? "Daily spending this month" : "Spending by month",
       summary: currencyValue(current),
       caption: "spent this month",
-      items: values.map((value, index) => ({ label: months[index] ?? "Month", value })),
+      items: values.map((value, index) => ({ label: graphPeriod === "daily" ? String(index + 1) : homeTrends?.monthly[index]?.label.slice(5) ?? months[index] ?? "Month", value })),
       formatValue: currencyValue,
       change: {
         icon: difference <= 0 ? "arrow-down-right" : "arrow-up-right",
@@ -134,21 +127,10 @@ function graphData(metric: GraphMetric): GraphData {
     };
   }
 
-  if (metric === "category-spending") {
-    return {
-      title: "Total spending by category",
-      summary: currencyValue(totalSpent()),
-      caption: "spent across categories this month",
-      items: state.categories
-        .filter((category) => category.visible)
-        .map((category) => ({ label: category.name, value: Math.max(0, Number(category.amount) || 0) })),
-      formatValue: currencyValue,
-    };
-  }
-
   if (metric === "amount-saved") {
     const budget = Number(state.budget) || 0;
-    if (!budget) {
+    const timeline = graphPeriod === "daily" ? homeTrends?.daily ?? [] : homeTrends?.monthly ?? [];
+    if (!budget && !timeline.length) {
       return {
         title: "Amount saved",
         summary: "Set a budget",
@@ -159,50 +141,31 @@ function graphData(metric: GraphMetric): GraphData {
       };
     }
     const spent = totalSpent();
-    const remaining = Math.max(0, budget - spent);
+    const remaining = timeline.at(-1)?.saved ?? Math.max(0, budget - spent);
     return {
-      title: "Amount saved",
+      title: "Total amount saved",
       summary: currencyValue(remaining),
-      caption: spent > budget ? "over budget this month" : "unspent budget this month",
-      items: [
-        { label: "Spent", value: spent },
-        { label: "Budget left", value: remaining },
-      ],
+      caption: "estimated income remaining after recorded spending",
+      items: timeline.map(row => ({ label: row.label, value: row.saved })),
       formatValue: currencyValue,
       note: "Budget left is an estimate based on your budget minus recorded spending; it is not a bank savings balance.",
     };
   }
 
-  if (metric === "goal-remaining") {
-    const items = state.goals
-      .filter((goal) => Number(goal.target) > 0)
-      .map((goal) => ({
-        label: goal.name,
-        value: Math.max(0, Number(goal.target) - Number(goal.progress || 0)),
-      }));
-    const remaining = items.reduce((total, item) => total + item.value, 0);
-    return {
-      title: "Amount left in goals",
-      summary: currencyValue(remaining),
-      caption: items.length === 1 ? "left to reach your goal" : "left across your goals",
-      items,
-      formatValue: currencyValue,
-      emptyMessage: "Add a savings goal on Details to chart how much is left.",
-    };
-  }
-
   // Normalized monthly challenge percentages, the same privacy-safe scores as the Friends page.
+  const seriesRows = graphPeriod === "daily" ? homeTrends?.friendsDaily ?? [] : homeTrends?.friendsMonthly ?? [];
   const ranked = friendScores ?? [];
   const you = (friendScores ?? []).find((entry) => entry.isYou);
   return {
-    title: "Friends' monthly challenge",
+    title: graphPeriod === "daily" ? "Daily challenge progress" : "Challenge scores over six months",
     summary: you ? `${Math.floor(you.score)}%` : friendScores ? "–" : "–",
     caption: you ? "your normalized challenge score" : "enable visibility to appear",
-    items: ranked.map((entry) => ({ label: entry.isYou ? "You" : entry.name, value: entry.score ?? 0 })),
+    items: seriesRows[0]?.values ?? ranked.map((entry) => ({ label: entry.isYou ? "You" : entry.name, value: entry.score ?? 0 })),
+    series: seriesRows.map((row,index)=>({label:row.isYou ? "You" : row.name,color:chartColors[index%chartColors.length],values:row.values,isYou:row.isYou})),
     formatValue: (value) => `${Math.floor(value)}%`,
     note: friendChallenge
-      ? `Scores are normalized percentages for ${friendChallenge.title}. No financial amounts are shared.`
-      : "Friend scores are normalized percentages; no financial amounts are shared.",
+      ? `Normalized challenge scores; challenge rules can vary by month. Current challenge: ${friendChallenge.title}. No financial amounts are shared.`
+      : "Normalized challenge scores; no financial amounts are shared.",
     emptyMessage: friendScores === null
       ? (friendScoresFailed ? "Couldn't load your friends' scores. Try again in a moment." : "Loading your friends' scores…")
       : "Add friends on the Friends tab to compare monthly challenge progress.",
@@ -247,7 +210,7 @@ function renderGraph(): void {
   lastChartWidth = chart.clientWidth;
   const legend = $("#chart-legend");
   const change = $("#trend-change");
-  $("#graph-eyebrow").textContent = graphSettings.metric === "monthly-spending" ? "YOUR LAST SIX MONTHS" : "YOUR FINANCES";
+  $("#graph-eyebrow").textContent = graphPeriod === "daily" ? "THIS MONTH, BY DAY" : "YOUR LAST SIX MONTHS";
   $("#trend-title").textContent = data.title;
   $("#trend-value").textContent = data.summary;
   $("#trend-caption").textContent = data.caption;
@@ -271,7 +234,8 @@ function renderGraph(): void {
 
   chart.classList.remove("is-empty", "is-donut");
   chart.setAttribute("aria-label", `${data.title}, ${graphSettings.type} chart`);
-  const values = data.items.map((item) => Math.max(0, item.value));
+  const allSeries = data.series?.length ? data.series : [{ label: "", color: chartColors[0]!, values: data.items }];
+  const values = allSeries.flatMap(series => series.values.map(item => Math.max(0,item.value)));
   // Leave headroom above the tallest point for its value label, then round the axis up to a tidy number.
   const scale = niceScale(Math.max(...values, 0) * 1.08);
   const ticks = [0, 1, 2, 3].map((step) => step * scale.step);
@@ -300,19 +264,20 @@ function renderGraph(): void {
 
   if (graphSettings.type === "line") {
     const inset = Math.min(24, slot / 2);
-    const points = data.items.map((item, index) => ({
-      x: data.items.length === 1 ? (left + right) / 2 : left + inset + ((right - left - inset * 2) * index) / (data.items.length - 1),
-      y: yFor(item.value),
-    }));
-    const path = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-    const area = `${path} L${points.at(-1)?.x ?? right} ${bottom} L${points[0]?.x ?? left} ${bottom} Z`;
-    const dots = points.map((point, index) =>
-      `<circle class="chart-dot${index === points.length - 1 ? " current" : ""}" cx="${point.x}" cy="${point.y}" r="${index === points.length - 1 ? 5 : 4}" />`,
-    ).join("");
-    const labels = points.map((point, index) => bottomLabel(point.x, index)).join("");
-    chartMarkup = `<defs><linearGradient id="chart-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8eaa96" stop-opacity=".32"/><stop offset="100%" stop-color="#8eaa96" stop-opacity=".015"/></linearGradient></defs>${grid}<path class="chart-area" d="${area}"/><path class="chart-line" d="${path}"/>${dots}${labels}`;
-    legend.innerHTML = "";
-    legend.hidden = true;
+    const count = Math.max(...allSeries.map(series=>series.values.length));
+    const xFor = (index:number) => count === 1 ? (left+right)/2 : left+inset+((right-left-inset*2)*index)/(count-1);
+    const lines = allSeries.map((series,seriesIndex)=>{
+      const points=series.values.map((item,index)=>({x:xFor(index),y:yFor(item.value)}));
+      const path=points.map((point,index)=>`${index?"L":"M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+      const dots=points.map((point,index)=>`<circle cx="${point.x}" cy="${point.y}" r="${index===points.length-1?4.5:3.5}" fill="${series.color}" stroke="white" stroke-width="1.5"/>`).join("");
+      const labels=seriesIndex===0 ? points.map((point,index)=>bottomLabel(point.x,index)).join("") : "";
+      return `<path d="${path}" fill="none" stroke="${series.color}" stroke-width="${series.isYou?3.5:2.5}" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}`;
+    }).join("");
+    chartMarkup = `${grid}${lines}`;
+    if (data.series?.length) {
+      legend.innerHTML=allSeries.map(series=>`<div class="chart-legend-item"><span class="chart-legend-swatch" style="--swatch:${series.color}"></span><span class="chart-legend-label">${escapeHTML(series.label)}</span></div>`).join("");
+      legend.hidden=false;
+    } else { legend.innerHTML=""; legend.hidden=true; }
   } else if (graphSettings.type === "bar") {
     const barWidth = Math.max(4, Math.min(44, slot * 0.58));
     const bars = data.items.map((item, index) => {
@@ -373,18 +338,15 @@ if (typeof ResizeObserver !== "undefined") {
 }
 
 function graphEditorNote(metric: GraphMetric): string {
-  if (metric === "friend-points") return "Compare this month's normalized challenge percentages with your friends.";
-  if (metric === "amount-saved") return "Budget left is an estimate based on your monthly budget minus recorded spending.";
-  if (metric === "goal-remaining" && !state.goals.length) return "Add a savings goal on Details to see its remaining amount.";
-  return "Your graph choice is saved in this browser.";
+  if (metric === "friend-points") return "Friend lines show normalized challenge scores; financial amounts are never shared.";
+  if (metric === "amount-saved") return "Savings are estimated from monthly income minus recorded spending.";
+  return "All graph views are line charts. Switch between monthly and daily points above the chart.";
 }
 
 function graphMetricHelp(metric: GraphMetric): string {
-  if (metric === "monthly-spending") return "See how your total spending changes from month to month.";
-  if (metric === "category-spending") return "Compare category amounts or see how each category contributes to your total.";
-  if (metric === "amount-saved") return "Compare the amount spent with the budget you have left.";
-  if (metric === "goal-remaining") return "Compare how much remains across your savings goals.";
-  return "Compare normalized monthly challenge scores; no financial amounts are shown.";
+  if (metric === "monthly-spending") return "Track total spending over the last six months or day by day this month.";
+  if (metric === "amount-saved") return "Track estimated income remaining after spending over six months or within this month.";
+  return "Compare your challenge score with each friend across six months or day by day this month.";
 }
 
 function updateGraphEditor(metric: GraphMetric, currentType: GraphType): GraphType {
@@ -407,6 +369,16 @@ function openGraphEditor(): void {
   updateGraphEditor(graphSettings.metric, graphSettings.type);
   $<HTMLDialogElement>("#graph-dialog").showModal();
 }
+
+document.querySelectorAll<HTMLButtonElement>("[data-graph-period]").forEach((button) => {
+  button.addEventListener("click", () => {
+    graphPeriod = button.dataset.graphPeriod === "daily" ? "daily" : "monthly";
+    document.querySelectorAll<HTMLButtonElement>("[data-graph-period]").forEach((option) => {
+      option.setAttribute("aria-pressed", String(option === button));
+    });
+    renderGraph();
+  });
+});
 
 $("#edit-graph").addEventListener("click", openGraphEditor);
 $("#graph-metric").addEventListener("change", (event) => {

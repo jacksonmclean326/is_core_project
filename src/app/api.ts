@@ -461,6 +461,19 @@ export function getLeaderboard(): Promise<import("../shared/leaderboard.js").Lea
   return request("/api/leaderboard");
 }
 
+export interface HomeTrendsResponse {
+  month: string;
+  monthly: { label: string; spent: number; saved: number }[];
+  daily: { label: string; spent: number; saved: number }[];
+  friendsMonthly: { name: string; isYou: boolean; values: { label: string; value: number }[] }[];
+  friendsDaily: { name: string; isYou: boolean; values: { label: string; value: number }[] }[];
+}
+export function getHomeTrends(month = new Date().toISOString().slice(0, 7), today?: string): Promise<HomeTrendsResponse> {
+  const params = new URLSearchParams({month});
+  if (today) params.set("today", today);
+  return request(`/api/home-trends?${params}`);
+}
+
 export interface CheckInStatus {
   available: boolean;
   due: boolean;
