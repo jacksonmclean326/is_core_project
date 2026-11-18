@@ -185,7 +185,22 @@ export function openFeedback(kind?: string): void {
   updateCount();
   refreshIcons();
   if (!element.open) element.showModal();
-  field<HTMLTextAreaElement>("#feedback-message").focus();
+  // On a phone, focusing the text box opens the keyboard over half the form before anyone has picked a type.
+  const touch = window.matchMedia?.("(pointer: coarse)").matches;
+  (touch ? field<HTMLInputElement>('input[name="kind"]:checked') : field<HTMLTextAreaElement>("#feedback-message")).focus();
+}
+
+/* The on-screen keyboard shrinks the visible area without resizing the page on iPhones. Expose the visible
+   area as CSS variables so the dialogs (global.css) stay above the keyboard. */
+const viewport = window.visualViewport;
+if (viewport) {
+  const update = () => {
+    document.documentElement.style.setProperty("--vv-height", `${viewport.height}px`);
+    document.documentElement.style.setProperty("--vv-top", `${viewport.offsetTop}px`);
+  };
+  viewport.addEventListener("resize", update);
+  viewport.addEventListener("scroll", update);
+  update();
 }
 
 document.addEventListener("click", (event) => {

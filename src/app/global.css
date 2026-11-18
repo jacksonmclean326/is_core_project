@@ -1317,6 +1317,31 @@ html {
 .feedback-form .dialog-form-feedback:empty { display: none; }
 .feedback-form .dialog-form-feedback.is-error { color: #a33f30; }
 .feedback-form .dialog-form-feedback a { color: inherit; text-decoration: underline; }
+/* Phones: the dialog spans the width, sits at the top of the visible area (above the keyboard, tracked by
+   feedback.ts), scrolls inside itself, and keeps Send pinned at the bottom. The page behind it stays put. */
+html:has(.feedback-dialog[open]) { overflow: hidden; }
+@media (max-width: 560px) {
+  .feedback-dialog {
+    inset: auto 10px auto 10px;
+    top: calc(var(--vv-top, 0px) + 10px);
+    width: auto;
+    max-width: none;
+    max-height: calc(var(--vv-height, 100dvh) - 20px);
+    margin: 0;
+    padding: 20px 16px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .feedback-dialog .dialog-close { top: 8px; right: 8px; }
+  .feedback-dialog .dialog-subtitle { margin-bottom: 12px; }
+  .feedback-form { gap: 12px; margin-top: 12px; }
+  .fb-kinds { display: grid; grid-template-columns: 1fr 1fr; }
+  .fb-kind span { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; padding: 6px 10px; border-radius: 12px; line-height: 1.25; text-align: center; }
+  .fb-check { min-height: 44px; }
+  .fb-actions { position: sticky; bottom: 0; z-index: 1; margin: 0 -16px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--paper); }
+  .fb-actions .primary-button { flex: 1; }
+  .fb-thanks { padding-bottom: 20px; }
+}
 /* Two-month savings check-in (built by checkin.ts); it reuses the feedback dialog styles. */
 .checkin-dialog .dialog-title { padding-right: 28px; }
 .checkin-amount[hidden] { display: none; }
@@ -1328,3 +1353,56 @@ html {
 .feedback-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin: 28px 0 8px; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); }
 .feedback-card h2 { margin: 0 0 3px; font-size: 0.9375rem; }
 .feedback-card p { margin: 0; color: var(--muted); font-size: 0.8125rem; line-height: 1.45; }
+
+/* Touch screens, page by page: controls that were 26-39px tall become 44px targets. min-* only, so the page
+   stylesheets' own sizes still apply everywhere else; :root outranks the page rules whichever loads last. */
+@media (pointer: coarse) {
+  :root .graph-select-label select,
+  :root .graph-period-control button,
+  :root .month-select,
+  :root .legend-row,
+  :root .top-category-name,
+  :root .bank-link,
+  :root .bank-disconnect,
+  :root .bank-include,
+  :root .chat-clear,
+  :root .suggestion-toggle,
+  :root .chat-compose input,
+  :root .copy-code,
+  :root .input-with-prefix input,
+  :root .admin-remove,
+  :root .admin-add-row input,
+  :root .admin-add-row .primary-button {
+    min-height: 44px;
+  }
+  :root .row-edit,
+  :root .chat-compose button,
+  :root .invite-shortcut {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :root .auth-switch-button {
+    min-height: 44px;
+    padding: 0 6px;
+  }
+  :root .help-toc a,
+  :root .privacy-toc a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
+/* Dark mode: text colors chosen for the light theme fell under 4.5:1 on the dark surfaces. */
+:root[data-theme="dark"] .graph-period-control { background: rgba(255, 255, 255, 0.04); }
+:root[data-theme="dark"] .graph-period-control button[aria-pressed="true"] { color: #b7e0c3; background: #293d32; }
+:root[data-theme="dark"] .challenge-status { color: #b7e0c3; background: #293d32; }
+:root[data-theme="dark"] .record-month.is-met strong,
+:root[data-theme="dark"] .admin-table .is-met,
+:root[data-theme="dark"] .admin-table .checkin-yes { color: var(--green-dark); }
+:root[data-theme="dark"] .record-month.is-missed strong,
+:root[data-theme="dark"] .admin-table .is-missed,
+:root[data-theme="dark"] .bank-disconnect { color: #f0978a; }
+:root[data-theme="dark"] .user-row .message-bubble strong,
+:root[data-theme="dark"] .user-row .message-bubble time { color: #fff; }
+:root[data-theme="dark"] .admin-table .checkin-due { color: #e2bd6c; }
