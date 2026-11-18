@@ -36,7 +36,7 @@
 #connect-bank .icon { width: 16px; height: 16px; }
 .setup-privacy { margin-top: 14px; padding: 12px; border-left: 3px solid var(--green); border-radius: 4px; background: var(--green-soft); color: var(--muted); font-size: .75rem; line-height: 1.5; }
 .setup-privacy strong { display: block; margin-bottom: 3px; color: var(--ink); }
-.friend-code-entry { display: flex; gap: 8px; }
+.friend-code-entry { display: flex; gap: 8px; margin-top: 8px; }
 .friend-code-entry > input { flex: 1; min-width: 0; }
 .setup-invite { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 18px 0; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .setup-invite > div { display: grid; gap: 4px; }
